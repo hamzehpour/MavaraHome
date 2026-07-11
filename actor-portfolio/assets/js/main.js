@@ -115,28 +115,44 @@ function buildEventCard(event) {
   const card = document.createElement('article');
   card.className = 'event-card';
 
-  card.appendChild(buildStatusBadge(event.status));
+  const image = buildCardImage(event);
+  if (image) card.appendChild(image);
+
+  const body = document.createElement('div');
+  body.className = 'event-card__body';
+
+  body.appendChild(buildStatusBadge(event.status));
 
   const title = document.createElement('h3');
   title.className = 'event-card__title';
   title.textContent = event.title;
-  card.appendChild(title);
+  body.appendChild(title);
 
   const tags = buildTagChips(event.tags);
-  if (tags) card.appendChild(tags);
+  if (tags) body.appendChild(tags);
 
   if (event.location) {
-    card.appendChild(buildMeta(event.location));
+    body.appendChild(buildMeta(event.location));
   }
 
   if (event.schedule && Array.isArray(event.schedule.days)) {
-    card.appendChild(buildMeta(event.schedule.days.join('، ')));
+    body.appendChild(buildMeta(event.schedule.days.join('، ')));
   }
 
   const cta = buildBookingCta(event);
-  if (cta) card.appendChild(cta);
+  if (cta) body.appendChild(cta);
 
+  card.appendChild(body);
   return card;
+}
+
+function buildCardImage(event) {
+  if (!Array.isArray(event.images) || event.images.length === 0) return null;
+  const img = document.createElement('img');
+  img.className = 'event-card__image';
+  img.src = assetPath(event.images[0]);
+  img.alt = '';
+  return img;
 }
 
 /* ============ صفحه رویدادها (تب وضعیت + فیلتر تگ + کارت کامل) ============ */
@@ -232,41 +248,48 @@ function buildFullEventCard(event) {
   const card = document.createElement('article');
   card.className = 'event-card event-card--full';
 
-  card.appendChild(buildStatusBadge(event.status));
+  const image = buildCardImage(event);
+  if (image) card.appendChild(image);
+
+  const body = document.createElement('div');
+  body.className = 'event-card__body';
+
+  body.appendChild(buildStatusBadge(event.status));
 
   const title = document.createElement('h3');
   title.className = 'event-card__title';
   title.textContent = event.title;
-  card.appendChild(title);
+  body.appendChild(title);
 
   const tags = buildTagChips(event.tags);
-  if (tags) card.appendChild(tags);
+  if (tags) body.appendChild(tags);
 
-  if (event.date) card.appendChild(buildMeta(event.date));
-  if (event.location) card.appendChild(buildMeta(event.location));
+  if (event.date) body.appendChild(buildMeta(event.date));
+  if (event.location) body.appendChild(buildMeta(event.location));
 
   if (event.schedule) {
     const parts = [];
     if (Array.isArray(event.schedule.days)) parts.push(event.schedule.days.join('، '));
     if (Array.isArray(event.schedule.times)) parts.push(event.schedule.times.join(' / '));
     if (event.schedule.duration_minutes) parts.push(`${event.schedule.duration_minutes} دقیقه`);
-    if (parts.length) card.appendChild(buildMeta(parts.join(' — ')));
+    if (parts.length) body.appendChild(buildMeta(parts.join(' — ')));
   }
 
   if (event.cast) {
-    card.appendChild(buildGroup('عوامل', event.cast, GROUP_LABELS.cast));
+    body.appendChild(buildGroup('عوامل', event.cast, GROUP_LABELS.cast));
   }
 
   if (event.context) {
     const context = document.createElement('p');
     context.className = 'event-card__context';
     context.textContent = event.context;
-    card.appendChild(context);
+    body.appendChild(context);
   }
 
   const cta = buildBookingCta(event);
-  if (cta) card.appendChild(cta);
+  if (cta) body.appendChild(cta);
 
+  card.appendChild(body);
   return card;
 }
 
