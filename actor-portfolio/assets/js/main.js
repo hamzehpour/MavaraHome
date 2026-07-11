@@ -75,6 +75,10 @@ function pagePath(file) {
   return location.pathname.includes('/pages/') ? file : `pages/${file}`;
 }
 
+function assetPath(path) {
+  return location.pathname.includes('/pages/') ? `../${path}` : path;
+}
+
 function fetchEvents() {
   return fetch(dataPath('events.json')).then((res) => {
     if (!res.ok) throw new Error('events.json not found');
@@ -354,22 +358,24 @@ function buildDetailGallery(images, title) {
   if (!Array.isArray(images) || images.length === 0) {
     gallery.classList.add('event-detail__gallery--empty');
     gallery.innerHTML = `
-      <img src="../assets/images/logo/mavara-emblem-640.webp" alt="" class="event-detail__gallery-placeholder-icon">
+      <img src="${assetPath('assets/images/logo/mavara-emblem-640.webp')}" alt="" class="event-detail__gallery-placeholder-icon">
       <p>پوستر این رویداد به‌زودی اضافه می‌شود</p>
     `;
     return gallery;
   }
 
+  const resolved = images.map(assetPath);
+
   const main = document.createElement('img');
   main.className = 'event-detail__gallery-main';
-  main.src = images[0];
+  main.src = resolved[0];
   main.alt = title;
   gallery.appendChild(main);
 
-  if (images.length > 1) {
+  if (resolved.length > 1) {
     const thumbs = document.createElement('div');
     thumbs.className = 'event-detail__gallery-thumbs';
-    images.forEach((src, index) => {
+    resolved.forEach((src, index) => {
       const thumb = document.createElement('button');
       thumb.type = 'button';
       thumb.className = 'event-detail__gallery-thumb';
