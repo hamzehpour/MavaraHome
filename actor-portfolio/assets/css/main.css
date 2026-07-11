@@ -567,3 +567,342 @@ body {
   font-size: var(--font-size-xs);
   color: rgba(250, 241, 228, 0.6);
 }
+
+/* حالت لینک فعال در ناوبری (صفحه جاری) */
+.site-header__nav-link[aria-current="page"] {
+  color: var(--color-accent-hover);
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   هیرو صفحات داخلی
+   ========================================================================== */
+.page-hero {
+  padding-block: var(--space-xl) var(--space-lg);
+  text-align: center;
+  background: radial-gradient(ellipse at top, var(--color-bg-soft) 0%, var(--color-bg) 60%);
+}
+
+.page-hero__eyebrow {
+  display: inline-block;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-gold-700);
+  background: var(--color-gold-200);
+  padding: 0.3rem 1rem;
+  border-radius: var(--radius-full);
+  margin-block-end: var(--space-sm);
+}
+
+.page-hero__title {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--color-navy-800);
+  margin-block-end: var(--space-xs);
+}
+
+.page-hero__subtitle {
+  font-size: var(--font-size-md);
+  color: var(--color-text-muted);
+  max-width: 42ch;
+  margin-inline: auto;
+}
+
+/* ==========================================================================
+   صفحه‌ی درباره منصور نصیری
+   ========================================================================== */
+.bio {
+  padding-block: var(--space-lg);
+}
+
+.bio__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  align-items: center;
+}
+
+.bio__portrait {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid var(--color-gold-400);
+  box-shadow: var(--shadow-soft);
+  background: var(--color-navy-700);
+  flex-shrink: 0;
+}
+.bio__portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bio__text {
+  max-width: 66ch;
+}
+
+.bio__text p {
+  margin-block-end: var(--space-sm);
+  line-height: var(--line-height-base);
+}
+
+.bio__connection {
+  max-width: 66ch;
+  margin-block-start: var(--space-lg);
+  padding: var(--space-md);
+  background: var(--color-bg-elevated);
+  border-inline-start: 4px solid var(--color-gold-500);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+}
+
+.bio__connection-title {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-gold-700);
+  margin-block-end: var(--space-2xs);
+}
+
+.bio__connection p {
+  color: var(--color-navy-700);
+}
+
+@media (min-width: 700px) {
+  .bio__inner {
+    flex-direction: row;
+    align-items: flex-start;
+    text-align: start;
+  }
+}
+
+/* ==========================================================================
+   صفحه‌ی درباره ماورا
+   ========================================================================== */
+.concept-intro {
+  padding-block: var(--space-lg);
+  text-align: center;
+}
+
+.concept-intro__text {
+  max-width: 60ch;
+  margin-inline: auto;
+  font-size: var(--font-size-md);
+  color: var(--color-navy-700);
+}
+
+.mavara-paths {
+  padding-block: var(--space-lg);
+}
+
+.mavara-paths__list {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.mavara-paths__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.mavara-paths__icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  color: var(--color-gold-600);
+}
+.mavara-paths__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.mavara-paths__title {
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  color: var(--color-navy-800);
+  margin-block-end: var(--space-2xs);
+}
+
+.mavara-paths__desc {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+@media (min-width: 700px) {
+  .mavara-paths__list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.mavara-why {
+  background: linear-gradient(160deg, var(--color-navy-900), var(--color-navy-700));
+  color: var(--color-text-on-dark);
+  padding-block: var(--space-xl);
+  text-align: center;
+}
+
+.mavara-why__inner {
+  max-width: 58ch;
+  margin-inline: auto;
+}
+
+.mavara-why__title {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  margin-block-end: var(--space-sm);
+}
+
+.mavara-why__text {
+  color: rgba(250, 241, 228, 0.85);
+}
+
+/* ==========================================================================
+   صفحه‌ی رویدادها
+   ========================================================================== */
+.events-page {
+  padding-block: var(--space-lg);
+}
+
+.events-tabs {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-block-end: var(--space-lg);
+}
+
+.events-tabs__btn {
+  padding: 0.7rem 1.6rem;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-navy-800);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  transition: background var(--transition-base), color var(--transition-base), border-color var(--transition-base);
+}
+.events-tabs__btn:hover {
+  border-color: var(--color-gold-500);
+}
+.events-tabs__btn[aria-selected="true"] {
+  background: var(--color-navy-800);
+  color: var(--color-text-on-dark);
+  border-color: var(--color-navy-800);
+}
+
+.events-grid {
+  display: grid;
+  gap: var(--space-md);
+}
+@media (min-width: 700px) {
+  .events-grid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+}
+
+.events-grid__empty {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding-block: var(--space-lg);
+  grid-column: 1 / -1;
+}
+
+/* کارت رویداد با جزییات کامل (صفحه رویدادها) */
+.event-card--full {
+  gap: var(--space-xs);
+}
+
+.event-card__group {
+  margin-block-start: var(--space-xs);
+}
+
+.event-card__group-title {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-gold-700);
+  margin-block-end: 0.3rem;
+}
+
+.event-card__group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.event-card__group-list li {
+  font-size: var(--font-size-sm);
+  color: var(--color-navy-700);
+}
+
+.event-card__context {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.event-card__status--archived {
+  color: var(--color-text-muted);
+  background: rgba(91, 100, 120, 0.14);
+}
+
+/* ==========================================================================
+   صفحه‌ی تماس
+   ========================================================================== */
+.contact-links {
+  padding-block: var(--space-lg) var(--space-2xl);
+}
+
+.contact-links__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-width: 460px;
+  margin-inline: auto;
+}
+
+.contact-links__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  transition: transform var(--transition-base);
+}
+.contact-links__item:hover {
+  transform: translateY(-3px);
+}
+
+.contact-links__icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  color: var(--color-gold-600);
+}
+.contact-links__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.contact-links__text {
+  display: flex;
+  flex-direction: column;
+}
+
+.contact-links__label {
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  color: var(--color-navy-800);
+}
+
+.contact-links__value {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}

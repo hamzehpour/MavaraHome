@@ -23,5 +23,27 @@
       "phone_note": "خانم جعفری",
       "instagram": "@mavarahome"
     }
+  },
+  {
+    "id": "shab-goftogoo-aramesh",
+    "title": "شب گفتگو: آرامش در دل آشوب",
+    "type": "talk",
+    "status": "upcoming",
+    "recurrence": "single",
+    "date": "۱۲ شهریور ۱۴۰۳",
+    "location": "تهران",
+    "context": "نمونه رویداد placeholder — جزییات دقیق به‌زودی اضافه می‌شود.",
+    "booking": {
+      "instagram": "@mavarahome"
+    }
+  },
+  {
+    "id": "kargah-khodshenasi-bahar",
+    "title": "کارگاه خودشناسی — دوره بهار",
+    "type": "workshop",
+    "status": "archived",
+    "recurrence": "seasonal",
+    "date": "بهار ۱۴۰۳",
+    "location": "تهران"
   }
 ]
