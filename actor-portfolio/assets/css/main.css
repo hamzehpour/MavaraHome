@@ -733,27 +733,6 @@ body {
   line-height: var(--line-height-base);
 }
 
-.bio__connection {
-  max-width: 66ch;
-  margin-block-start: var(--space-lg);
-  padding: var(--space-md);
-  background: var(--color-bg-elevated);
-  border-inline-start: 4px solid var(--color-gold-500);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-card);
-}
-
-.bio__connection-title {
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-  color: var(--color-gold-700);
-  margin-block-end: var(--space-2xs);
-}
-
-.bio__connection p {
-  color: var(--color-navy-700);
-}
-
 @media (min-width: 700px) {
   .bio__inner {
     flex-direction: row;
