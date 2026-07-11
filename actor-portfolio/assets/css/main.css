@@ -295,11 +295,35 @@ body {
   margin-inline: auto;
 }
 
+@media (min-width: 900px) {
+  .hero {
+    padding-block: var(--space-lg) var(--space-md);
+  }
+  .hero__emblem {
+    width: 200px;
+    margin-block-end: var(--space-sm);
+  }
+  .hero__title {
+    margin-block-end: var(--space-xs);
+  }
+  .hero__tagline {
+    max-width: 60ch;
+  }
+  .section-divider {
+    height: 40px;
+  }
+}
+
 /* ==========================================================================
    مسیرهای هنر
    ========================================================================== */
 .paths {
   padding-block: var(--space-lg);
+}
+@media (min-width: 900px) {
+  .paths {
+    padding-block: var(--space-md);
+  }
 }
 
 .paths__grid {
