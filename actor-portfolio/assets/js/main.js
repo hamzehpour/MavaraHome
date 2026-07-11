@@ -331,6 +331,6 @@ function buildBookingCta(event) {
   } else {
     cta.href = `tel:${event.booking.phone}`;
   }
-  cta.textContent = 'هماهنگی';
+  cta.textContent = 'جزییات و رزرو';
   return cta;
 }
