@@ -1,0 +1,27 @@
+[
+  {
+    "id": "baes-theater",
+    "title": "باعث",
+    "type": "theater",
+    "status": "ongoing",
+    "recurrence": "seasonal",
+    "cast": {
+      "actor": "منصور نصیری",
+      "stage_design": "هادی سلطانی‌فرد",
+      "planner": "آرزو جعفری",
+      "special_thanks": "بهزاد حاجی حسنی"
+    },
+    "schedule": {
+      "days": ["چهارشنبه", "پنجشنبه", "جمعه"],
+      "times": ["15:30", "17:00", "18:30", "20:00"],
+      "duration_minutes": 40
+    },
+    "location": "تهران، هفت‌تیر، بهارشیراز",
+    "context": "بخشی از رپرتوار سالانه باعث، طراحی و هدایت بهنام محب شریفی، اجرا در سال ۱۴۰۳",
+    "booking": {
+      "phone": "۰۹۹۰۴۳۴۷۷۲۹",
+      "phone_note": "خانم جعفری",
+      "instagram": "@mavarahome"
+    }
+  }
+]
