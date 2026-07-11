@@ -198,7 +198,9 @@ function buildGroup(title, data, labels) {
 function buildStatusBadge(status) {
   const badge = document.createElement('span');
   badge.className = 'event-card__status';
-  if (status === 'archived') badge.classList.add('event-card__status--archived');
+  if (status === 'ongoing' || status === 'archived') {
+    badge.classList.add(`event-card__status--${status}`);
+  }
   badge.textContent = STATUS_LABELS[status] || status;
   return badge;
 }

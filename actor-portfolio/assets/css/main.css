@@ -466,6 +466,9 @@ body {
 }
 
 .event-card__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
   align-self: flex-start;
   font-size: var(--font-size-xs);
   font-weight: 600;
@@ -473,6 +476,20 @@ body {
   background: var(--color-gold-200);
   padding: 0.2rem 0.7rem;
   border-radius: var(--radius-full);
+}
+
+.event-card__status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.event-card__status--ongoing {
+  color: var(--color-bg-soft);
+  background: var(--color-navy-800);
 }
 
 .event-card__title {
