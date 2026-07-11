@@ -1006,11 +1006,11 @@ body {
 
 .event-detail__gallery-main {
   width: 100%;
-  max-height: 520px;
-  object-fit: cover;
+  max-height: 640px;
+  object-fit: contain;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-soft);
-  background: var(--color-navy-700);
+  background: var(--color-bg-elevated);
 }
 
 .event-detail__gallery-thumbs {

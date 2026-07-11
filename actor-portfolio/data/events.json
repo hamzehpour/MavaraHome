@@ -6,7 +6,10 @@
     "status": "ongoing",
     "recurrence": "seasonal",
     "tags": ["theater"],
-    "images": [],
+    "images": [
+      "assets/images/baes-theater/1.jpg",
+      "assets/images/baes-theater/2.jpg"
+    ],
     "cast": {
       "actor": "منصور نصیری",
       "stage_design": "هادی سلطانی‌فرد",
