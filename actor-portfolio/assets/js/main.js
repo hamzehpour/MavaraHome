@@ -563,6 +563,9 @@ function buildBookingCta(event) {
   return cta;
 }
 
+const ICON_INSTAGRAM = '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="7" y="7" width="34" height="34" rx="10"/><circle cx="24" cy="24" r="9"/><circle cx="33.5" cy="14.5" r="1.6" fill="currentColor" stroke="none"/></svg>';
+const ICON_TELEGRAM = '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M5 23L43 7 31 41 22 27 5 23Z"/><path d="M22 27L38 12"/></svg>';
+
 function buildBookingButtons(event) {
   const wrap = document.createElement('div');
   wrap.className = 'event-detail__booking-actions';
@@ -573,8 +576,18 @@ function buildBookingButtons(event) {
     ig.href = `https://instagram.com/${event.booking.instagram.replace('@', '')}`;
     ig.target = '_blank';
     ig.rel = 'noopener';
-    ig.textContent = 'رزرو از اینستاگرام';
+    ig.innerHTML = `${ICON_INSTAGRAM}<span>رزرو از اینستاگرام</span>`;
     wrap.appendChild(ig);
+  }
+
+  if (event.booking && event.booking.telegram) {
+    const tg = document.createElement('a');
+    tg.className = 'btn btn--outline-light';
+    tg.href = `https://t.me/${event.booking.telegram.replace('@', '')}`;
+    tg.target = '_blank';
+    tg.rel = 'noopener';
+    tg.innerHTML = `${ICON_TELEGRAM}<span>رزرو از تلگرام</span>`;
+    wrap.appendChild(tg);
   }
 
   if (event.booking && event.booking.phone) {

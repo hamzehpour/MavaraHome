@@ -95,6 +95,11 @@ body {
 .btn:hover {
   transform: translateY(-2px);
 }
+.btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
 
 .btn--primary {
   background: var(--color-navy-800);
