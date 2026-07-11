@@ -534,31 +534,6 @@ body {
 }
 
 /* ==========================================================================
-   دعوت به همراهی
-   ========================================================================== */
-.cta-invite {
-  background: linear-gradient(160deg, var(--color-navy-900), var(--color-navy-700));
-  color: var(--color-text-on-dark);
-  padding-block: var(--space-xl);
-  text-align: center;
-}
-
-.cta-invite__text {
-  font-size: var(--font-size-lg);
-  font-weight: 500;
-  max-width: 32ch;
-  margin-inline: auto;
-  margin-block-end: var(--space-md);
-}
-
-.cta-invite__links {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--space-sm);
-}
-
-/* ==========================================================================
    فوتر
    ========================================================================== */
 .site-footer {
