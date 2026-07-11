@@ -94,7 +94,7 @@ function initHomeEventsPreview() {
   fetchEvents()
     .then((events) => {
       const featured = events
-        .filter((event) => event.status === 'ongoing' || event.status === 'upcoming')
+        .filter((event) => (event.status === 'ongoing' || event.status === 'upcoming') && !event.hide_from_home)
         .sort((a, b) => (a.status === 'ongoing' ? -1 : 1))
         .slice(0, 3);
 

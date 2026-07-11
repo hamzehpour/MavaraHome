@@ -34,6 +34,7 @@
     "title": "شب گفتگو: آرامش در دل آشوب",
     "type": "talk",
     "status": "upcoming",
+    "hide_from_home": true,
     "recurrence": "single",
     "tags": ["self-knowledge", "dialogue"],
     "images": [],
