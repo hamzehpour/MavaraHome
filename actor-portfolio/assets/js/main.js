@@ -320,7 +320,11 @@ function initEventDetailPage() {
 }
 
 function buildEventDetail(event) {
-  const wrap = document.createElement('div');
+  const layout = document.createElement('div');
+  layout.className = 'event-detail__layout';
+
+  const content = document.createElement('div');
+  content.className = 'event-detail__content';
 
   const header = document.createElement('div');
   header.className = 'event-detail__header';
@@ -334,14 +338,7 @@ function buildEventDetail(event) {
   const tags = buildTagChips(event.tags);
   if (tags) header.appendChild(tags);
 
-  wrap.appendChild(header);
-  wrap.appendChild(buildDetailGallery(event.images, event.title));
-
-  const body = document.createElement('div');
-  body.className = 'event-detail__body';
-
-  const main = document.createElement('div');
-  main.className = 'event-detail__main';
+  content.appendChild(header);
 
   if (event.context) {
     const section = document.createElement('div');
@@ -350,11 +347,11 @@ function buildEventDetail(event) {
     p.className = 'event-detail__context';
     p.textContent = event.context;
     section.appendChild(p);
-    main.appendChild(section);
+    content.appendChild(section);
   }
 
   const infoItems = buildDetailInfo(event);
-  if (infoItems) main.appendChild(infoItems);
+  if (infoItems) content.appendChild(infoItems);
 
   if (event.cast) {
     const section = document.createElement('div');
@@ -364,14 +361,19 @@ function buildEventDetail(event) {
     heading.textContent = 'عوامل';
     section.appendChild(heading);
     section.appendChild(buildGroup('', event.cast, GROUP_LABELS.cast));
-    main.appendChild(section);
+    content.appendChild(section);
   }
 
-  body.appendChild(main);
-  body.appendChild(buildDetailBooking(event));
-  wrap.appendChild(body);
+  content.appendChild(buildDetailBooking(event));
 
-  return wrap;
+  const galleryCol = document.createElement('div');
+  galleryCol.className = 'event-detail__gallery-col';
+  galleryCol.appendChild(buildDetailGallery(event.images, event.title));
+
+  layout.appendChild(content);
+  layout.appendChild(galleryCol);
+
+  return layout;
 }
 
 function buildDetailGallery(images, title) {
