@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initNavToggle();
   initHomeEventsPreview();
   initEventsPage();
+  initEventDetailPage();
 });
 
 function initNavToggle() {
@@ -68,6 +69,10 @@ const PATH_TAGS = {
 
 function dataPath(file) {
   return location.pathname.includes('/pages/') ? `../data/${file}` : `data/${file}`;
+}
+
+function pagePath(file) {
+  return location.pathname.includes('/pages/') ? file : `pages/${file}`;
 }
 
 function fetchEvents() {
@@ -261,6 +266,203 @@ function buildFullEventCard(event) {
   return card;
 }
 
+/* ============ صفحه جزییات رویداد ============ */
+function initEventDetailPage() {
+  const root = document.getElementById('eventDetailRoot');
+  if (!root) return;
+
+  const id = new URLSearchParams(location.search).get('id');
+
+  fetchEvents()
+    .then((events) => {
+      const event = events.find((item) => item.id === id);
+      if (!event) {
+        root.innerHTML = `
+          <p class="events-grid__empty">این رویداد پیدا نشد. شاید لینک قدیمی شده باشد.</p>
+        `;
+        return;
+      }
+
+      document.title = `${event.title} | خانه‌ی ماورا`;
+      root.innerHTML = '';
+      root.appendChild(buildEventDetail(event));
+    })
+    .catch(() => {
+      root.innerHTML = '<p class="events-grid__empty">در حال حاضر امکان نمایش این رویداد نیست.</p>';
+    });
+}
+
+function buildEventDetail(event) {
+  const wrap = document.createElement('div');
+
+  const header = document.createElement('div');
+  header.className = 'event-detail__header';
+  header.appendChild(buildStatusBadge(event.status));
+
+  const title = document.createElement('h1');
+  title.className = 'event-detail__title';
+  title.textContent = event.title;
+  header.appendChild(title);
+
+  const tags = buildTagChips(event.tags);
+  if (tags) header.appendChild(tags);
+
+  wrap.appendChild(header);
+  wrap.appendChild(buildDetailGallery(event.images, event.title));
+
+  const body = document.createElement('div');
+  body.className = 'event-detail__body';
+
+  const main = document.createElement('div');
+  main.className = 'event-detail__main';
+
+  if (event.context) {
+    const section = document.createElement('div');
+    section.className = 'event-detail__section';
+    const p = document.createElement('p');
+    p.className = 'event-detail__context';
+    p.textContent = event.context;
+    section.appendChild(p);
+    main.appendChild(section);
+  }
+
+  const infoItems = buildDetailInfo(event);
+  if (infoItems) main.appendChild(infoItems);
+
+  if (event.cast) {
+    const section = document.createElement('div');
+    section.className = 'event-detail__section';
+    const heading = document.createElement('h2');
+    heading.className = 'event-detail__section-title';
+    heading.textContent = 'عوامل';
+    section.appendChild(heading);
+    section.appendChild(buildGroup('', event.cast, GROUP_LABELS.cast));
+    main.appendChild(section);
+  }
+
+  body.appendChild(main);
+  body.appendChild(buildDetailBooking(event));
+  wrap.appendChild(body);
+
+  return wrap;
+}
+
+function buildDetailGallery(images, title) {
+  const gallery = document.createElement('div');
+  gallery.className = 'event-detail__gallery';
+
+  if (!Array.isArray(images) || images.length === 0) {
+    gallery.classList.add('event-detail__gallery--empty');
+    gallery.innerHTML = `
+      <img src="../assets/images/logo/mavara-emblem-640.webp" alt="" class="event-detail__gallery-placeholder-icon">
+      <p>پوستر این رویداد به‌زودی اضافه می‌شود</p>
+    `;
+    return gallery;
+  }
+
+  const main = document.createElement('img');
+  main.className = 'event-detail__gallery-main';
+  main.src = images[0];
+  main.alt = title;
+  gallery.appendChild(main);
+
+  if (images.length > 1) {
+    const thumbs = document.createElement('div');
+    thumbs.className = 'event-detail__gallery-thumbs';
+    images.forEach((src, index) => {
+      const thumb = document.createElement('button');
+      thumb.type = 'button';
+      thumb.className = 'event-detail__gallery-thumb';
+      thumb.setAttribute('aria-pressed', String(index === 0));
+      thumb.innerHTML = `<img src="${src}" alt="">`;
+      thumb.addEventListener('click', () => {
+        main.src = src;
+        thumbs.querySelectorAll('.event-detail__gallery-thumb').forEach((t) => t.setAttribute('aria-pressed', 'false'));
+        thumb.setAttribute('aria-pressed', 'true');
+      });
+      thumbs.appendChild(thumb);
+    });
+    gallery.appendChild(thumbs);
+  }
+
+  return gallery;
+}
+
+function buildDetailInfo(event) {
+  const rows = [];
+
+  if (event.date) rows.push(['تاریخ', event.date]);
+  if (event.location) rows.push(['مکان', event.location]);
+
+  if (event.schedule) {
+    if (Array.isArray(event.schedule.days)) rows.push(['روزهای اجرا', event.schedule.days.join('، ')]);
+    if (Array.isArray(event.schedule.times)) rows.push(['ساعت‌های اجرا', event.schedule.times.join(' — ')]);
+    if (event.schedule.duration_minutes) rows.push(['مدت اجرا', `${event.schedule.duration_minutes} دقیقه`]);
+  }
+
+  if (rows.length === 0) return null;
+
+  const section = document.createElement('div');
+  section.className = 'event-detail__section';
+
+  const heading = document.createElement('h2');
+  heading.className = 'event-detail__section-title';
+  heading.textContent = 'زمان و مکان';
+  section.appendChild(heading);
+
+  const grid = document.createElement('dl');
+  grid.className = 'event-detail__info-grid';
+  rows.forEach(([label, value]) => {
+    const dt = document.createElement('dt');
+    dt.textContent = label;
+    const dd = document.createElement('dd');
+    dd.textContent = value;
+    grid.appendChild(dt);
+    grid.appendChild(dd);
+  });
+  section.appendChild(grid);
+
+  return section;
+}
+
+function buildDetailBooking(event) {
+  const box = document.createElement('aside');
+  box.className = 'event-detail__booking';
+
+  const heading = document.createElement('h2');
+  heading.className = 'event-detail__booking-title';
+
+  if (event.status === 'archived') {
+    heading.textContent = 'این رویداد به پایان رسیده است';
+    box.appendChild(heading);
+    const p = document.createElement('p');
+    p.className = 'event-detail__booking-text';
+    p.textContent = 'برای اطلاع از رویدادهای مشابه، رویدادهای جاری و پیش‌رو را ببین.';
+    box.appendChild(p);
+    const link = document.createElement('a');
+    link.className = 'btn btn--gold';
+    link.href = 'events.html';
+    link.textContent = 'رویدادهای جاری';
+    box.appendChild(link);
+    return box;
+  }
+
+  heading.textContent = 'رزرو و هماهنگی';
+  box.appendChild(heading);
+
+  const buttons = buildBookingButtons(event);
+  if (buttons) {
+    box.appendChild(buttons);
+  } else {
+    const p = document.createElement('p');
+    p.className = 'event-detail__booking-text';
+    p.textContent = 'اطلاعات رزرو این رویداد به‌زودی اضافه می‌شود.';
+    box.appendChild(p);
+  }
+
+  return box;
+}
+
 function buildTagChips(tags) {
   if (!Array.isArray(tags) || tags.length === 0) return null;
 
@@ -283,10 +485,12 @@ function buildGroup(title, data, labels) {
   const wrap = document.createElement('div');
   wrap.className = 'event-card__group';
 
-  const heading = document.createElement('p');
-  heading.className = 'event-card__group-title';
-  heading.textContent = title;
-  wrap.appendChild(heading);
+  if (title) {
+    const heading = document.createElement('p');
+    heading.className = 'event-card__group-title';
+    heading.textContent = title;
+    wrap.appendChild(heading);
+  }
 
   const list = document.createElement('ul');
   list.className = 'event-card__group-list';
@@ -320,17 +524,35 @@ function buildMeta(text) {
 
 function buildBookingCta(event) {
   if (event.status === 'archived') return null;
-  if (!event.booking || !(event.booking.instagram || event.booking.phone)) return null;
 
   const cta = document.createElement('a');
   cta.className = 'btn btn--outline event-card__cta';
-  if (event.booking.instagram) {
-    cta.href = `https://instagram.com/${event.booking.instagram.replace('@', '')}`;
-    cta.target = '_blank';
-    cta.rel = 'noopener';
-  } else {
-    cta.href = `tel:${event.booking.phone}`;
-  }
+  cta.href = `${pagePath('event-detail.html')}?id=${encodeURIComponent(event.id)}`;
   cta.textContent = 'جزییات و رزرو';
   return cta;
+}
+
+function buildBookingButtons(event) {
+  const wrap = document.createElement('div');
+  wrap.className = 'event-detail__booking-actions';
+
+  if (event.booking && event.booking.instagram) {
+    const ig = document.createElement('a');
+    ig.className = 'btn btn--gold';
+    ig.href = `https://instagram.com/${event.booking.instagram.replace('@', '')}`;
+    ig.target = '_blank';
+    ig.rel = 'noopener';
+    ig.textContent = 'رزرو از اینستاگرام';
+    wrap.appendChild(ig);
+  }
+
+  if (event.booking && event.booking.phone) {
+    const tel = document.createElement('a');
+    tel.className = 'btn btn--outline-light';
+    tel.href = `tel:${event.booking.phone}`;
+    tel.textContent = event.booking.phone_note ? `تماس با ${event.booking.phone_note}` : 'تماس تلفنی';
+    wrap.appendChild(tel);
+  }
+
+  return wrap.children.length ? wrap : null;
 }

@@ -964,6 +964,184 @@ body {
 }
 
 /* ==========================================================================
+   صفحه‌ی جزییات رویداد
+   ========================================================================== */
+.event-detail__back-wrap {
+  padding-block-start: var(--space-md);
+}
+
+.event-detail__back {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-navy-700);
+  transition: color var(--transition-base);
+}
+.event-detail__back:hover {
+  color: var(--color-gold-700);
+}
+
+.event-detail {
+  padding-block: var(--space-lg) var(--space-2xl);
+}
+
+.event-detail__header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  margin-block-end: var(--space-lg);
+}
+
+.event-detail__title {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--color-navy-800);
+}
+
+.event-detail__gallery {
+  margin-block-end: var(--space-lg);
+}
+
+.event-detail__gallery-main {
+  width: 100%;
+  max-height: 520px;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  background: var(--color-navy-700);
+}
+
+.event-detail__gallery-thumbs {
+  display: flex;
+  gap: var(--space-xs);
+  margin-block-start: var(--space-xs);
+  overflow-x: auto;
+}
+
+.event-detail__gallery-thumb {
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 2px solid transparent;
+  opacity: 0.6;
+  transition: opacity var(--transition-base), border-color var(--transition-base);
+}
+.event-detail__gallery-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.event-detail__gallery-thumb:hover {
+  opacity: 1;
+}
+.event-detail__gallery-thumb[aria-pressed="true"] {
+  opacity: 1;
+  border-color: var(--color-gold-500);
+}
+
+.event-detail__gallery--empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-xl) var(--space-md);
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-lg);
+  border: 1.5px dashed var(--color-border);
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.event-detail__gallery-placeholder-icon {
+  width: 64px;
+  height: 64px;
+  opacity: 0.5;
+}
+
+.event-detail__body {
+  display: grid;
+  gap: var(--space-lg);
+}
+@media (min-width: 800px) {
+  .event-detail__body {
+    grid-template-columns: 2fr 1fr;
+    align-items: start;
+  }
+}
+
+.event-detail__section {
+  margin-block-end: var(--space-lg);
+}
+
+.event-detail__section-title {
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  color: var(--color-navy-800);
+  margin-block-end: var(--space-xs);
+}
+
+.event-detail__context {
+  color: var(--color-navy-700);
+  line-height: var(--line-height-base);
+}
+
+.event-detail__info-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1rem;
+}
+.event-detail__info-grid dt {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-gold-700);
+}
+.event-detail__info-grid dd {
+  font-size: var(--font-size-sm);
+  color: var(--color-navy-700);
+}
+
+.event-detail__booking {
+  background: linear-gradient(160deg, var(--color-navy-900), var(--color-navy-700));
+  color: var(--color-text-on-dark);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  align-self: start;
+}
+@media (min-width: 800px) {
+  .event-detail__booking {
+    position: sticky;
+    top: calc(var(--space-md) + 72px);
+  }
+}
+
+.event-detail__booking-title {
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  margin-block-end: var(--space-xs);
+}
+
+.event-detail__booking-text {
+  color: rgba(250, 241, 228, 0.8);
+  font-size: var(--font-size-sm);
+  margin-block-end: var(--space-sm);
+}
+
+.event-detail__booking-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+.event-detail__booking-actions .btn {
+  width: 100%;
+}
+
+/* ==========================================================================
    صفحه‌ی تماس
    ========================================================================== */
 .contact-links {

@@ -6,6 +6,7 @@
     "status": "ongoing",
     "recurrence": "seasonal",
     "tags": ["theater"],
+    "images": [],
     "cast": {
       "actor": "منصور نصیری",
       "stage_design": "هادی سلطانی‌فرد",
@@ -32,6 +33,7 @@
     "status": "upcoming",
     "recurrence": "single",
     "tags": ["self-knowledge", "dialogue"],
+    "images": [],
     "date": "۱۲ شهریور ۱۴۰۳",
     "location": "تهران",
     "context": "نمونه رویداد placeholder — جزییات دقیق به‌زودی اضافه می‌شود.",
@@ -46,6 +48,7 @@
     "status": "archived",
     "recurrence": "seasonal",
     "tags": ["self-knowledge"],
+    "images": [],
     "date": "بهار ۱۴۰۳",
     "location": "تهران"
   }
