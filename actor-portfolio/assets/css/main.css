@@ -566,8 +566,37 @@ body {
   font-weight: 600;
 }
 
+.site-footer__groups {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+}
+@media (min-width: 600px) {
+  .site-footer__groups {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--space-xl);
+  }
+}
+
+.site-footer__group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.site-footer__group-title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-on-dark);
+}
+
 .site-footer__social {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: var(--space-md);
 }
 .site-footer__social a {
