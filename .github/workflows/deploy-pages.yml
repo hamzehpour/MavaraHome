@@ -26,10 +26,26 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      # Combines two independent sites into one Pages artifact so both
+      # get a URL under this repo's single Pages deployment:
+      #   /              -> actor-portfolio/ (the real static showcase site)
+      #   /new-project/  -> website/ (Phase 4-8 delivery) — STATIC PREVIEW
+      #                      ONLY. It has no backend here (that's a
+      #                      separate Python API server, see bot/README.md
+      #                      / DEPLOYMENT.md), so anything that calls
+      #                      /api/v1/... (login, live events, tickets)
+      #                      will not work — this is layout/design only.
+      - name: Assemble combined Pages artifact
+        run: |
+          mkdir -p ./pages_artifact
+          cp -r ./actor-portfolio/. ./pages_artifact/
+          mkdir -p ./pages_artifact/new-project
+          cp -r ./website/. ./pages_artifact/new-project/
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./actor-portfolio
+          path: ./pages_artifact
 
   deploy:
     needs: build
