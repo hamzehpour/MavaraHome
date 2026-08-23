@@ -319,15 +319,19 @@ const API = {
   // _get_admin_payload — it explicitly rejects a customer token anyway,
   // but keeping the two storages separate avoids relying on that as the
   // only safety net).
+  // Schema v9: customer login rewritten from phone+Telegram-delivered OTP
+  // to email OTP (no SMS provider, and email needs no "connect Telegram
+  // first" linking step the old flow required) — see
+  // bot/services/customer_auth_service.py for the backend side.
   customerAuth: {
-    async requestOtp(phone) {
-      return apiFetch('/auth/customer/request-otp', { method: 'POST', body: JSON.stringify({ phone }) });
+    async requestOtp(email) {
+      return apiFetch('/auth/customer/request-otp', { method: 'POST', body: JSON.stringify({ email }) });
     },
-    async verifyOtp(phone, code) {
-      const result = await apiFetch('/auth/customer/verify-otp', { method: 'POST', body: JSON.stringify({ phone, code }) });
+    async verifyOtp(email, code) {
+      const result = await apiFetch('/auth/customer/verify-otp', { method: 'POST', body: JSON.stringify({ email, code }) });
       sessionStorage.setItem('mh_cust_access_token', result.access_token);
       sessionStorage.setItem('mh_cust_refresh_token', result.refresh_token);
-      sessionStorage.setItem('mh_cust_phone', result.phone || phone);
+      sessionStorage.setItem('mh_cust_email', result.email || email);
       sessionStorage.setItem('mh_cust_name', result.full_name || '');
       return result;
     },
@@ -346,13 +350,13 @@ const API = {
     logout() {
       sessionStorage.removeItem('mh_cust_access_token');
       sessionStorage.removeItem('mh_cust_refresh_token');
-      sessionStorage.removeItem('mh_cust_phone');
+      sessionStorage.removeItem('mh_cust_email');
       sessionStorage.removeItem('mh_cust_name');
     },
     check() { return !!this.getAccessToken(); },
     getAccessToken() { return sessionStorage.getItem('mh_cust_access_token'); },
     getRefreshToken() { return sessionStorage.getItem('mh_cust_refresh_token'); },
-    getPhone() { return sessionStorage.getItem('mh_cust_phone') || ''; },
+    getEmail() { return sessionStorage.getItem('mh_cust_email') || ''; },
     getName() { return sessionStorage.getItem('mh_cust_name') || ''; },
   },
   // Phase 4/6: the logged-in customer's own reservations + ticket PDFs.

@@ -32,56 +32,42 @@ const STATUS_FA = {
 function renderLogin() {
   const root = document.getElementById('accRoot');
   root.innerHTML = `
-    <section class="hero" style="padding:10px 0 26px"><h1>حساب من</h1><p style="color:var(--text-muted)">با شماره تلفنی که با آن رزرو کرده‌اید وارد شوید</p></section>
+    <section class="hero" style="padding:10px 0 26px"><h1>حساب من</h1><p style="color:var(--text-muted)">با ایمیل خود وارد شوید — کد ورود همان‌جا برایتان ارسال می‌شود</p></section>
     <div class="acc-box">
-      <div id="stepPhone">
-        <input id="accPhone" placeholder="شماره موبایل (مثلاً 09121234567)" inputmode="tel">
+      <div id="stepEmail">
+        <input id="accEmail" type="email" placeholder="ایمیل (مثلاً you@example.com)" inputmode="email" dir="ltr" style="text-align:left">
         <button class="btn btn--primary" style="width:100%" onclick="requestOtp()">ارسال کد ورود</button>
       </div>
       <div id="stepOtp" style="display:none"></div>
-      <div id="stepLinkRequired" style="display:none"></div>
       <p id="accError" style="color:#c44;font-size:13px;margin-top:10px"></p>
     </div>`;
 }
 
 async function requestOtp() {
-  const phone = document.getElementById('accPhone').value.trim();
+  const email = document.getElementById('accEmail').value.trim();
   const errEl = document.getElementById('accError');
   errEl.textContent = '';
-  if (!phone) { errEl.textContent = 'شماره موبایل را وارد کنید.'; return; }
+  if (!email) { errEl.textContent = 'ایمیل را وارد کنید.'; return; }
   try {
-    const result = await API.customerAuth.requestOtp(phone);
-    if (result.channel === 'telegram') {
-      document.getElementById('stepPhone').style.display = 'none';
-      document.getElementById('stepOtp').style.display = 'block';
-      document.getElementById('stepOtp').innerHTML = `
-        <p style="font-size:13.5px;color:var(--text-muted);margin-bottom:10px">کد ۶ رقمی که در تلگرام برایتان ارسال شد را وارد کنید.</p>
-        <input id="accCode" placeholder="کد ۶ رقمی" inputmode="numeric" maxlength="6">
-        <button class="btn btn--primary" style="width:100%" onclick="verifyOtp('${esc(phone)}')">تأیید و ورود</button>
-        <button class="btn btn--outline" style="width:100%;margin-top:8px" onclick="renderLogin()">تغییر شماره</button>`;
-    } else if (result.channel === 'link_required') {
-      document.getElementById('stepPhone').style.display = 'none';
-      document.getElementById('stepLinkRequired').style.display = 'block';
-      document.getElementById('stepLinkRequired').innerHTML = `
-        <p style="font-size:13.5px;line-height:2;margin-bottom:14px">
-          چون این پروژه سرویس پیامک ندارد، کد ورود از طریق ربات تلگرام ارسال می‌شود.
-          برای یک‌بار، روی دکمه‌ی زیر بزنید تا حساب شما به تلگرام وصل شود، سپس به این صفحه برگردید
-          و دوباره «ارسال کد ورود» را بزنید.
-        </p>
-        <a class="btn btn--gold" style="width:100%;display:block;text-align:center" href="connect-telegram.html?link=${encodeURIComponent(result.link_token)}">اتصال به تلگرام</a>
-        <button class="btn btn--outline" style="width:100%;margin-top:8px" onclick="renderLogin()">بازگشت</button>`;
-    }
+    await API.customerAuth.requestOtp(email);
+    document.getElementById('stepEmail').style.display = 'none';
+    document.getElementById('stepOtp').style.display = 'block';
+    document.getElementById('stepOtp').innerHTML = `
+      <p style="font-size:13.5px;color:var(--text-muted);margin-bottom:10px">کد ۶ رقمی که به ایمیل‌تان ارسال شد را وارد کنید.</p>
+      <input id="accCode" placeholder="کد ۶ رقمی" inputmode="numeric" maxlength="6">
+      <button class="btn btn--primary" style="width:100%" onclick="verifyOtp('${esc(email)}')">تأیید و ورود</button>
+      <button class="btn btn--outline" style="width:100%;margin-top:8px" onclick="renderLogin()">تغییر ایمیل</button>`;
   } catch (err) {
     errEl.textContent = err.details || err.message || 'خطایی رخ داد.';
   }
 }
 
-async function verifyOtp(phone) {
+async function verifyOtp(email) {
   const code = document.getElementById('accCode').value.trim();
   const errEl = document.getElementById('accError');
   errEl.textContent = '';
   try {
-    await API.customerAuth.verifyOtp(phone, code);
+    await API.customerAuth.verifyOtp(email, code);
     await renderDashboard();
   } catch (err) {
     errEl.textContent = 'کد نادرست است یا منقضی شده — دوباره تلاش کنید.';
@@ -97,7 +83,7 @@ async function renderDashboard() {
   root.innerHTML = `
     <section class="hero" style="padding:10px 0 20px;text-align:${document.dir === 'rtl' ? 'center' : 'center'}">
       <h1>سلام${API.customerAuth.getName() ? '، ' + esc(API.customerAuth.getName()) : ''} 👋</h1>
-      <p style="color:var(--text-muted)">${esc(API.customerAuth.getPhone())}</p>
+      <p style="color:var(--text-muted)" dir="ltr">${esc(API.customerAuth.getEmail())}</p>
       <button class="btn btn--outline" style="font-size:12px;margin-top:8px" onclick="API.customerAuth.logout(); renderLogin();">خروج از حساب</button>
     </section>
     <h3 style="margin-bottom:10px">رزروهای من</h3>

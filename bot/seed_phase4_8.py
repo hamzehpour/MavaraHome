@@ -14,12 +14,11 @@ Usage:
 
 What you get, printed at the end with exact values to paste into the UI:
   - A website admin login (username/password) for the admin panel
-  - A CUSTOMER phone number that already has Telegram linked (so
-    "request OTP" on the website instantly queues a real code — this
-    script prints that code directly, so you don't need a working bot to
-    test the login flow)
-  - A second CUSTOMER phone number with NO Telegram linked yet, to test
-    the "please connect Telegram first" flow
+  - A CUSTOMER account (email) with a real, ready-to-use OTP login code
+    (printed directly by this script, so you don't need a real SMTP
+    server configured to test the login flow — see .env.example's
+    SMTP_* section) that already owns the approved test reservation
+    below, so logging in immediately shows a real ticket to download
   - 5 team members ("اعضای خانه ماورا") with bios, for the public team
     page and the admin team-management panel
   - One APPROVED reservation with a real signed ticket code, ready to
@@ -45,10 +44,9 @@ from database.repositories import users as users_repo  # noqa: E402
 from database.repositories import reservations as reservations_repo  # noqa: E402
 from database.repositories import team_members as team_repo  # noqa: E402
 from database.repositories import messages as messages_repo  # noqa: E402
-from database.repositories import bot_outbox as outbox_repo  # noqa: E402
 from database.repositories import web_admins as web_admins_repo  # noqa: E402
 from services import reservation_service  # noqa: E402
-from services.customer_auth_service import request_otp  # noqa: E402
+from database.repositories import customer_auth as customer_auth_repo  # noqa: E402
 from utils.auth import hash_password  # noqa: E402
 
 
@@ -76,14 +74,13 @@ def seed() -> None:
     session_id = sessions_repo.create_session(event_id, session_date_iso, "19:00", capacity=30)
     print(f"✅ Test event + session created (session date: {session_date_iso})")
 
-    # ---- 3) Two customer phones: one Telegram-linked, one not ----------
+    # ---- 3) A test customer: books by phone (like any guest), then gets
+    # an email attached so the SAME account can log in and see it -------
     linked_phone = "09120000001"
-    unlinked_phone = "09120000002"
+    test_email = "customer@example.com"
     linked_user = users_repo.get_or_create_user_by_phone(linked_phone)
-    users_repo.link_telegram_id_by_phone(linked_phone, 700000001)
-    users_repo.get_or_create_user_by_phone(unlinked_phone)
-    print(f"✅ Customer WITH Telegram linked: {linked_phone} (simulated telegram_id 700000001)")
-    print(f"✅ Customer WITHOUT Telegram linked yet: {unlinked_phone}")
+    users_repo.set_email(linked_user["id"], test_email)
+    print(f"✅ Test customer: booked by phone {linked_phone}, logs in with email {test_email}")
 
     # ---- 4) A real approved reservation + issued ticket for that user --
     result = reservation_service.start_reservation_web(
@@ -131,22 +128,17 @@ def seed() -> None:
     messages_repo.add_message(linked_user["id"], "customer", "ممنون! جای پارکینگ هم هست؟")
     print("✅ Sample support conversation added (admin/messages.html)")
 
-    # ---- 7) A ready-to-use OTP code for the linked customer -------------
-    otp_result = request_otp(linked_phone)
-    if otp_result.get("channel") == "telegram":
-        pending = outbox_repo.list_pending()
-        code = None
-        for item in reversed(pending):
-            if item["telegram_id"] == 700000001:
-                import re
-                m = re.search(r"\d{6}", item["body"])
-                if m:
-                    code = m.group(0)
-                break
-        if code:
-            print(f"✅ A live OTP code was generated for {linked_phone}: {code}")
-            print(f"   → On /pages/account.html, enter phone {linked_phone}, then this code, to log in right now")
-            print("     (valid for 5 minutes from when this script ran).")
+    # ---- 7) A ready-to-use OTP code for the test customer's email ------
+    # Generated directly (not via customer_auth_service.request_otp(),
+    # which would try to actually send an email) so this script works
+    # the same whether or not SMTP_* is configured in .env — the code is
+    # printed either way.
+    import secrets as _secrets
+    otp_code = f"{_secrets.randbelow(1_000_000):06d}"
+    customer_auth_repo.create_otp(test_email, otp_code)
+    print(f"✅ A live OTP code was generated for {test_email}: {otp_code}")
+    print(f"   → On /pages/account.html, enter {test_email}, then this code, to log in right now")
+    print("     (valid for 5 minutes from when this script ran) — you'll see the approved reservation above.")
 
     print("\n🎉 Done. See DEPLOYMENT.md / README's testing walkthrough for the full click-by-click guide.")
 

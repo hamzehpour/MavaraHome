@@ -12,7 +12,7 @@ what's missing instead of guessing from column-already-exists errors.
 from database.connection import get_connection
 from config.settings import BOOTSTRAP_ADMIN_IDS
 
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 
 SCHEMA_STATEMENTS = [
     # ---- users -------------------------------------------------
@@ -222,6 +222,11 @@ SCHEMA_STATEMENTS = [
     "CREATE INDEX IF NOT EXISTS idx_sessions_event ON sessions(event_id)",
     "CREATE INDEX IF NOT EXISTS idx_users_telegram ON users(telegram_id)",
     "CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone)",
+    # NOTE: idx_users_email / idx_customer_otp_email (schema v9) are NOT
+    # here — `email` is an ALTER-added column (see init_db() below), and
+    # this list runs BEFORE that ALTER loop, so creating an index on it
+    # here would fail on any database that doesn't already have the
+    # column. They're created right after the ALTER loop instead.
     "CREATE UNIQUE INDEX IF NOT EXISTS uq_session_slot ON sessions(event_id, session_date, session_time)",
 ]
 
@@ -280,6 +285,8 @@ CUSTOMER_OTP_TABLE = """
 """
 SCHEMA_STATEMENTS.append(CUSTOMER_OTP_TABLE)
 SCHEMA_STATEMENTS.append("CREATE INDEX IF NOT EXISTS idx_customer_otp_phone ON customer_otp(phone)")
+# idx_customer_otp_email / idx_users_email (schema v9) are created after
+# the ALTER loop in init_db() — see the NOTE next to idx_users_phone above.
 
 TELEGRAM_LINK_TOKENS_TABLE = """
     CREATE TABLE IF NOT EXISTS telegram_link_tokens (
@@ -512,11 +519,28 @@ def init_db() -> None:
             # text header if neither is set — see utils/ticket_pdf.py).
             "ALTER TABLE events ADD COLUMN important_notes TEXT",
             "ALTER TABLE events ADD COLUMN ticket_logo TEXT",
+            # Schema v9: customer account login rewritten from phone+
+            # Telegram-delivery to email (this project has no SMS
+            # provider, and routing every login through the Telegram bot
+            # just to receive a code was awkward — see
+            # services/customer_auth_service.py). `customer_otp.phone`
+            # stays NOT NULL for backward compatibility (old rows), so
+            # new email-based rows write '' into it rather than requiring
+            # a full table rebuild just to relax that constraint.
+            "ALTER TABLE users ADD COLUMN email TEXT",
+            "ALTER TABLE customer_otp ADD COLUMN email TEXT",
         ):
             try:
                 conn.execute(alter_sql)
             except Exception:
                 pass  # column already exists
+
+        # Schema v9: these index the `email` column just added above by
+        # the ALTER loop — must run after it, not inside SCHEMA_STATEMENTS
+        # (which runs before any ALTER, and would fail on a database that
+        # doesn't have the column yet).
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_customer_otp_email ON customer_otp(email)")
 
         for key, value in DEFAULT_SETTINGS.items():
             conn.execute(

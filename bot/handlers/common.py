@@ -21,27 +21,6 @@ async def noop(callback: CallbackQuery) -> None:
 async def cmd_start(message: Message) -> None:
     users_repo.get_or_create_user(message.from_user.id, message.from_user.full_name)
 
-    # Phase 4: deep-link account linking. Telegram delivers a
-    # t.me/<bot>?start=LINK-<token> open as the message text
-    # "/start LINK-<token>" — this is the only way a website-only user
-    # (phone, no telegram_id yet) can start receiving OTP codes, since
-    # this project has no SMS provider (see
-    # services/customer_auth_service.py for the full flow).
-    parts = (message.text or "").split(maxsplit=1)
-    if len(parts) == 2 and parts[1].startswith("LINK-"):
-        token = parts[1][len("LINK-"):]
-        from services.customer_auth_service import link_telegram_from_token
-        if link_telegram_from_token(token, message.from_user.id):
-            await message.answer(
-                "✅ حساب شما به تلگرام وصل شد. حالا به سایت خانه ماورا برگردید و "
-                "دوباره دکمه‌ی «ارسال کد» را بزنید — کد ورود از همینجا برایتان ارسال می‌شود."
-            )
-        else:
-            await message.answer(
-                "⛔️ این لینک منقضی شده یا قبلاً استفاده شده. لطفاً از سایت دوباره تلاش کنید."
-            )
-        return
-
     text = fa.welcome(settings_service.get_brand_name(), settings_service.get_welcome_message())
 
     role = admins_repo.get_role(message.from_user.id)

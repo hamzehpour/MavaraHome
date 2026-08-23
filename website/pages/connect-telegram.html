@@ -30,18 +30,14 @@ loadHeader(); loadFooter();
 // handler — see the backend integration notes).
 const params = new URLSearchParams(location.search);
 const code = params.get('code') || '';
-const linkToken = params.get('link') || '';
 const BOT_USERNAME = window.MAAVARA_BOT_USERNAME || 'MavaraHomeBot'; // set the real bot username in production
-// Phase 4: account.html sends people here with ?link=<token> when their
-// phone has no telegram_id yet — the bot's /start handler (see
-// handlers/common.py) recognizes the LINK- prefix and links the account.
-const startParam = linkToken ? `?start=${encodeURIComponent('LINK-' + linkToken)}`
-                  : code ? `?start=${encodeURIComponent(code)}` : '';
+// Note: this page previously also handled ?link=<token> for the old
+// phone+Telegram customer-login flow (Phase 4). That flow was rewritten
+// to email OTP (schema v9 — see services/customer_auth_service.py),
+// which needs no Telegram connection step, so only the ticket-delivery
+// ?code= flow remains here.
+const startParam = code ? `?start=${encodeURIComponent(code)}` : '';
 document.getElementById('tgConnectBtn').href = `https://t.me/${BOT_USERNAME}${startParam}`;
-if (linkToken) {
-  document.getElementById('tgConnectTitle').textContent = 'اتصال حساب برای دریافت کد ورود';
-  document.getElementById('tgConnectBody').innerHTML = 'روی دکمه زیر بزنید تا ربات تلگرام خانه ماورا باز شود، سپس دکمه <strong>Start</strong> را بزنید. بعد از آن به سایت برگردید و دوباره «ارسال کد ورود» را بزنید.';
-}
 </script>
 </body>
 </html>

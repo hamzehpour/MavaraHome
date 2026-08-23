@@ -86,6 +86,23 @@ else:
 
 LOG_FILE = str(BASE_DIR / os.getenv("LOG_FILE", f"logs/app-{ENV}.log"))
 
+# ---------------------------------------------------------------------------
+# Outbound email (Schema v9: customer account OTP login, see
+# services/customer_auth_service.py). If SMTP_HOST is left empty, nothing
+# actually connects to a mail server — utils/email_sender.py prints the
+# email to the console/log instead, the same "works locally without real
+# credentials" fallback this project already uses for BOT_TOKEN. Fill
+# these in for a real deployment (any standard SMTP relay: your host's
+# own mailbox, SendGrid, Mailgun, Amazon SES, etc. all speak SMTP).
+# ---------------------------------------------------------------------------
+SMTP_HOST = os.getenv("SMTP_HOST", "").strip()
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587") or 587)
+SMTP_USER = os.getenv("SMTP_USER", "").strip()
+SMTP_PASS = os.getenv("SMTP_PASS", "")
+SMTP_FROM = os.getenv("SMTP_FROM", "").strip()
+SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "خانه ماورا").strip()
+SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").strip().lower() == "true"
+
 APP_NAME = "Mavara Reservation Platform"
 VERSION = "1.0.0"
 SCHEMA_VERSION_APP_LABEL = f"{APP_NAME} v{VERSION}"

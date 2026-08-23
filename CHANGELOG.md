@@ -1,9 +1,94 @@
-# CHANGELOG — Phase 4 through 8, + follow-up (ticket template)
+# CHANGELOG — Phase 4 through 8, + follow-ups (ticket template, email login)
 
 Full technical detail behind the summary in `README.md`'s checklist. Schema
 went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
+
+## Follow-up: customer login rewritten from phone+Telegram to email OTP (schema v8 → v9)
+
+The original Phase 4 design used phone number + OTP delivered through the
+Telegram bot, because this project has no SMS provider — a website-only
+customer (no telegram_id yet) had to open a one-time deep link into the
+bot before they could receive codes at all. Per a later request, this
+whole flow is rewritten to plain email OTP, which needs no such linking
+step.
+
+**Schema v9** (additive): `users.email` and `customer_otp.email` columns
+(indexes created *after* the ALTER-column loop in `init_db()`, not inside
+the earlier `SCHEMA_STATEMENTS` list — indexing a column before it exists
+silently no-ops via the existing try/except-and-log-a-warning guard,
+which is how a first version of this migration was caught: a fresh DB
+logged "Skipped schema statement (no such column: email)" for both new
+indexes until they were moved). `customer_otp.phone` stays `NOT NULL` for
+backward compatibility with existing rows; new email-based rows just
+write `''` into it rather than requiring a full SQLite table rebuild to
+relax that constraint.
+
+**`utils/email_sender.py`** (new) — real SMTP sending via stdlib
+`smtplib`, configured through `.env` (`SMTP_HOST`/`PORT`/`USER`/`PASS`/
+`FROM`/`FROM_NAME`/`USE_TLS`, see `config/settings.py`). If `SMTP_HOST`
+is empty, prints the email to console/log instead of sending — same
+"works locally without real credentials" fallback already used for
+`BOT_TOKEN`.
+
+**`database/repositories/customer_auth.py`** (rewritten) — `create_otp`/
+`verify_otp` now key on `email` instead of `phone`; `create_link_token`/
+`consume_link_token` (the Telegram deep-link tokens) are removed — the
+`telegram_link_tokens` table itself is left in the schema, just unused.
+
+**`services/customer_auth_service.py`** (rewritten) — `request_otp(email)`
+validates the address, creates the user row if needed
+(`users_repo.get_or_create_user_by_email`), generates a code, and emails
+it directly — no "channel": "telegram"/"link_required" branching left,
+since email never needs a linking step. `link_telegram_from_token` is
+gone.
+
+**`database/repositories/users.py`** — new `get_or_create_user_by_email`
+and `set_email(user_id, email)` (lets an existing phone-based guest
+booking be attached to an email for later login — used by the reworked
+seed data below; not yet exposed as a user-facing "add email to your
+booking" flow, which would be a reasonable next step if wanted).
+
+**`api/server.py`** — `POST /api/v1/auth/customer/request-otp` and
+`/verify-otp` now take `{"email": ...}` instead of `{"phone": ...}`;
+`verify-otp`'s response carries `"email"` instead of `"phone"`.
+
+**`handlers/common.py`** — the bot's `/start` handler no longer parses a
+`LINK-<token>` payload (dead code now that login needs no Telegram
+linking); the rest of `/start` — welcome message, admin/staff menus — is
+untouched.
+
+**Website** — `pages/account.html`: login step is now a single email
+input → OTP input (no more "connect Telegram" branch/screen).
+`assets/js/app.js`'s `API.customerAuth` renamed its phone-keyed
+functions/storage to email (`requestOtp(email)`, `verifyOtp(email, code)`,
+`getEmail()`, `sessionStorage` key `mh_cust_email`).
+`pages/connect-telegram.html` no longer handles a `?link=` query param
+(the account-linking use of this page); its original `?code=` handling
+(delivering a ticket via the bot after a web booking — a separate,
+older feature) is untouched.
+
+**`seed_phase4_8.py`** — seeds one test customer that books by phone
+(like any real guest) and then has an email attached to that *same* user
+row (`set_email`), so logging in with that email on `/pages/account.html`
+immediately shows the real approved test reservation and its PDF ticket.
+Prints a ready-to-use OTP code directly (via
+`customer_auth_repo.create_otp`, bypassing the email-sending path) so the
+script works identically whether or not `SMTP_*` is configured.
+
+**Verified end-to-end** against a real (fresh, throwaway) SQLite
+database with the actual HTTP server running (`python -m api.server`):
+schema migration clean (no more "skipped statement" warnings once the
+index-ordering bug above was fixed) → `seed_phase4_8.py` → `curl` through
+the real flow — invalid email rejected (400), request-otp for a new
+address (email printed to server log since `SMTP_HOST` is unset in
+`.env.example`), wrong code rejected (401), correct code accepted (200,
+real access/refresh tokens), the seeded customer's email login → their
+real approved reservation → their real PDF ticket, all matching, and
+replaying an already-used OTP code correctly rejected (401). Every
+changed Python file `py_compile`s clean; `app.js` and both changed HTML
+pages' inline scripts `node --check` clean.
 
 ## Follow-up: real Persian ticket typesetting + admin-editable template (schema v7 → v8)
 

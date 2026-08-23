@@ -46,7 +46,7 @@ from database.repositories import team_members as team_repo
 from database.repositories import settings as settings_repo
 from utils.auth import hash_password, verify_password, create_token, verify_token, ACCESS_TOKEN_TTL_SECONDS, REFRESH_TOKEN_TTL_SECONDS
 from utils.qr_signing import verify_signed_code
-from validators.validators import normalize_phone, is_valid_iranian_mobile, is_valid_full_name
+from validators.validators import normalize_phone, is_valid_iranian_mobile, is_valid_full_name, is_valid_email
 from utils.logger import get_logger
 
 logger = get_logger()
@@ -776,30 +776,30 @@ class Handler(BaseHTTPRequestHandler):
             # ---------------- Phase 4: customer OTP login ----------------
             if path == "/api/v1/auth/customer/request-otp":
                 body = self._read_json_body()
-                phone = str(body.get("phone", ""))
+                email = str(body.get("email", "")).strip().lower()
                 client_ip = self.client_address[0] if self.client_address else "unknown"
-                rate_key = f"otp:{client_ip}:{normalize_phone(phone) if phone else phone}"
+                rate_key = f"otp:{client_ip}:{email}"
                 if _rate_limited(rate_key):
                     return self._send_json(429, {"error": "too_many_attempts", "details": "try again later"})
                 _record_login_attempt(rate_key)
-                if not phone or not is_valid_iranian_mobile(normalize_phone(phone)):
-                    return self._send_json(400, {"error": "validation", "details": "valid phone is required"})
-                result = customer_auth_service.request_otp(phone)
+                if not email or not is_valid_email(email):
+                    return self._send_json(400, {"error": "validation", "details": "valid email is required"})
+                result = customer_auth_service.request_otp(email)
                 if result.get("error"):
                     return self._send_json(400, {"error": result["error"]})
                 return self._send_json(200, {"data": result})
 
             if path == "/api/v1/auth/customer/verify-otp":
                 body = self._read_json_body()
-                phone = str(body.get("phone", ""))
+                email = str(body.get("email", "")).strip().lower()
                 code = str(body.get("code", ""))
                 client_ip = self.client_address[0] if self.client_address else "unknown"
-                rate_key = f"otp-verify:{client_ip}:{normalize_phone(phone) if phone else phone}"
+                rate_key = f"otp-verify:{client_ip}:{email}"
                 if _rate_limited(rate_key):
                     return self._send_json(429, {"error": "too_many_attempts", "details": "try again later"})
-                if not phone or not code:
-                    return self._send_json(400, {"error": "validation", "details": "phone and code are required"})
-                user = customer_auth_service.verify_otp(phone, code)
+                if not email or not code:
+                    return self._send_json(400, {"error": "validation", "details": "email and code are required"})
+                user = customer_auth_service.verify_otp(email, code)
                 if not user:
                     _record_login_attempt(rate_key)
                     return self._send_json(401, {"error": "invalid_code"})
@@ -808,7 +808,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_json(200, {"data": {
                     "access_token": access_token, "refresh_token": refresh_token,
                     "expires_in": ACCESS_TOKEN_TTL_SECONDS,
-                    "full_name": user.get("full_name"), "phone": user.get("phone"),
+                    "full_name": user.get("full_name"), "email": user.get("email"),
                 }})
 
             if path == "/api/v1/auth/customer/refresh":

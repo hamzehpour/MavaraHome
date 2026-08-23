@@ -28,6 +28,16 @@ def is_valid_iranian_mobile(phone: str) -> bool:
     return phone.isdigit() and phone.startswith("09") and len(phone) == 11
 
 
+# Deliberately simple (not the full RFC 5322 grammar) — good enough to
+# reject typos before an OTP email gets sent, not meant to be a strict
+# mailbox-existence check (only actually receiving the email proves that).
+_EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+
+
+def is_valid_email(raw: str) -> bool:
+    return bool(_EMAIL_RE.match(raw.strip()))
+
+
 def normalize_digits(raw: str) -> str:
     return raw.translate(_PERSIAN_TO_EN).translate(_ARABIC_TO_EN)
 

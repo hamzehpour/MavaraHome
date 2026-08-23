@@ -26,6 +26,34 @@ def get_or_create_user_by_phone(phone: str, full_name: str | None = None) -> dic
         return {"id": cur.lastrowid, "telegram_id": None, "phone": phone, "full_name": full_name}
 
 
+def get_or_create_user_by_email(email: str, full_name: str | None = None) -> dict:
+    """Schema v9: customer account login identity (replaces the old
+    phone+Telegram-linking flow — see services/customer_auth_service.py).
+    One row per email, independent of whether that person separately has
+    a phone-based guest-reservation row or a telegram_id — merging those
+    identities isn't attempted here (same as the old phone/telegram split
+    already had before this rewrite)."""
+    with get_connection() as conn:
+        row = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+        if row:
+            return dict(row)
+        cur = conn.execute(
+            "INSERT INTO users(email, full_name) VALUES (?, ?)",
+            (email, full_name),
+        )
+        return {"id": cur.lastrowid, "telegram_id": None, "email": email, "full_name": full_name}
+
+
+def set_email(user_id: int, email: str) -> None:
+    """Attaches/updates the login email on an existing user row — e.g. a
+    guest who booked by phone and later wants to log in and see that
+    reservation. No verification step beyond the OTP itself sent to that
+    email during the next login (same trust model the old phone flow had:
+    possession of the OTP code is the proof)."""
+    with get_connection() as conn:
+        conn.execute("UPDATE users SET email = ? WHERE id = ?", (email, user_id))
+
+
 def link_telegram_id_by_phone(phone: str, telegram_id: int) -> bool:
     """Merges a website-created user (phone-only) with their Telegram
     identity once they connect the bot — e.g. via the "دریافت بلیت در
