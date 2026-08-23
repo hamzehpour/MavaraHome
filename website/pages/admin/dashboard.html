@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>داشبورد | مدیریت</title><meta name="robots" content="noindex,nofollow"><link rel="icon" type="image/webp" href="../../assets/images/logo/favicon.webp"><link rel="stylesheet" href="../../assets/css/styles.css"></head>
+<body>
+<div class="admin-layout">
+    <aside class="admin-sidebar">
+        <div style="font-weight:700;font-size:15px;padding:8px 14px;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.1)">خانه ماورا</div>
+        <a href="dashboard.html" class="active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>داشبورد</a>
+        <a href="events.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M4 5h16"/><path d="M4 5 3 21M20 5l1 16"/><path d="M8 5v16M12 5v16M16 5v16"/></svg>رویدادها</a>
+        <a href="calendar.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>تقویم و سانس</a>
+        <a href="portfolio.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.5"/><path d="M7 2v20M17 2v20M2 12h20"/></svg>رزومه</a><a href="team.html">اعضای خانه ماورا</a><a href="messages.html">پیام‌ها</a><a href="checkin.html">پذیرش بلیت</a>
+        <button onclick="MavaraTheme.toggle(); this.textContent = MavaraTheme.get()==='dark' ? '☀️ حالت روشن' : '🌙 حالت تیره'" id="themeToggleBtn" style="margin-top:auto">🌓 تغییر پوسته</button>
+        <button onclick="logout()" style="margin-top:auto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>خروج</button>
+    </aside>
+    <main class="admin-main">
+        <h2 style="margin-bottom:24px">داشبورد مدیریت</h2>
+        <div class="stat-grid" id="statGrid"></div>
+        <div style="background:var(--bg-card);padding:24px;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:18px">
+            <h4 style="margin-bottom:14px">فروش و رزرو ۱۴ روز اخیر</h4>
+            <div id="salesChart"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px" class="dash-cols">
+        <div style="background:var(--bg-card);padding:24px;border-radius:var(--radius);box-shadow:var(--shadow)">
+            <h4 style="margin-bottom:12px">لینک‌های سریع</h4>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <a class="btn btn--outline btn--sm" href="../../index.html" target="_blank" style="font-size:12px">مشاهده سایت</a>
+                <a class="btn btn--gold" href="events.html" style="font-size:12px">مدیریت رویدادها</a>
+                <a class="btn btn--gold" href="calendar.html" style="font-size:12px">تقویم و سانس</a>
+                <a class="btn btn--gold" href="portfolio.html" style="font-size:12px">مدیریت رزومه</a>
+                <a class="btn btn--gold" href="reservations.html" style="font-size:12px">مدیریت رزروها</a>
+            </div>
+        </div>
+        <div style="background:var(--bg-card);padding:24px;border-radius:var(--radius);box-shadow:var(--shadow)">
+            <h4 style="margin-bottom:12px">تنظیمات پرداخت (نمایش در صفحه رزرو)</h4>
+            <input id="setCard" placeholder="شماره کارت فعال" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font-family:inherit;margin-bottom:7px;direction:ltr;text-align:left">
+            <input id="setHolder" placeholder="نام صاحب کارت" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font-family:inherit;margin-bottom:7px">
+            <input id="setBank" placeholder="نام بانک" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font-family:inherit;margin-bottom:7px">
+            <textarea id="setNote" placeholder="متن راهنمای پرداخت" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font-family:inherit;margin-bottom:9px;min-height:52px"></textarea>
+            <button class="btn btn--gold" style="font-size:12px" onclick="saveSettings()">ذخیره تنظیمات</button>
+        </div>
+        </div>
+        <div style="background:var(--bg-card);padding:24px;border-radius:var(--radius);box-shadow:var(--shadow)">
+            <h4 style="margin-bottom:12px">فعالیت‌های اخیر</h4>
+            <div id="activityList" style="display:grid;gap:8px;font-size:12.5px"></div>
+        </div>
+    </main>
+</div>
+<script src="../../assets/js/app.js"></script>
+<script src="../../assets/js/jalali-calendar.js"></script>
+<script src="../../assets/js/legacy-data.js"></script>
+<script>
+if (!API.auth.check()) window.location.href = 'login.html';
+async function init() {
+    await API.init();
+    const events = API.events.all();
+    const res = await API.reservations.allAdmin();
+    const today = new Date().toISOString().slice(0, 10);
+    const todayRes = res.filter(r => String(r.created_at || '').startsWith(today));
+    const todaySales = todayRes.filter(r => r.status === 'approved').reduce((s, r) => s + Number(r.total_price || 0), 0);
+
+    // Sessions are fetched per-event (the real backend has no single
+    // "all sessions across every event" call) — fine at admin-dashboard
+    // scale, a handful of events.
+    let soldOut = 0;
+    for (const e of events) {
+        await API.sessions.refresh(e.id);
+        soldOut += API.sessions.all(e.id).filter(s => API.sessions.isFull(s)).length;
+    }
+
+    const stats = [
+        { v: events.length, l: 'کل رویدادها' },
+        { v: todayRes.length, l: 'رزرو امروز' },
+        { v: todaySales.toLocaleString('fa-IR') + ' ت', l: 'فروش امروز (تأییدشده)' },
+        { v: res.filter(r => r.status === 'pending_review').length, l: 'منتظر تأیید' },
+        { v: soldOut, l: 'سانس‌های تکمیل‌ظرفیت' },
+        { v: res.filter(r => r.status === 'waiting').length, l: 'لیست انتظار' }
+    ];
+    document.getElementById('statGrid').innerHTML = stats.map(s => `<div class="stat-card"><div class="stat-value">${s.v}</div><div class="stat-label">${s.l}</div></div>`).join('');
+
+    try {
+        const dashStats = await apiFetchAdmin('/admin/dashboard-stats');
+        renderSalesChart(dashStats.daily);
+    } catch (err) {
+        document.getElementById('salesChart').innerHTML = '<p style="color:var(--text-muted);font-size:12.5px">نمودار در دسترس نیست.</p>';
+    }
+
+    try {
+        const activity = await apiFetchAdmin('/admin/activity?limit=15');
+        renderActivity(activity);
+    } catch (err) {
+        document.getElementById('activityList').innerHTML = '<p style="color:var(--text-muted);font-size:12.5px">فعالیتی ثبت نشده.</p>';
+    }
+
+    try {
+        const p = await API.paymentInfo.get();
+        document.getElementById('setCard').value = p.card_number || '';
+        document.getElementById('setHolder').value = p.card_holder || '';
+        document.getElementById('setBank').value = p.bank_name || '';
+    } catch { /* payment info fetch failing shouldn't block the rest of the dashboard from rendering */ }
+}
+// Simple dependency-free SVG bar chart — no charting library needed
+// (nothing to install, nothing to keep in sync with a CDN version).
+function toFaDigits(n) { return String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]); }
+function renderSalesChart(daily) {
+    const el = document.getElementById('salesChart');
+    if (!daily || !daily.length) { el.innerHTML = '<p style="color:var(--text-muted);font-size:12.5px">داده‌ای موجود نیست.</p>'; return; }
+    const w = 700, h = 160, pad = 28, barGap = 4;
+    const barW = (w - pad * 2) / daily.length - barGap;
+    const maxRev = Math.max(1, ...daily.map(d => d.revenue));
+    const bars = daily.map((d, i) => {
+        const x = pad + i * (barW + barGap);
+        const barH = (d.revenue / maxRev) * (h - pad * 2);
+        const y = h - pad - barH;
+        const jalaliDay = new Date(d.date + 'T00:00:00');
+        const { jd } = MavaraCal.gregorianToJalali(jalaliDay.getFullYear(), jalaliDay.getMonth() + 1, jalaliDay.getDate());
+        return `<g>
+            <rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="3" fill="var(--gold)" opacity="${d.revenue > 0 ? 1 : 0.15}">
+                <title>${d.date}: ${d.reservations} رزرو، ${d.revenue.toLocaleString('fa-IR')} تومان تأییدشده</title>
+            </rect>
+            <text x="${x + barW / 2}" y="${h - pad + 14}" font-size="9" fill="var(--text-muted)" text-anchor="middle">${toFaDigits(jd)}</text>
+        </g>`;
+    }).join('');
+    el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto" role="img" aria-label="نمودار فروش ۱۴ روز اخیر">${bars}</svg>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:4px">ارتفاع = درآمد تأییدشده روزانه · عدد زیر هر ستون = تعداد کل رزرو آن روز</p>`;
+}
+
+const ACTIVITY_LABELS = {
+    event_toggled: 'وضعیت رویداد تغییر کرد',
+    overflow_approved: 'درخواست اضافه‌ظرفیت تأیید شد',
+};
+function renderActivity(rows) {
+    const el = document.getElementById('activityList');
+    if (!rows || !rows.length) { el.innerHTML = '<p style="color:var(--text-muted)">فعالیتی ثبت نشده.</p>'; return; }
+    el.innerHTML = rows.map(r => `<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">
+        <span>${ACTIVITY_LABELS[r.action] || r.action}${r.details ? ' — ' + r.details : ''}</span>
+        <span style="color:var(--text-muted);white-space:nowrap" dir="ltr">${r.created_at || ''}</span>
+    </div>`).join('');
+}
+
+async function saveSettings() {
+    try {
+        // Writes to the SAME bank_cards table the Telegram bot reads from
+        // — one active card, shared by both channels.
+        await API.paymentInfo.set({
+            card_number: document.getElementById('setCard').value.trim(),
+            card_holder: document.getElementById('setHolder').value.trim(),
+            bank_name: document.getElementById('setBank').value.trim(),
+        });
+        alert('تنظیمات پرداخت ذخیره شد');
+    } catch (err) {
+        alert('خطا در ذخیره — ' + (err.details || err.message));
+    }
+}
+function logout() { API.auth.logout(); window.location.href = 'login.html'; }
+addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

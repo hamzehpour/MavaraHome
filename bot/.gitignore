@@ -1,0 +1,21 @@
+# secrets
+.env
+
+# runtime data (never commit real user/reservation/db data)
+data/*.db
+data/*.sqlite3
+logs/*.log
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# editor
+.vscode/
+.idea/
+
+# os
+.DS_Store
+backups/

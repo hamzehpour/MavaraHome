@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>اعضای خانه ماورا | خانه‌ی ماورا</title>
+<meta name="description" content="آشنایی با اعضای خانه ماورا">
+<link rel="icon" type="image/webp" href="../assets/images/logo/favicon.webp">
+<link rel="stylesheet" href="../assets/css/styles.css">
+<style>
+  .team-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:18px;max-width:960px;margin:0 auto}
+  .team-card{background:var(--card-bg,#fff);border-radius:16px;padding:20px;text-align:center;cursor:pointer;transition:transform .2s;box-shadow:0 2px 14px rgba(0,0,0,.06)}
+  .team-card:hover{transform:translateY(-4px)}
+  .team-card img{width:96px;height:96px;border-radius:50%;object-fit:cover;margin-bottom:12px}
+  .team-card .ph-fallback{width:96px;height:96px;border-radius:50%;margin:0 auto 12px;background:var(--navy,#1b2340);color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700}
+  .team-detail{max-width:640px;margin:0 auto;text-align:center}
+  .team-detail img{width:150px;height:150px;border-radius:50%;object-fit:cover;margin-bottom:16px}
+</style>
+</head>
+<body data-page="team">
+<div id="header"></div>
+<main class="section"><div class="container" id="teamRoot">
+  <p style="text-align:center;color:var(--text-muted)">در حال بارگذاری...</p>
+</div></main>
+<div id="footer"></div>
+<script src="../assets/js/app.js"></script>
+<script src="../assets/js/site.js"></script>
+<script>
+loadHeader('team.html'); loadFooter();
+
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+async function renderTeam() {
+  const root = document.getElementById('teamRoot');
+  const params = new URLSearchParams(location.search);
+  const slug = params.get('slug');
+
+  if (slug) {
+    try {
+      const m = await API.team.bySlug(slug);
+      const isEn = lang() === 'en';
+      const name = isEn && m.full_name_en ? m.full_name_en : m.full_name;
+      const role = isEn && m.role_title_en ? m.role_title_en : m.role_title;
+      const bio = isEn && m.bio_en ? m.bio_en : m.bio_fa;
+      root.innerHTML = `
+        <div class="team-detail">
+          <a href="team.html" style="display:inline-block;margin-bottom:18px;color:var(--gold,#c8a24a)">${isEn ? '← Back to team' : '← بازگشت به اعضا'}</a>
+          ${m.photo ? `<img src="/${m.photo}" alt="${esc(name)}">` : `<div class="ph-fallback" style="width:150px;height:150px;font-size:42px;margin:0 auto 16px">${esc((name||'?')[0])}</div>`}
+          <h1 style="margin-bottom:4px">${esc(name)}</h1>
+          ${role ? `<p style="color:var(--text-muted);margin-bottom:16px">${esc(role)}</p>` : ''}
+          ${bio ? `<p style="line-height:2;text-align:${isEn ? 'left' : 'right'}">${esc(bio)}</p>` : ''}
+          ${(m.contact_telegram || m.contact_phone) ? `<div style="margin-top:20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+            ${m.contact_telegram ? `<a class="btn btn--outline" href="https://t.me/${esc(m.contact_telegram.replace('@',''))}" target="_blank" rel="noopener" style="font-size:12px">تلگرام</a>` : ''}
+          </div>` : ''}
+        </div>`;
+    } catch {
+      root.innerHTML = `<p style="text-align:center">این عضو یافت نشد. <a href="team.html">بازگشت</a></p>`;
+    }
+    return;
+  }
+
+  const members = await API.team.all();
+  if (!members.length) {
+    root.innerHTML = `<p style="text-align:center;color:var(--text-muted)">${lang() === 'en' ? 'No team members yet.' : 'هنوز عضوی ثبت نشده است.'}</p>`;
+    return;
+  }
+  const isEn = lang() === 'en';
+  root.innerHTML = `
+    <section class="hero" style="padding:20px 0 34px">
+      <p class="eyebrow">${isEn ? 'The people behind Mavara' : 'همراهان خانه ماورا'}</p>
+      <h1>${isEn ? 'Our Team' : 'اعضای خانه ماورا'}</h1>
+    </section>
+    <div class="team-grid">
+      ${members.map(m => {
+        const name = isEn && m.full_name_en ? m.full_name_en : m.full_name;
+        const role = isEn && m.role_title_en ? m.role_title_en : m.role_title;
+        return `<a class="team-card" href="team.html?slug=${encodeURIComponent(m.slug)}" style="text-decoration:none;color:inherit;display:block">
+          ${m.photo ? `<img src="/${m.photo}" alt="${esc(name)}">` : `<div class="ph-fallback">${esc((name||'?')[0])}</div>`}
+          <div style="font-weight:700">${esc(name)}</div>
+          ${role ? `<div style="color:var(--text-muted);font-size:13px;margin-top:4px">${esc(role)}</div>` : ''}
+        </a>`;
+      }).join('')}
+    </div>`;
+}
+API.init().then(renderTeam);
+window.addEventListener('mv-lang', renderTeam);
+</script>
+</body>
+</html>

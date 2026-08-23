@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصور نصیری | رزومه و نمونه کارها | خانه‌ی ماورا</title>
+    <meta name="description" content="رزومه و پورتفولیوی هنری منصور نصیری — بازیگر و کارگردان سینما، تئاتر و تلویزیون">
+    <link rel="icon" type="image/webp" href="../assets/images/logo/favicon.webp">
+    <link rel="stylesheet" href="../assets/css/styles.css">
+</head>
+<body data-page="resume">
+
+    <div id="header"></div>
+
+    <main>
+        <!-- One compact profile bio — the primary introduction -->
+        <section class="resume-container resume-profile-section">
+            <div class="resume-bio" data-reveal>
+                <div class="resume-bio-photo-wrap"><img src="../assets/images/mansour/m3.jpg" alt="منصور نصیری" loading="lazy"></div>
+                <div class="resume-bio-text" id="resumeBioText">
+                    <p class="eyebrow" data-i18n="mansour_eyebrow">بازیگر · کارگردان · نویسنده</p>
+                    <h1 data-i18n="mansour_title">منصور نصیری</h1>
+                    <p class="role" data-i18n="mansour_sub">بازیگر، کارگردان و نویسنده — مؤسس خانه ماورا</p>
+                    <p><span data-i18n="mansour_bio">متولد ۱۳۶۶ در تهران. فعالیت هنری را از تئاتر آغاز کرد و پس از تحصیل در آکادمی سمندریان، مسیرش را در سینما و سریال ادامه داد. برای او بازیگری راهی برای شناخت عمیق‌تر انسان است.</span><span class="resume-bio-full" data-i18n="mansour_bio_full"> او در کنار بازیگری، به آموزش، پادکست و ساختن فضاهایی برای گفت‌وگوی صادقانه و خودشناسی می‌پردازد. خانه ماورا ادامه‌ی همین مسیر است: پیوند هنر با دیدن دقیق‌تر زندگی.</span></p>
+                    <button class="bio-more" id="resumeBioMore" type="button" aria-expanded="false"><span data-i18n="bio_more">بیشتر</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+                    <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+                        <a class="btn btn--outline" href="https://instagram.com/mansournasirii" target="_blank" rel="noopener" style="font-size:12px">Instagram</a>
+                        <a class="btn btn--outline" href="https://www.imdb.com/name/nm11240651/" target="_blank" rel="noopener" style="font-size:12px">IMDb</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="divider"></div>
+
+        <!-- Resume List (clickable rows) -->
+        <section class="resume-container" id="resumeList"></section>
+
+        <!-- Samples Tab -->
+        <div class="divider"></div>
+        <section class="section">
+            <div class="section-head">
+                <h2 class="section-title" data-i18n="samples_title">نمونه کارها</h2>
+            </div>
+            <div class="samples-tabs" id="samplesTabs">
+                <button class="samples-tab-btn active" data-tab="all" data-i18n="tab_all">همه</button>
+                <button class="samples-tab-btn" data-tab="photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg><span data-i18n="tab_photo">عکس</span></button>
+                <button class="samples-tab-btn" data-tab="video"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.5"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 7h5M17 17h5"/></svg><span data-i18n="tab_video">ویدیو</span></button>
+            </div>
+            <div class="samples-gallery" id="samplesGallery"></div>
+        </section>
+
+        <p class="resume-footer-text" data-i18n="resume_footer">با افتخار، برای دوستداران هنر</p>
+    </main>
+
+    <!-- Popup Modal -->
+    <div class="modal-overlay" id="modal" style="display:none">
+        <div class="modal">
+            <div class="modal-header"><h3 id="modalTitle"></h3><button class="modal-close" onclick="closeModal()" aria-label="close">✕</button></div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- Fullscreen Viewer -->
+    <div class="viewer-overlay" id="viewer" style="display:none" onclick="this.style.display='none'">
+        <img id="viewerImg" src="" alt="" style="display:none">
+        <video id="viewerVideo" controls style="display:none"></video>
+    </div>
+
+    <div id="footer"></div>
+
+    <script src="../assets/js/app.js"></script>
+    <!-- legacy-data.js removed: the 31-item resume dataset it held is now
+         real backend content (see api/server.py's portfolio endpoints and
+         seed_portfolio.py), fully admin-editable instead of hardcoded JS. -->
+    <script src="../assets/js/site.js"></script>
+    <script>
+    const CATS = [
+        { key:'CINEMA', fa:'سینما', en:'Cinema', highlight:false },
+        { key:'SERIES', fa:'نمایش خانگی', en:'Series', highlight:false },
+        { key:'SHORT', fa:'فیلم کوتاه', en:'Short films', highlight:true },
+        { key:'THEATER', fa:'تئاتر', en:'Theater', highlight:false }
+    ];
+    const pfTitle = p => (lang() === 'en' && p.title_en) ? p.title_en : p.title_fa;
+    const pfDirector = p => (lang() === 'en' && p.director_en) ? p.director_en : p.director;
+    const pfRole = p => (lang() === 'en' && p.role_en) ? p.role_en : p.role;
+    const pfFestival = p => (lang() === 'en' && p.festival_en) ? p.festival_en : p.festival;
+    const pfDesc = p => (lang() === 'en' && p.desc_en) ? p.desc_en : p.desc_fa;
+    // Year: Jalali in FA, Gregorian in EN (year-only; exact conversion needs full dates).
+    const FA_D = '۰۱۲۳۴۵۶۷۸۹';
+    const toFa = n => String(n).replace(/\d/g, d => FA_D[d]);
+    const pfYear = p => lang() === 'en' ? String(p.year || '') : toFa((Number(p.year) || 0) - 621);
+    const isLive = p => p.status === 'now_showing' || p.status === 'NOW_SHOWING' || p.nowShowing === true;
+    const livePill = () => `<span class="live-pill"><i class="live-dot"></i>${T('live_pill')}</span>`;
+    // Requested: when a resume item is currently running (isLive), clicking
+    // through to it should offer a direct path to reserve a ticket — not
+    // just a poster/gallery to look at. Matches by title against the
+    // active/ongoing events list rather than requiring a new data field,
+    // since there is currently exactly one live production (حُباب) and its
+    // resume title matches its event title exactly.
+    function reserveButtonHTML(p) {
+        if (!isLive(p)) return '';
+        const activeEvents = (typeof API !== 'undefined' && API.events && API.events.active) ? API.events.active() : [];
+        const matched = activeEvents.find(e => e.title === p.title_fa || e.title_en === p.title_en);
+        if (!matched) return '';
+        return `<a class="btn btn--gold" href="event-detail.html?id=${encodeURIComponent(matched.id)}" style="display:block;text-align:center;margin-top:12px">${T('b_book') || 'رزرو بلیت'}</a>`;
+    }
+
+    async function init() {
+        loadHeader('about-mansour.html'); loadFooter();
+        await API.init();
+        renderResume();
+        renderSamples(currentTab);
+        setupSamplesTabs();
+        initResumeBio();
+        window.addEventListener('mv-lang', () => { renderResume(); renderSamples(currentTab); initResumeBio(); if (activeProject) renderModal(); });
+    }
+
+    let currentTab = 'all';
+    function initResumeBio() {
+        const box = document.getElementById('resumeBioText'); const btn = document.getElementById('resumeBioMore');
+        if (!box || !btn || btn.dataset.bound === '1') return;
+        btn.dataset.bound = '1';
+        btn.onclick = () => { const expanded = box.classList.toggle('expanded'); btn.setAttribute('aria-expanded', expanded); };
+    }
+
+    function renderResume() {
+        const root = document.getElementById('resumeList');
+        if (!root) return;
+        root.innerHTML = '';
+        CATS.forEach(cat => {
+            const items = API.portfolio.byCat(cat.key);
+            if (!items.length) return;
+            const div = document.createElement('div');
+            div.className = 'resume-cat' + (cat.highlight ? ' resume-cat--highlight' : '');
+            div.innerHTML = `<div class="resume-cat-title"><span class="fa">${lang() === 'en' ? cat.en : cat.fa}</span><span class="en">${lang() === 'en' ? cat.fa : cat.en}</span></div>`;
+            const list = document.createElement('div');
+            list.className = cat.highlight ? 'resume-grid-2' : '';
+            items.forEach(p => {
+                const row = document.createElement('div');
+                row.className = 'resume-row';
+                row.onclick = () => openModal(p);
+                const thumb = p.poster ? `<img class="row-poster" src="${p.poster}" alt="" loading="lazy">` : '';
+                if (cat.highlight) {
+                    row.innerHTML = `${thumb}<div class="title">${esc(pfTitle(p))}${isLive(p) ? livePill() : ''}<span class="role-tag">(${esc(pfDirector(p))})</span></div><div class="festival"><span class="year">${esc(pfYear(p))}</span>${pfFestival(p) ? ' · ' + esc(pfFestival(p)) : ''}</div>`;
+                } else {
+                    row.innerHTML = `${thumb}<div class="title">${esc(pfTitle(p))}${isLive(p) ? livePill() : ''}<span class="role-tag">(${esc(pfRole(p))})</span></div><div class="meta"><span class="year">${esc(pfYear(p))}</span> — ${esc(pfDirector(p))}</div>`;
+                }
+                list.appendChild(row);
+            });
+            div.appendChild(list);
+            root.appendChild(div);
+        });
+    }
+
+    let activeProject = null;
+    function openModal(p) {
+        activeProject = p;
+        renderModal();
+        document.getElementById('modal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+    function renderModal() {
+        const p = activeProject; if (!p) return;
+        document.getElementById('modalTitle').innerHTML = esc(pfTitle(p)) + ' (' + esc(pfYear(p)) + ')' + (isLive(p) ? livePill() : '');
+        const header = document.querySelector('#modal .modal-header');
+        header.querySelector('.modal-language')?.remove();
+        const toggle = document.createElement('div'); toggle.className = 'modal-language lang-toggle';
+        toggle.innerHTML = `<button type="button" class="${lang() === 'fa' ? 'active' : ''}" onclick="setLang('fa')">فا</button><button type="button" class="${lang() === 'en' ? 'active' : ''}" onclick="setLang('en')">EN</button>`;
+        header.insertBefore(toggle, header.querySelector('.modal-close'));
+        const body = document.getElementById('modalBody');
+        body.innerHTML = `
+            ${p.poster ? `<img class="modal-poster" src="${p.poster}" alt="${esc(pfTitle(p))}" loading="lazy">` : ''}
+            <dl class="modal-meta">
+                <dt>${T('m_en_title')}</dt><dd>${esc(lang() === 'en' ? (p.title_fa || '—') : (p.title_en || '—'))}</dd>
+                <dt>${T('m_year')}</dt><dd>${esc(p.year)}</dd>
+                <dt>${T('m_director')}</dt><dd>${esc(pfDirector(p) || '—')}</dd>
+                <dt>${T('m_role')}</dt><dd>${esc(pfRole(p) || '—')}</dd>
+                ${pfFestival(p) ? `<dt>${T('m_festival')}</dt><dd>${esc(pfFestival(p))}</dd>` : ''}
+                ${pfDesc(p) ? `<dt>${T('m_desc')}</dt><dd>${esc(pfDesc(p))}</dd>` : ''}
+            </dl>
+            ${p.video ? `<video controls src="${p.video}" style="width:100%;border-radius:var(--radius-sm)"></video>` : ''}
+            ${(p.gallery || []).length ? `<div class="modal-gallery">${p.gallery.map(img => `<img src="${img}" alt="" loading="lazy" onclick="openViewer('${img}','image')">`).join('')}</div>` : ''}
+            ${reserveButtonHTML(p)}
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+                <a class="btn btn--outline" href="https://instagram.com/mansournasirii" target="_blank" rel="noopener" style="font-size:12px">Instagram</a>
+                <a class="btn btn--outline" href="https://www.imdb.com/name/nm11240651/" target="_blank" rel="noopener" style="font-size:12px">IMDb</a>
+            </div>`;
+    }
+
+    function closeModal() {
+        document.getElementById('modal').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    function openViewer(src, type) {
+        const v = document.getElementById('viewer');
+        if (type === 'image') {
+            document.getElementById('viewerImg').src = src;
+            document.getElementById('viewerImg').style.display = 'block';
+            document.getElementById('viewerVideo').style.display = 'none';
+        } else {
+            document.getElementById('viewerVideo').src = src;
+            document.getElementById('viewerVideo').style.display = 'block';
+            document.getElementById('viewerImg').style.display = 'none';
+        }
+        v.style.display = 'flex';
+    }
+
+    // ── Samples Tab ──
+    function renderSamples(tab) {
+        const all = API.portfolio.all();
+        const withMedia = all.filter(p => p.poster || p.video || (p.gallery || []).length);
+        const filtered = tab === 'photo'
+            ? withMedia.filter(p => p.poster && !p.video)
+            : tab === 'video'
+            ? withMedia.filter(p => p.video)
+            : withMedia;
+
+        document.getElementById('samplesGallery').innerHTML = filtered.map(p => `
+            <div class="sample-card" onclick="openModal(${p.id})">
+                ${p.video ? `<video src="${p.video}" muted loop preload="metadata"></video><div class="play-icon">▶</div>` : p.poster ? `<img src="${p.poster}" alt="${esc(pfTitle(p))}" loading="lazy">` : ''}
+                <div class="sample-label">${esc(pfTitle(p))}</div>
+            </div>
+        `).join('') || '<p style="text-align:center;grid-column:1/-1;color:var(--text-muted);padding:40px">' + T('empty_sample') + '</p>';
+    }
+
+    function setupSamplesTabs() {
+        document.querySelectorAll('.samples-tab-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.samples-tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentTab = btn.dataset.tab;
+                renderSamples(currentTab);
+            };
+        });
+    }
+
+    document.addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); document.getElementById('viewer').style.display = 'none'; } });
+
+    document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

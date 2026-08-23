@@ -1,0 +1,15 @@
+[Unit]
+Description=Mavara Home Telegram Bot
+After=network.target
+
+[Service]
+Type=simple
+User=mavara
+WorkingDirectory=/opt/mavara-bot
+EnvironmentFile=/opt/mavara-bot/.env
+ExecStart=/opt/mavara-bot/venv/bin/python bot.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

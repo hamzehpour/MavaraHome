@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>مدیریت رویدادها</title><meta name="robots" content="noindex,nofollow"><link rel="icon" type="image/webp" href="../../assets/images/logo/favicon.webp"><link rel="stylesheet" href="../../assets/css/styles.css"></head>
+<body>
+<div class="admin-layout">
+    <aside class="admin-sidebar"><div style="font-weight:700;font-size:15px;padding:8px 14px;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.1)">خانه ماورا</div><a href="dashboard.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>داشبورد</a><a href="events.html" class="active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M4 5h16"/><path d="M4 5 3 21M20 5l1 16"/><path d="M8 5v16M12 5v16M16 5v16"/></svg>رویدادها</a><a href="calendar.html">تقویم و سانس</a><a href="portfolio.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.5"/><path d="M7 2v20M17 2v20M2 12h20"/></svg>رزومه</a><a href="team.html">اعضای خانه ماورا</a><a href="messages.html">پیام‌ها</a><a href="checkin.html">پذیرش بلیت</a><button onclick="MavaraTheme.toggle(); this.textContent = MavaraTheme.get()==='dark' ? '☀️ حالت روشن' : '🌙 حالت تیره'" id="themeToggleBtn" style="margin-top:auto">🌓 تغییر پوسته</button>
+        <button onclick="logout()" style="margin-top:auto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>خروج</button></aside>
+    <main class="admin-main">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px"><h2>مدیریت رویدادها</h2><button class="btn btn--primary" onclick="openForm()" style="font-size:13px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>رویداد جدید</button></div>
+        <table class="admin-table"><thead><tr><th>عنوان</th><th>نوع</th><th>وضعیت</th><th>سانس‌ها</th><th>عملیات</th></tr></thead><tbody id="tBody"></tbody></table>
+    </main>
+</div>
+
+<div class="admin-modal-overlay" id="evModal" style="display:none"><div class="admin-modal"><div class="admin-modal-header"><h3 id="modalTitle">رویداد جدید</h3><button onclick="closeForm()" style="font-size:20px">✕</button></div><div class="admin-modal-body">
+    <form id="evForm" onsubmit="save(event)">
+        <input type="hidden" id="evId">
+        <div class="form-row"><div><label>عنوان فارسی</label><input id="evTitle" required></div><div><label>عنوان انگلیسی</label><input id="evTitleEn"></div></div>
+        <div class="form-row"><div><label>نوع</label><select id="evType"><option value="theater">تئاتر</option><option value="workshop">کارگاه</option><option value="talk">گفتگو</option></select></div><div><label>تاریخ فارسی</label><input id="evDate"></div></div>
+        <label>توضیح فارسی</label><textarea id="evDesc"></textarea><label>توضیح انگلیسی</label><textarea id="evDescEn"></textarea>
+        <div class="form-row"><div><label>مکان فارسی</label><input id="evLoc"></div><div><label>مکان انگلیسی</label><input id="evLocEn"></div></div>
+        <label>وضعیت</label><select id="evStatus"><option value="ongoing">در حال اجرا</option><option value="upcoming">به‌زودی</option><option value="archived">آرشیو</option></select>
+        <label>تلفن</label><input id="evPhone">
+        <label>تلگرام</label><input id="evTel">
+        <label>پوستر رویداد</label>
+        <input type="file" id="evPosterFile" accept="image/*">
+        <div id="evPosterPreview" style="margin-top:8px"></div>
+        <label style="margin-top:14px">گالری عکس رویداد (چند عکس هم‌زمان قابل انتخاب است)</label>
+        <input type="file" id="evGalleryFiles" accept="image/*" multiple>
+        <div id="evGalleryPreview" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"></div>
+        <label style="margin-top:14px">ویدیوی رویداد (فایل یا لینک)</label>
+        <input type="file" id="evVideoFile" accept="video/*">
+        <input id="evVideoUrl" placeholder="یا آدرس ویدیو (اختیاری)" style="margin-top:6px">
+        <div style="display:flex;gap:8px;margin-top:16px"><button type="submit" class="btn btn--primary">💾 ذخیره</button><button type="button" class="btn btn--outline" onclick="closeForm()">انصراف</button></div>
+    </form>
+</div></div></div>
+
+<script src="../../assets/js/app.js"></script>
+<script>
+if (!API.auth.check()) window.location.href = 'login.html';
+let editingId = null;
+let evPoster = null, evGallery = [], evVideo = null;
+
+// Real file upload goes through API.events.uploadMedia() (app.js) — NOT a
+// locally re-declared helper here. A separate local copy previously hit a
+// hardcoded relative path ('/api/v1/admin/upload'), which is wrong now
+// that the real backend lives on its own origin (MAVARA_API_BASE) rather
+// than wherever these static pages happen to be served from.
+document.getElementById('evPosterFile').addEventListener('change', async (ev) => {
+    const file = ev.target.files[0]; if (!file) return;
+    try {
+        evPoster = await API.events.uploadMedia(file, 'poster');
+        document.getElementById('evPosterPreview').innerHTML = `<img src="/${evPoster}" style="max-width:160px;border-radius:8px">`;
+        toast('پوستر آپلود شد');
+    } catch { toast('آپلود پوستر ناموفق بود — سرور بک‌اند را بررسی کنید'); }
+});
+document.getElementById('evGalleryFiles').addEventListener('change', async (ev) => {
+    const files = [...ev.target.files]; if (!files.length) return;
+    for (const file of files) {
+        try {
+            const path = await API.events.uploadMedia(file, 'gallery');
+            evGallery.push(path);
+            document.getElementById('evGalleryPreview').insertAdjacentHTML('beforeend', `<img src="/${path}" style="width:70px;height:70px;object-fit:cover;border-radius:8px">`);
+        } catch { toast('آپلود یکی از عکس‌های گالری ناموفق بود'); }
+    }
+    toast('گالری به‌روزرسانی شد');
+});
+document.getElementById('evVideoFile').addEventListener('change', async (ev) => {
+    const file = ev.target.files[0]; if (!file) return;
+    try {
+        evVideo = await API.events.uploadMedia(file, 'video');
+        document.getElementById('evVideoUrl').value = evVideo;
+        toast('ویدیو آپلود شد');
+    } catch { toast('آپلود ویدیو ناموفق بود — سرور بک‌اند را بررسی کنید'); }
+});
+
+async function load() {
+    await API.init();
+    const rows = API.events.all();
+    document.getElementById('tBody').innerHTML = rows.map(e => `<tr><td><strong>${e.title}</strong></td><td>${e.location || '—'}</td><td><span class="badge ${e.is_active ? 'badge--active' : 'badge--ended'}">${e.is_active ? 'فعال' : 'غیرفعال'}</span></td><td style="display:flex;gap:6px"><button class="btn btn--outline btn--sm" onclick="editEv(${e.id})" style="font-size:11px;padding:4px 10px">✏️</button><button class="btn btn--outline btn--sm" onclick="toggleActive(${e.id}, ${e.is_active})" style="font-size:11px;padding:4px 10px;color:${e.is_active ? '#c44' : '#2a7a2a'}">${e.is_active ? '⏸️ غیرفعال کن' : '▶️ فعال کن'}</button></td></tr>`).join('') || '<tr><td colspan="4">رویدادی ثبت نشده.</td></tr>';
+}
+
+function openForm() { editingId = null; evPoster = null; evGallery = []; evVideo = null; document.getElementById('modalTitle').textContent = 'رویداد جدید'; document.getElementById('evForm').reset(); document.getElementById('evPosterPreview').innerHTML = ''; document.getElementById('evGalleryPreview').innerHTML = ''; document.getElementById('evModal').style.display = 'flex'; }
+
+function editEv(id) {
+    const e = API.events.get(id); if (!e) return; editingId = id;
+    document.getElementById('modalTitle').textContent = 'ویرایش';
+    document.getElementById('evId').value = e.id;
+    document.getElementById('evTitle').value = e.title||'';
+    document.getElementById('evTitleEn').value = e.title_en||'';
+    document.getElementById('evDesc').value = e.description||'';
+    document.getElementById('evDescEn').value = e.description_en||'';
+    document.getElementById('evLoc').value = e.location||'';
+    document.getElementById('evLocEn').value = e.location_en||'';
+    document.getElementById('evStatus').value = e.is_active ? 'ongoing' : 'archived';
+    document.getElementById('evPhone').value = e.contact_phone||'';
+    document.getElementById('evTel').value = e.contact_telegram||'';
+    evPoster = e.poster || null;
+    evGallery = Array.isArray(e.gallery) ? [...e.gallery] : [];
+    evVideo = e.video || null;
+    document.getElementById('evPosterPreview').innerHTML = evPoster ? `<img src="/${evPoster}" style="max-width:160px;border-radius:8px">` : '';
+    document.getElementById('evGalleryPreview').innerHTML = evGallery.map(p => `<img src="/${p}" style="width:70px;height:70px;object-fit:cover;border-radius:8px">`).join('');
+    document.getElementById('evVideoUrl').value = evVideo || '';
+    document.getElementById('evModal').style.display = 'flex';
+}
+
+async function save(e) { e.preventDefault();
+    const videoField = document.getElementById('evVideoUrl').value.trim();
+    const d = {
+        title: document.getElementById('evTitle').value, title_en: document.getElementById('evTitleEn').value,
+        description: document.getElementById('evDesc').value, description_en: document.getElementById('evDescEn').value,
+        location: document.getElementById('evLoc').value, location_en: document.getElementById('evLocEn').value,
+        is_active: document.getElementById('evStatus').value === 'ongoing',
+        contact_phone: document.getElementById('evPhone').value, contact_telegram: document.getElementById('evTel').value,
+        poster: evPoster, gallery: evGallery, video: videoField || evVideo || null,
+    };
+    const submitBtn = e.target.querySelector('button[type=submit]');
+    if (submitBtn) submitBtn.disabled = true;
+    try {
+        if (editingId) { await API.events.update(editingId, d); } else { await API.events.create(d); }
+        closeForm(); await load(); toast('ذخیره شد');
+    } catch (err) {
+        alert('خطا در ذخیره — ' + (err.details || err.message));
+    } finally {
+        if (submitBtn) submitBtn.disabled = false;
+    }
+}
+
+async function toggleActive(id, currentlyActive) {
+    // No hard delete on purpose: an event with existing reservations must
+    // never disappear (those reservations would become orphaned). This
+    // matches the same "deactivate, never destroy" pattern already used on
+    // the Telegram bot side of the admin panel.
+    if (!confirm(currentlyActive ? 'این رویداد غیرفعال شود؟' : 'این رویداد دوباره فعال شود؟')) return;
+    await API.events.setActive(id, !currentlyActive);
+    await load(); toast('انجام شد');
+}
+function closeForm() { document.getElementById('evModal').style.display = 'none'; }
+function logout() { API.auth.logout(); window.location.href = 'login.html'; }
+function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
+addEventListener('DOMContentLoaded', load);
+</script>
+</body>
+</html>

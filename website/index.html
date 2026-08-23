@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>خانه‌ی ماورا — هنر، آگاهی، زندگی</title>
+    <meta name="description" content="خانه‌ی ماورا — سفری به سوی خویشتن، از مسیر آگاهی، به یاری هنر">
+    <meta property="og:title" content="خانه‌ی ماورا">
+    <meta property="og:description" content="سفری به سوی خویشتن، از مسیر آگاهی، به یاری هنر">
+    <meta property="og:image" content="assets/images/logo/mavara-emblem-640.webp">
+    <meta property="og:type" content="website">
+    <link rel="icon" type="image/webp" href="assets/images/logo/favicon.webp">
+    <link rel="icon" type="image/png" href="assets/images/logo/mavara-home-logo.png">
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body data-page="home">
+
+    <div id="header"></div>
+
+    <main>
+        <!-- ── Hero ── -->
+        <section class="hero">
+            <div class="hero-bg" aria-hidden="true">
+                <div class="hero-glow hero-glow--1"></div>
+                <div class="hero-glow hero-glow--2"></div>
+                <div class="hero-glow hero-glow--3"></div>
+                <div class="particles" id="particles"></div>
+            </div>
+            <div class="hero-inner">
+                <div class="hero-emblem-wrap">
+                    <div class="hero-rings" aria-hidden="true"></div>
+                    <svg class="site-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 140" role="img" aria-label="Mavara Home"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="120" cy="56" r="42"/><circle cx="120" cy="56" r="32" opacity=".45" stroke-width="1.2"/><path d="M120 26 L147 52 V88 H93 V52 Z"/><path d="M103 88 V70 a17 17 0 0 1 34 0 V88"/><path d="M120 26 C117 17 121 12 128 10 C126 15 128 19 133 20 C127 24 122 26 120 26 Z"/></g><text x="120" y="128" text-anchor="middle" font-family="Georgia,'Times New Roman',serif" font-size="19" letter-spacing="6" fill="currentColor">Mavara Home</text></svg>
+                </div>
+                <p class="eyebrow" data-i18n="hero_eyebrow">هنر · آگاهی · زندگی</p>
+                <h1><span data-i18n="hero_t1">خانه‌ی</span> <span class="text-gold" data-i18n="hero_t2">ماورا</span></h1>
+                <p class="hero-tagline" data-i18n="hero_tag">سفری به سوی خویشتن، از مسیر آگاهی، به یاری هنر</p>
+                <div class="hero-actions">
+                    <a class="btn btn--gold" href="pages/events.html" data-i18n="cta_events">رویدادها</a>
+                    <a class="btn btn--outline" href="pages/about-mavara.html" data-i18n="cta_about">درباره ماورا</a>
+                </div>
+                <a class="scroll-hint" href="#paths" aria-label="scroll">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+                </a>
+            </div>
+        </section>
+
+        <!-- ── Quote ribbon: one thought fades every 10s, river flows behind ── -->
+        <div class="marquee" aria-hidden="true">
+            <p class="marquee-quote" id="quoteText"></p>
+        </div>
+
+        <!-- ── Bio (small, one) ── -->
+        <section class="section" style="padding-bottom:20px">
+            <div class="bio-card" data-reveal>
+                <img class="bio-photo" src="assets/images/mansour/m1.jpg" alt="منصور نصیری" loading="lazy">
+                <div class="bio-text" id="bioText">
+                    <p class="eyebrow" data-i18n="bio_eyebrow">بنیان‌گذار خانه ماورا</p>
+                    <h3 data-i18n="bio_name">منصور نصیری</h3>
+                    <p class="bio-role" data-i18n="bio_role">بازیگر، کارگردان و نویسنده</p>
+                    <p><span data-i18n="bio_short">منصور نصیری، بازیگر و کارگردان سینما و تئاتر، خانه ماورا را برای پیوند هنر و آگاهی پایه گذاشته است؛ جایی که هنر دست‌مایه‌ی نگاهی دوباره به خویشتن می‌شود.</span><span class="bio-full" data-i18n="bio_full"> او با بیش از دو دهه تجربه در تئاتر، سینما و تلویزیون، مسیرش را از صحنه آغاز کرد و در آثارش، بازیگری را راهی برای شناخت عمیق‌تر انسان می‌داند. پادکست «ما ورای بازیگری»، کارگاه‌ها و جلسات همراهی، ادامه‌ی همین راه‌اند.</span></p>
+                    <button class="bio-more" id="bioMore" type="button" aria-expanded="false"><span id="bioMoreLabel" data-i18n="bio_more">بیشتر</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+                </div>
+            </div>
+        </section>
+
+        <div class="divider"></div>
+
+        <!-- ── Paths ── -->
+        <section class="paths" id="paths" style="padding-top:22px">
+            <div class="paths-grid">
+                <a class="path-item" href="pages/events.html?tag=theater" data-reveal style="--d:0">
+                    <span class="path-icon-box"><svg class="path-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M4 5h16"/><path d="M4 5 3 21M20 5l1 16"/><path d="M8 5v16M12 5v16M16 5v16"/><path d="M4 5c1.5-2 4.5-2 6 0 1.5-2 4.5-2 6 0 1.5-2 4.5-2 6 0"/></svg></span>
+                    <span class="path-label" data-i18n="p_theater">تئاتر</span>
+                </a>
+                <a class="path-item" href="pages/podcast.html" data-reveal style="--d:1">
+                    <span class="path-icon-box"><svg class="path-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1"/><path d="M12 18v4M8 22h8"/></svg></span>
+                    <span class="path-label" data-i18n="p_podcast">پادکست</span>
+                </a>
+                <a class="path-item" href="pages/events.html?tag=music" data-reveal style="--d:2">
+                    <span class="path-icon-box"><svg class="path-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
+                    <span class="path-label" data-i18n="p_music">موسیقی</span>
+                </a>
+                <a class="path-item" href="pages/events.html?tag=self-knowledge" data-reveal style="--d:3">
+                    <span class="path-icon-box"><svg class="path-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3"/><path d="M5 21c0-4.5 3.1-7.5 7-7.5s7 3 7 7.5"/><path d="M12 3.5c.8-1 2.2-1 3 0"/></svg></span>
+                    <span class="path-label" data-i18n="p_self">خودشناسی</span>
+                </a>
+                <a class="path-item" href="pages/events.html?tag=poetry" data-reveal style="--d:4">
+                    <span class="path-icon-box"><svg class="path-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4c-6.5 0-10 3.5-13 10.5l-1.5 4 4-1.5C16.5 14 20 10.5 20 4z"/><path d="M5.5 18.5C9 13 12.5 8.5 17 5.5"/></svg></span>
+                    <span class="path-label" data-i18n="p_poetry">شعر</span>
+                </a>
+                <a class="path-item" href="pages/events.html?tag=dialogue" data-reveal style="--d:5">
+                    <span class="path-icon-box"><svg class="path-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 12.5 3h.5a8.5 8.5 0 0 1 8 8v.5z"/><path d="M8.5 10.5h7M8.5 14h4.5"/></svg></span>
+                    <span class="path-label" data-i18n="p_dialogue">گفتگو</span>
+                </a>
+                <a class="path-item" href="pages/companionship.html" data-reveal style="--d:6">
+                    <span class="path-icon-box"><svg class="path-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21C7.5 16.5 3 13 3 8.9 3 6.1 5.1 4 7.8 4c1.9 0 3.6 1 4.2 2.5C12.6 5 14.3 4 16.2 4 18.9 4 21 6.1 21 8.9c0 4.1-4.5 7.6-9 12.1z"/></svg></span>
+                    <span class="path-label" data-i18n="p_companion">همراهی</span>
+                </a>
+            </div>
+        </section>
+
+        <div class="divider"></div>
+
+        <!-- ── Now showing ── -->
+        <section id="sliderSection" class="section">
+            <div class="section-head" data-reveal>
+                <p class="eyebrow" data-i18n="live_eyebrow">زنده</p>
+                <h2 class="section-title" data-i18n="live_title">همین حالا در خانه ماورا</h2>
+            </div>
+            <div class="slider-track" id="sliderTrack"></div>
+            <div class="slider-dots" id="sliderDots"></div>
+        </section>
+
+        <!-- ── Upcoming ── -->
+        <section class="section">
+            <div class="section-head" data-reveal>
+                <p class="eyebrow" data-i18n="up_eyebrow">در راه</p>
+                <h2 class="section-title" data-i18n="up_title">رویدادهای پیش‌رو</h2>
+            </div>
+            <div class="events-grid" id="eventsPreview"></div>
+            <div class="events-more" data-reveal>
+                <a class="btn btn--outline" href="pages/events.html" data-i18n="all_events">همه رویدادها</a>
+            </div>
+        </section>
+
+        <!-- ── Gallery (personal photos — flip cards) ── -->
+        <section class="section" style="padding-top:10px">
+            <div class="section-head" data-reveal>
+                <p class="eyebrow" data-i18n="gal_eyebrow">گالری</p>
+                <h2 class="section-title" data-i18n="gal_title">از نگاه من</h2>
+            </div>
+            <div class="gallery-grid" id="galleryGrid"></div>
+        </section>
+    </main>
+
+    <div id="footer"></div>
+
+    <button class="back-to-top" id="backToTop" aria-label="back to top">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+    </button>
+
+    <script src="assets/js/app.js"></script>
+    <script src="assets/js/site.js"></script>
+    <script>loadHeader();loadFooter();</script>
+</body>
+</html>

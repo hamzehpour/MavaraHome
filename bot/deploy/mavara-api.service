@@ -1,0 +1,16 @@
+[Unit]
+Description=Mavara Home Unified API (website + admin panel backend)
+After=network.target
+
+[Service]
+Type=simple
+User=mavara
+WorkingDirectory=/opt/mavara-bot
+EnvironmentFile=/opt/mavara-bot/.env
+Environment=API_PORT=8788
+ExecStart=/opt/mavara-bot/venv/bin/python -m api.server
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

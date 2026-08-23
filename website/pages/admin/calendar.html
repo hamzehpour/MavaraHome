@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>تقویم و سانس‌ها | خانه ماورا</title><meta name="robots" content="noindex,nofollow"><link rel="icon" type="image/webp" href="../../assets/images/logo/favicon.webp"><link rel="stylesheet" href="../../assets/css/styles.css"></head>
+<body>
+<div class="admin-layout">
+  <aside class="admin-sidebar">
+    <div style="font-weight:700;font-size:15px;padding:8px 14px;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.1)">خانه ماورا</div>
+    <a href="dashboard.html">داشبورد</a><a href="events.html">رویدادها</a><a href="calendar.html" class="active">تقویم و سانس</a><a href="reservations.html">رزروها</a><a href="portfolio.html">رزومه</a><a href="team.html">اعضای خانه ماورا</a><a href="messages.html">پیام‌ها</a><a href="checkin.html">پذیرش بلیت</a>
+    <button onclick="MavaraTheme.toggle(); this.textContent = MavaraTheme.get()==='dark' ? '☀️ حالت روشن' : '🌙 حالت تیره'" id="themeToggleBtn" style="margin-top:auto">🌓 تغییر پوسته</button>
+        <button onclick="logout()" style="margin-top:auto">خروج</button>
+  </aside>
+  <main class="admin-main">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:12px;flex-wrap:wrap">
+      <div><h2>تقویم و سانس‌ها</h2><p style="color:var(--text-muted);font-size:13px;margin-top:4px">همان ساختاری که ربات تلگرام در دیتابیس می‌نویسد</p></div>
+      <select id="eventSelect" onchange="render()" style="padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;min-width:220px"></select>
+    </div>
+
+    <div id="dateArea">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:18px">
+        <div style="font-weight:700;color:var(--navy);margin-bottom:10px">افزودن سانس جدید</div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <input id="newDate" readonly placeholder="تاریخ اجرا (کلیک برای انتخاب)" style="padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;flex:1;min-width:180px;cursor:pointer" onclick="document.getElementById('newDateBtn').click()">
+          <button type="button" id="newDateBtn" class="btn btn--outline" style="font-size:13px">📅 انتخاب (شمسی/میلادی)</button>
+          <input id="newTime" type="time" style="padding:9px;border:1px solid var(--border);border-radius:8px;font-family:inherit" title="ساعت شروع">
+          <input id="newCap" type="number" min="1" value="20" style="width:90px;padding:9px;border:1px solid var(--border);border-radius:8px;font-family:inherit" title="ظرفیت">
+          <button class="btn btn--primary" onclick="addSessionNew()" style="font-size:13px">افزودن سانس</button>
+        </div>
+      </div>
+      <div id="dateList" style="display:grid;gap:14px"></div>
+    </div>
+    <p id="emptyHint" style="color:var(--text-muted);font-size:13px;text-align:center;padding:30px">ابتدا یک رویداد انتخاب کن، سپس سانس‌های اجرا را اضافه کن.</p>
+  </main>
+</div>
+<script src="../../assets/js/app.js"></script>
+<script src="../../assets/js/jalali-calendar.js"></script>
+<script>
+if (!API.auth.check()) window.location.href = 'login.html';
+let events = [];
+async function init(){
+  await API.init();
+  events = API.events.all();
+  const sel = document.getElementById('eventSelect');
+  events.forEach(e => sel.insertAdjacentHTML('beforeend', `<option value="${e.id}">${e.title}</option>`));
+  await render();
+}
+async function render(){
+  const id = document.getElementById('eventSelect').value;
+  document.getElementById('emptyHint').style.display = id ? 'none' : 'block';
+  document.getElementById('dateArea').style.display = id ? 'block' : 'none';
+  if (!id) { document.getElementById('dateList').innerHTML = ''; return; }
+  await API.sessions.refresh(id);
+  const dates = API.dates.forEvent(id);
+  document.getElementById('dateList').innerHTML = dates.length ? dates.map(d => dateCard(d)).join('') : '<p style="color:var(--text-muted);font-size:13px;text-align:center">سانسی ثبت نشده — از بالا یک سانس اضافه کن.</p>';
+}
+function dateCard(d){
+  return `<div style="background:var(--bg-card);border-radius:var(--radius);padding:16px;border:1px solid var(--border);border-inline-start:4px solid var(--gold)">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <strong style="color:var(--navy)">${d.jalali_date}</strong>
+      <button class="btn btn--outline" style="font-size:11px;padding:5px 12px;color:#c44" onclick="deleteWholeDate('${d.dateIso}')">حذف کل این روز</button>
+    </div>
+    <div style="display:grid;gap:8px;margin-top:12px">${d.sessions.map(s => sessionRow(s)).join('')}</div>
+  </div>`;
+}
+function sessionRow(s){
+  const eventId = document.getElementById('eventSelect').value;
+  const full = API.sessions.isFull(s);
+  return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--bg-soft);border-radius:10px;padding:9px 12px;flex-wrap:wrap">
+    <span dir="ltr" style="font-weight:600;color:var(--navy)">${s.time}</span>
+    <span style="font-size:12px;color:var(--text-muted)">ظرفیت ${s.capacity} · باقی‌مانده ${API.sessions.remaining(s)} · ${full ? '<span style="color:#c44;font-weight:600">تکمیل</span>' : '<span style="color:#2a7a2a;font-weight:600">باز</span>'}</span>
+    <div style="display:flex;gap:6px">
+      <button style="font-size:11px;padding:4px 10px;border:1px solid var(--border);border-radius:8px" onclick="toggleFull(${eventId}, ${s.id})">${full ? 'باز کردن' : 'تکمیل'}</button>
+      <button style="font-size:11px;padding:4px 10px;border:1px solid var(--border);border-radius:8px;color:#c44" onclick="deleteSession(${eventId}, ${s.id})">حذف</button>
+    </div>
+  </div>`;
+}
+async function addSessionNew(){
+  const eventId = document.getElementById('eventSelect').value;
+  const dateInput = document.getElementById('newDate');
+  const t = document.getElementById('newTime').value;
+  const cap = document.getElementById('newCap').value;
+  if (!eventId) return alert('ابتدا رویداد را انتخاب کن');
+  if (!dateInput.dataset.iso) return alert('تاریخ را از تقویم انتخاب کن');
+  if (!t) return alert('ساعت را انتخاب کن');
+  const dateIso = dateInput.dataset.iso;
+  const existing = API.sessions.forDate(eventId, dateIso).find(s => s.time === t);
+  if (existing) return alert('این ساعت از قبل برای این روز ثبت شده — سانس تکراری مجاز نیست');
+  try {
+    await API.sessions.create(eventId, { dateIso, time: t, capacity: cap });
+    dateInput.value = ''; dateInput.dataset.iso = ''; document.getElementById('newTime').value = '';
+    await render();
+    toast('سانس اضافه شد');
+  } catch (err) {
+    alert('خطا — ' + (err.details || err.message));
+  }
+}
+async function deleteWholeDate(dateIso){
+  const eventId = document.getElementById('eventSelect').value;
+  if (!confirm('این روز و همه‌ی سانس‌هایش حذف شود؟')) return;
+  const sessions = API.sessions.forDate(eventId, dateIso);
+  for (const s of sessions) { await API.sessions.delete(eventId, s.id); }
+  await render();
+}
+async function toggleFull(eventId, id){
+  const s = API.sessions.get(eventId, id);
+  await API.sessions.setStatus(eventId, id, API.sessions.isFull(s) ? 'active' : 'sold_out');
+  await render();
+}
+async function deleteSession(eventId, id){
+  if (!confirm('این سانس حذف شود؟')) return;
+  await API.sessions.delete(eventId, id);
+  await render();
+}
+function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
+function logout(){ API.auth.logout(); location.href='login.html'; }
+addEventListener('DOMContentLoaded', () => {
+  init();
+  MavaraCal.attachPicker(document.getElementById('newDate'), document.getElementById('newDateBtn'));
+});
+</script>
+</body></html>

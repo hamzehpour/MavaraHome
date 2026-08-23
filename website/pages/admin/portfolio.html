@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>مدیریت رزومه</title><meta name="robots" content="noindex,nofollow"><link rel="icon" type="image/webp" href="../../assets/images/logo/favicon.webp"><link rel="stylesheet" href="../../assets/css/styles.css"></head>
+<body>
+<div class="admin-layout">
+    <aside class="admin-sidebar"><div style="font-weight:700;font-size:15px;padding:8px 14px;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.1)">خانه ماورا</div><a href="dashboard.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>داشبورد</a><a href="events.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M4 5h16"/><path d="M4 5 3 21M20 5l1 16"/><path d="M8 5v16M12 5v16M16 5v16"/></svg>رویدادها</a><a href="calendar.html">تقویم و سانس</a><a href="portfolio.html" class="active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.5"/><path d="M7 2v20M17 2v20M2 12h20"/></svg>رزومه</a><a href="team.html">اعضای خانه ماورا</a><a href="messages.html">پیام‌ها</a><a href="checkin.html">پذیرش بلیت</a><button onclick="MavaraTheme.toggle(); this.textContent = MavaraTheme.get()==='dark' ? '☀️ حالت روشن' : '🌙 حالت تیره'" id="themeToggleBtn" style="margin-top:auto">🌓 تغییر پوسته</button>
+        <button onclick="logout()" style="margin-top:auto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>خروج</button></aside>
+    <main class="admin-main">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px"><h2>مدیریت رزومه</h2><button class="btn btn--primary" onclick="openPF()" style="font-size:13px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>پروژه جدید</button></div>
+        <table class="admin-table"><thead><tr><th>عنوان</th><th>دسته</th><th>سال</th><th>کارگردان</th><th>نقش</th><th>عملیات</th></tr></thead><tbody id="tb"></tbody></table>
+    </main>
+</div>
+<div class="admin-modal-overlay" id="pfModal" style="display:none"><div class="admin-modal"><div class="admin-modal-header"><h3 id="pfTitle">پروژه جدید</h3><button onclick="closePF()">✕</button></div><div class="admin-modal-body">
+    <form id="pfForm" onsubmit="savePF(event)"><input type="hidden" id="pfId">
+        <div class="form-row"><div><label>عنوان فارسی</label><input id="pfFA" required></div><div><label>انگلیسی</label><input id="pfEN"></div></div>
+        <div class="form-row"><div><label>دسته</label><select id="pfCat"><option value="CINEMA">سینما</option><option value="SERIES">سریال</option><option value="SHORT">فیلم کوتاه</option><option value="THEATER">تئاتر</option></select></div><div><label>سال</label><input id="pfYear"></div></div>
+        <div class="form-row"><div><label>کارگردان فارسی</label><input id="pfDir"></div><div><label>کارگردان انگلیسی</label><input id="pfDirEn"></div></div>
+        <div class="form-row"><div><label>نقش فارسی</label><input id="pfRole"></div><div><label>نقش انگلیسی</label><input id="pfRoleEn"></div></div>
+        <div class="form-row"><div><label>جشنواره فارسی</label><input id="pfFest"></div><div><label>جشنواره انگلیسی</label><input id="pfFestEn"></div></div>
+        <label>توضیحات</label><textarea id="pfDesc"></textarea>
+        <label>وضعیت</label><select id="pfStatus"><option value="active">فعال</option><option value="now_showing">درحال اجرا</option><option value="hidden">مخفی</option></select>
+        <label>پوستر</label>
+        <input type="file" id="pfPosterFile" accept="image/*">
+        <div id="pfPosterPreview" style="margin-top:8px"></div>
+        <label style="margin-top:12px">گالری عکس</label>
+        <input type="file" id="pfGalleryFiles" accept="image/*" multiple>
+        <div id="pfGalleryPreview" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"></div>
+        <label style="margin-top:12px">لینک ویدیو (اختیاری)</label>
+        <input id="pfVideoUrl" placeholder="آدرس ویدیو">
+        <div style="display:flex;gap:8px;margin-top:16px"><button type="submit" class="btn btn--primary">💾 ذخیره</button><button type="button" class="btn btn--outline" onclick="closePF()">انصراف</button></div>
+    </form>
+</div></div></div>
+<script src="../../assets/js/app.js"></script>
+<script>
+if (!API.auth.check()) window.location.href = 'login.html';
+let pfId = null;
+let pfPoster = null, pfGallery = [], pfVideo = null;
+
+async function load() {
+  await API.init();
+  document.getElementById('tb').innerHTML = API.portfolio.all().map(p => `<tr><td><strong>${p.title_fa}</strong>${(p.status === 'now_showing') ? ' <span style="color:#2a7a2a;font-size:10px;font-weight:700">● در حال اجرا</span>' : ''}</td><td>${p.category}</td><td>${p.year||'—'}</td><td>${p.director||'—'}</td><td>${p.role||'—'}</td><td style="display:flex;gap:6px"><button class="btn btn--outline btn--sm" onclick="editPF(${p.id})" style="font-size:11px;padding:4px 10px">✏️</button><button class="btn btn--outline btn--sm" onclick="delPF(${p.id})" style="font-size:11px;padding:4px 10px;color:#c44">🗑️</button></td></tr>`).join('') || '<tr><td colspan="6">پروژه‌ای ثبت نشده.</td></tr>';
+}
+function openPF() { pfId = null; pfPoster = null; pfGallery = []; pfVideo = null; document.getElementById('pfTitle').textContent = 'پروژه جدید'; document.getElementById('pfForm').reset(); document.getElementById('pfPosterPreview').innerHTML = ''; document.getElementById('pfGalleryPreview').innerHTML = ''; document.getElementById('pfModal').style.display = 'flex'; }
+function editPF(id) {
+  const p = API.portfolio.get(id); if (!p) return; pfId = id;
+  document.getElementById('pfTitle').textContent = 'ویرایش';
+  document.getElementById('pfId').value = p.id;
+  document.getElementById('pfFA').value = p.title_fa||'';
+  document.getElementById('pfEN').value = p.title_en||'';
+  document.getElementById('pfCat').value = p.category;
+  document.getElementById('pfYear').value = p.year||'';
+  document.getElementById('pfDir').value = p.director||'';
+  document.getElementById('pfDirEn').value = p.director_en||'';
+  document.getElementById('pfRole').value = p.role||'';
+  document.getElementById('pfRoleEn').value = p.role_en||'';
+  document.getElementById('pfFest').value = p.festival||'';
+  document.getElementById('pfFestEn').value = p.festival_en||'';
+  document.getElementById('pfDesc').value = p.desc_fa||'';
+  document.getElementById('pfStatus').value = p.status||'active';
+  pfPoster = p.poster || null; pfGallery = Array.isArray(p.gallery) ? [...p.gallery] : []; pfVideo = p.video || null;
+  document.getElementById('pfPosterPreview').innerHTML = pfPoster ? `<img src="/${pfPoster}" style="max-width:140px;border-radius:8px">` : '';
+  document.getElementById('pfGalleryPreview').innerHTML = pfGallery.map(g => `<img src="/${g}" style="width:60px;height:60px;object-fit:cover;border-radius:8px">`).join('');
+  document.getElementById('pfVideoUrl').value = pfVideo || '';
+  document.getElementById('pfModal').style.display = 'flex';
+}
+async function savePF(e) {
+  e.preventDefault();
+  const videoField = document.getElementById('pfVideoUrl').value.trim();
+  const d = {
+    title_fa: document.getElementById('pfFA').value, title_en: document.getElementById('pfEN').value,
+    category: document.getElementById('pfCat').value, year: document.getElementById('pfYear').value,
+    director: document.getElementById('pfDir').value, director_en: document.getElementById('pfDirEn').value,
+    role: document.getElementById('pfRole').value, role_en: document.getElementById('pfRoleEn').value,
+    festival: document.getElementById('pfFest').value, festival_en: document.getElementById('pfFestEn').value,
+    desc_fa: document.getElementById('pfDesc').value, status: document.getElementById('pfStatus').value,
+    poster: pfPoster, gallery: pfGallery, video: videoField || pfVideo || null,
+  };
+  const btn = e.target.querySelector('button[type=submit]');
+  if (btn) btn.disabled = true;
+  try {
+    if (pfId) { await API.portfolio.update(pfId, d); } else { await API.portfolio.create(d); }
+    closePF(); await load(); toast('ذخیره شد');
+  } catch (err) {
+    alert('خطا در ذخیره — ' + (err.details || err.message));
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+async function delPF(id) {
+  if (!confirm('این پروژه حذف شود؟')) return;
+  await API.portfolio.delete(id); await load(); toast('حذف شد');
+}
+function closePF() { document.getElementById('pfModal').style.display = 'none'; }
+function logout() { API.auth.logout(); window.location.href = 'login.html'; }
+function toast(m) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
+
+document.getElementById('pfPosterFile') && document.getElementById('pfPosterFile').addEventListener('change', async (ev) => {
+  const file = ev.target.files[0]; if (!file) return;
+  try { pfPoster = await API.portfolio.uploadMedia(file, 'poster'); document.getElementById('pfPosterPreview').innerHTML = `<img src="/${pfPoster}" style="max-width:140px;border-radius:8px">`; toast('پوستر آپلود شد'); }
+  catch { toast('آپلود ناموفق بود'); }
+});
+document.getElementById('pfGalleryFiles') && document.getElementById('pfGalleryFiles').addEventListener('change', async (ev) => {
+  const files = [...ev.target.files]; if (!files.length) return;
+  for (const file of files) {
+    try { const path = await API.portfolio.uploadMedia(file, 'gallery'); pfGallery.push(path); document.getElementById('pfGalleryPreview').insertAdjacentHTML('beforeend', `<img src="/${path}" style="width:60px;height:60px;object-fit:cover;border-radius:8px">`); }
+    catch { toast('آپلود یکی از عکس‌ها ناموفق بود'); }
+  }
+});
+addEventListener('DOMContentLoaded', load);
+</script>
+</body>
+</html>

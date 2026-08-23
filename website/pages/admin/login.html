@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>ورود | پنل مدیریت</title><meta name="robots" content="noindex,nofollow"><link rel="icon" type="image/webp" href="../../assets/images/logo/favicon.webp"><link rel="stylesheet" href="../../assets/css/styles.css"></head>
+<body>
+<div class="admin-login">
+<img src="../../assets/images/logo/mavara-emblem-640.webp" alt="ماورا" style="width:74px;margin:0 auto 18px;border-radius:14px;box-shadow:var(--shadow)">
+<h2>پنل مدیریت</h2><p style="color:var(--text-muted);margin-bottom:16px;font-size:14px">خانه ماورا</p>
+<input id="userInput" placeholder="نام کاربری" autofocus autocomplete="username">
+<input type="password" id="passInput" placeholder="رمز عبور" autocomplete="current-password" style="margin-top:8px">
+<button class="btn btn--primary" id="loginBtn" onclick="login()" style="width:100%;margin-top:12px">ورود</button>
+<p id="err" style="display:none;color:#c44;font-size:13px;margin-top:8px"></p></div>
+<script src="../../assets/js/app.js"></script>
+<script>
+async function login() {
+  const u = document.getElementById('userInput').value.trim();
+  const p = document.getElementById('passInput').value;
+  const err = document.getElementById('err');
+  const btn = document.getElementById('loginBtn');
+  if (!u || !p) { err.style.display = 'block'; err.textContent = 'نام کاربری و رمز عبور را وارد کنید'; return; }
+  btn.disabled = true; err.style.display = 'none';
+  try {
+    await API.auth.login(u, p);
+    window.location.href = 'dashboard.html';
+  } catch (e) {
+    err.style.display = 'block';
+    err.textContent = e.status === 429 ? 'تعداد تلاش‌ها زیاد بود — کمی صبر کنید' : 'نام کاربری یا رمز عبور اشتباه است';
+  } finally {
+    btn.disabled = false;
+  }
+}
+document.getElementById('passInput').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+document.getElementById('userInput').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('passInput').focus(); });
+</script>
+</body>
+</html>

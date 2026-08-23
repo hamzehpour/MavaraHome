@@ -1,0 +1,15 @@
+version: '3.9'
+services:
+  api:
+    build: ./backend
+    ports:
+      - '8787:8787'
+    environment:
+      - PORT=8787
+      - MAVARA_ADMIN_TOKEN=${MAVARA_ADMIN_TOKEN:-change-me-in-env}
+      - MAVARA_DB_FILE=/data/db.json
+    volumes:
+      - mavara-data:/data
+    restart: unless-stopped
+volumes:
+  mavara-data:

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>مدیریت رزروها | خانه ماورا</title><meta name="robots" content="noindex,nofollow"><link rel="icon" type="image/webp" href="../../assets/images/logo/favicon.webp"><link rel="stylesheet" href="../../assets/css/styles.css"></head>
+<body>
+<div class="admin-layout">
+  <aside class="admin-sidebar">
+    <div style="font-weight:700;font-size:15px;padding:8px 14px;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.1)">خانه ماورا</div>
+    <a href="dashboard.html">داشبورد</a><a href="events.html">رویدادها</a><a href="calendar.html">تقویم و سانس</a><a href="portfolio.html">رزومه</a><a href="team.html">اعضای خانه ماورا</a><a href="messages.html">پیام‌ها</a><a href="checkin.html">پذیرش بلیت</a><a href="reservations.html" class="active">رزروها</a>
+    <button onclick="MavaraTheme.toggle(); this.textContent = MavaraTheme.get()==='dark' ? '☀️ حالت روشن' : '🌙 حالت تیره'" id="themeToggleBtn" style="margin-top:auto">🌓 تغییر پوسته</button>
+        <button onclick="logout()" style="margin-top:auto">خروج</button>
+  </aside>
+  <main class="admin-main">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:12px;flex-wrap:wrap">
+      <div><h2>مدیریت رزروها</h2><p style="color:var(--text-muted);font-size:13px;margin-top:4px">وضعیت‌ها با ربات تلگرام یکسان است</p></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn--primary" style="font-size:12px" onclick="exportCsv()">خروجی Excel (CSV)</button>
+        <button class="btn btn--outline" style="font-size:12px" onclick="logout()">خروج</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <input id="search" placeholder="جستجو: نام، تلفن، کد رزرو..." oninput="render()" style="flex:1;min-width:220px;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit">
+      <select id="statusFilter" onchange="render()" style="padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit"><option value="all">همه وضعیت‌ها</option></select>
+      <select id="filter" onchange="render()" style="padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit"><option value="all">همه رویدادها</option></select>
+    </div>
+    <div id="stats" style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:14px;font-size:12.5px;color:var(--text-muted)"></div>
+    <div id="bulkBar" style="display:none;align-items:center;gap:10px;background:var(--bg-soft);padding:10px 14px;border-radius:10px;margin-bottom:10px;font-size:13px">
+      <span id="bulkCount"></span>
+      <button class="btn btn--gold" style="font-size:11.5px;padding:5px 12px" onclick="bulkApprove()">✅ تأیید همه‌ی انتخاب‌شده‌ها</button>
+      <button class="btn btn--outline" style="font-size:11.5px;padding:5px 12px" onclick="clearSelection()">لغو انتخاب</button>
+    </div>
+    <table class="admin-table"><thead><tr><th><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"></th><th>کد</th><th>نام</th><th>تماس</th><th>رویداد</th><th>تعداد</th><th>مبلغ</th><th>وضعیت</th><th>رسید</th><th>عملیات</th></tr></thead><tbody id="tbody"></tbody></table>
+  </main>
+</div>
+<script src="../../assets/js/app.js"></script>
+<script>
+if (!API.auth.check()) window.location.href = 'login.html';
+let events = [];
+let allReservations = [];
+// Same status vocabulary the bot's state machine uses — see
+// services/reservation_service.py. Kept in sync manually since there is
+// no shared schema file between the two codebases yet (see the project
+// handoff doc's Phase 1 notes on this).
+const statusLabels = { pending_payment:'در انتظار پرداخت', pending_review:'رسید ارسال شده — منتظر تأیید', awaiting_buyer_confirmation:'در انتظار پاسخ خریدار (رد شده)', approved:'تأیید شده', rejected:'رد شده', cancelled:'لغو شده', expired:'منقضی شده', used:'استفاده شده', waiting:'لیست انتظار' };
+const STATUS_ORDER = Object.keys(statusLabels);
+async function init(){
+  await API.init(); events = API.events.all();
+  const ssel = document.getElementById('statusFilter');
+  STATUS_ORDER.forEach(k => ssel.insertAdjacentHTML('beforeend', `<option value="${k}">${statusLabels[k]}</option>`));
+  const sel = document.getElementById('filter');
+  events.forEach(e => sel.insertAdjacentHTML('beforeend', `<option value="${e.id}">${e.title}</option>`));
+  await reload();
+}
+async function reload(){
+  allReservations = await API.reservations.allAdmin();
+  render();
+}
+function filtered(){
+  const q = (document.getElementById('search').value || '').trim().toLowerCase();
+  const st = document.getElementById('statusFilter').value;
+  const f = document.getElementById('filter').value;
+  return allReservations.filter(r =>
+    (f === 'all' || String(r.event_id) === f) &&
+    (st === 'all' || r.status === st) &&
+    (!q || (r.buyer_name || '').toLowerCase().includes(q) || String(r.buyer_phone || '').toLowerCase().includes(q) || String(r.reservation_code || '').toLowerCase().includes(q))
+  );
+}
+function render(){
+  const rows = filtered();
+  const pending = rows.filter(r => r.status === 'pending_review').length;
+  const total = rows.filter(r => r.status === 'approved').reduce((s, r) => s + Number(r.total_price || 0), 0);
+  document.getElementById('stats').innerHTML = `<span>نمایش: ${rows.length} رزرو</span><span>منتظر تأیید: <strong style="color:var(--gold-deep)">${pending}</strong></span><span>مبلغ تأییدشده: <strong style="color:var(--gold-deep)">${total.toLocaleString('fa-IR')} تومان</strong></span>`;
+  document.getElementById('tbody').innerHTML = rows.map(r => {
+    const canDecide = r.status === 'pending_review';
+    return `<tr>
+      <td>${canDecide ? `<input type="checkbox" class="rowCheck" value="${r.id}" onchange="updateSelection()" ${selectedIds.has(r.id) ? 'checked' : ''}>` : ''}</td>
+      <td dir="ltr" style="font-size:11px;color:var(--gold-deep);font-weight:600">${r.reservation_code || '#' + r.id}</td>
+      <td>${r.attendee_name || r.buyer_name || '—'}${r.source === 'website' ? ' <span style="font-size:10px;color:var(--text-muted)">(سایت)</span>' : ' <span style="font-size:10px;color:var(--text-muted)">(تلگرام)</span>'}</td>
+      <td dir="ltr" style="font-size:12px">${r.attendee_phone || r.buyer_phone || '—'}</td>
+      <td>${r.event_title || r.event_id}<br><span style="font-size:10.5px;color:var(--text-muted)" dir="ltr">${r.session_date || ''} ${r.session_time || ''}</span></td>
+      <td>${r.people}</td><td>${Number(r.total_price || 0).toLocaleString('fa-IR')}</td>
+      <td><span class="badge">${statusLabels[r.status] || r.status}</span></td>
+      <td><span style="font-size:11px;color:var(--text-muted)">${r.status === 'pending_payment' ? 'در انتظار' : (canDecide ? 'ارسال شده' : '—')}</span></td>
+      <td style="white-space:nowrap">
+        ${canDecide ? `<button class="btn btn--gold" style="font-size:10.5px;padding:4px 10px" onclick="approve(${r.id})">تأیید</button>
+        <button class="btn btn--outline" style="font-size:10.5px;padding:4px 10px;color:#c44" onclick="reject(${r.id})">رد</button>` : '<span style="font-size:11px;color:var(--text-muted)">—</span>'}
+      </td></tr>`;
+  }).join('') || '<tr><td colspan="10">رزروی یافت نشد.</td></tr>';
+  updateSelection();
+}
+
+// Bulk actions (Phase 3) — selection state persists across re-renders
+// (filter/search changes) within the same page load, cleared after a
+// bulk action completes or the user explicitly clears it.
+let selectedIds = new Set();
+function toggleSelectAll(checkbox) {
+  document.querySelectorAll('.rowCheck').forEach(cb => { cb.checked = checkbox.checked; if (checkbox.checked) selectedIds.add(Number(cb.value)); else selectedIds.delete(Number(cb.value)); });
+  updateSelection();
+}
+function updateSelection() {
+  document.querySelectorAll('.rowCheck:checked').forEach(cb => selectedIds.add(Number(cb.value)));
+  document.querySelectorAll('.rowCheck:not(:checked)').forEach(cb => selectedIds.delete(Number(cb.value)));
+  const bar = document.getElementById('bulkBar');
+  if (selectedIds.size > 0) {
+    bar.style.display = 'flex';
+    document.getElementById('bulkCount').textContent = `${selectedIds.size} رزرو انتخاب شده`;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+function clearSelection() {
+  selectedIds = new Set();
+  document.getElementById('selectAll').checked = false;
+  render();
+}
+async function bulkApprove() {
+  if (!selectedIds.size) return;
+  if (!confirm(`${selectedIds.size} رزرو تأیید و بلیت صادر شود؟`)) return;
+  try {
+    const result = await apiFetchAdmin('/admin/reservations/bulk-approve', {
+      method: 'POST', body: JSON.stringify({ ids: [...selectedIds] }),
+    });
+    const failed = result.results.filter(r => !r.success);
+    selectedIds = new Set();
+    await reload();
+    toast(failed.length ? `${result.results.length - failed.length} تأیید شد، ${failed.length} ناموفق` : `${result.results.length} رزرو با موفقیت تأیید شد`);
+  } catch (err) {
+    alert('خطا — ' + (err.details || err.message));
+  }
+}
+async function approve(id){
+  if (!confirm('این پرداخت تأیید و بلیت صادر شود؟')) return;
+  try {
+    // Same approve_reservation() the Telegram admin-approve button calls —
+    // issues the real ticket/QR, not a separate admin-panel-only action.
+    await API.reservations.approve(id);
+    await reload(); toast('تأیید شد — بلیت صادر شد');
+  } catch (err) {
+    alert('خطا — ' + (err.details || err.message));
+  }
+}
+async function reject(id){
+  const reason = prompt('دلیل رد (اختیاری)') || '';
+  try {
+    await API.reservations.reject(id, reason);
+    await reload(); toast('رد شد');
+  } catch (err) {
+    alert('خطا — ' + (err.details || err.message));
+  }
+}
+function exportCsv(){
+  const rows = filtered();
+  const head = ['کد', 'نام', 'تماس', 'رویداد', 'تعداد', 'مبلغ', 'وضعیت', 'تاریخ'];
+  const lines = rows.map(r => [r.reservation_code || ('#' + r.id), r.attendee_name || r.buyer_name, r.attendee_phone || r.buyer_phone, r.event_title || r.event_id, r.people, r.total_price || 0, statusLabels[r.status] || r.status, r.created_at].join(','));
+  const csv = '\uFEFF' + head.join(',') + '\n' + lines.join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'mavara-reservations.csv'; a.click();
+}
+function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
+function logout(){ API.auth.logout(); location.href = 'login.html'; }
+addEventListener('DOMContentLoaded', init);
+</script>
+</body></html>
