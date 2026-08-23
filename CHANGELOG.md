@@ -1,9 +1,102 @@
-# CHANGELOG — Phase 4 through 8, + follow-ups (ticket template, email login)
+# CHANGELOG — Phase 4 through 8, + follow-ups (ticket template, email login, split architecture)
 
 Full technical detail behind the summary in `README.md`'s checklist. Schema
 went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
+
+## Follow-up: split website/ from bot/ so the site can host on plain shared hosting (no SSH)
+
+**Why:** `website/` previously had no backend of its own — every admin
+action (events, portfolio, team) went through `bot/api/server.py`, the
+same unified process the Telegram bot's whole reservation platform runs
+on. That process needs a persistent background service (systemd) and a
+real server with SSH — exactly what an ordinary shared-hosting cPanel/
+DirectAdmin plan (Python App / Passenger, no SSH) can't run. Per an
+explicit request to make `website/` hostable on that kind of plan, with
+reservation staying entirely the bot's job: `website/` is now fully
+independent of `bot/` — different backend, different database, no
+shared code, deployable separately (and, going forward, on completely
+different hosting if wanted — see the earlier discussion this
+implements).
+
+**New: `website/backend_cms/`** — a small, synchronous Flask (WSGI) app
+that manages ONLY public content: events (display fields — no sessions/
+capacity/price), portfolio, team members, and its own admin login. Its
+own SQLite database (`data/content.db`), nothing shared with `bot/`.
+- `auth.py` — the same stdlib-only PBKDF2 + HS256 JWT approach as
+  `bot/utils/auth.py` (independent copy, not an import — this backend
+  has zero dependency on `bot/`).
+- `app.py` — all routes registered on a Blueprint at BOTH `/v1/...` and
+  `/api/v1/...` (see the comment above `api = Blueprint(...)`): whether
+  a cPanel/DirectAdmin "Application URL" mount point strips its own
+  prefix from the path the WSGI app sees is genuinely inconsistent
+  across panel/Passenger versions — registering both removes the
+  guesswork instead of gambling on one behavior at deploy time.
+- Login has the same in-memory sliding-window rate limit
+  (`bot/api/server.py`'s pattern) — 8 attempts / 15 minutes per IP+username.
+- `MEDIA_ROOT` (env var, defaults to a sibling `website/media/`) is
+  where uploads land — deliberately a plain folder the real webserver
+  serves directly as static files, not proxied through the Python app
+  (shared hosting's static file serving is faster and simpler than
+  routing binary downloads through Passenger).
+- `passenger_wsgi.py` — the exact entrypoint cPanel/DirectAdmin's
+  Passenger-based Python App feature expects.
+- `create_admin.py` — CLI bootstrap for the first admin account, run
+  from the panel's own virtual-environment terminal (no SSH needed).
+- `DEPLOYMENT.md` — click-by-click cPanel/DirectAdmin instructions.
+
+**Booking moved fully to Telegram — no reservation UI on the website at
+all anymore.** `pages/event-detail.html`'s booking widget (the whole
+step-by-step date → session → qty → buyer info → payment → receipt-
+upload flow, ~190 lines of `site.js`) is gone. In its place: a "book via
+Telegram/phone" button built from the event's own `contact_phone`/
+`contact_telegram` fields — the same link-based booking the original
+site (`actor-portfolio/`) always used, before the reservation platform
+existed. Removed pages (all reservation/ticket/customer-account
+surfaces, all bot-domain now): `pages/account.html` (customer login
+dashboard), `pages/connect-telegram.html` (deleted — it existed only to
+support that same account login's Telegram-linking step, which no
+longer exists on the website side), `pages/admin/reservations.html`,
+`checkin.html`, `messages.html`, `ticket-template.html`,
+`admin/calendar.html` (session/capacity management). `assets/js/
+jalali-calendar.js` and `legacy-data.js` are now fully unused (nothing
+left references them) and deleted rather than left as dead code.
+
+**Also fixed while rebuilding `site.js`'s event rendering against the
+new backend's actual field names** (several were stale — leftover
+assumptions from before Phase 1's backend unification that had never
+been reconciled, found while doing this pass): `coverHTML()` read
+`e.images[0]`, a field that never existed on any real backend response —
+now reads `e.poster`/`e.gallery[0]`, matching what the admin form
+actually uploads. The homepage's "ongoing/upcoming" filter checked for
+`e.status === 'active'`, a status value nothing ever sets — now checks
+`'ongoing'`/`'upcoming'`, matching `badgeHTML()`'s own three-state
+convention. `pages/admin/events.html`'s date field (`evDate`) was
+rendered in the form but never actually included in the save payload —
+now wired through as a plain free-text field (`date`), and a `tags`
+input was added (comma-separated) since `site.js`'s tag-chip filter bar
+already expected an `event.tags` array that no admin form ever
+populated.
+
+**`bot/` is completely untouched by this pass** — same reservation
+platform, same database, ready to be hosted (on its own, real,
+SSH-capable host) whenever wanted; see `bot/README.md`.
+
+**Verified**: the full stack running together locally (`backend_cms`'s
+Flask dev server + a plain static file server for `website/`, two
+separate processes/ports, exactly mirroring the real split-hosting
+setup) — admin login (including the rate limiter actually triggering at
+attempt 9 and blocking even the correct password until the window
+expires), create/edit/delete for events/team/portfolio, image upload,
+and the Blueprint's dual `/v1/` + `/api/v1/` registration both
+resolving. Screenshotted (Playwright): homepage, events listing (tag
+filter), event detail (the new Telegram/phone booking buttons, no
+session table), team page, admin dashboard, admin events list, and the
+edit-event modal with real data (title/status/location/tags) populated
+from the new backend — zero console errors on any page. Every changed
+Python file `py_compile`s clean; `app.js` and `site.js` `node --check`
+clean.
 
 ## Follow-up: customer login rewritten from phone+Telegram to email OTP (schema v8 → v9)
 

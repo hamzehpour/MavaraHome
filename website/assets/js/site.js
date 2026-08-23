@@ -30,7 +30,7 @@ const I18N = {
   fa: {
     logo: 'خانه ماورا',
     q1: '«آنچه می‌جویید، شما را می‌جوید.»', q2: '«راه، با نخستین گام آغاز می‌شود.»', q3: '«آرامش از درون می‌آید؛ آن را بیرون نجویید.»', q4: '«بگذار هر چه هست، همان‌گونه که هست بماند.»', q5: '«هر روز، آغازی دوباره است.»', q6: '«شناختن خویش، آغاز همه‌ی شناخت‌هاست.»',
-    nav_about: 'درباره ماورا', nav_mansour: 'منصور نصیری', nav_team: 'اعضای خانه ماورا', nav_events: 'رویدادها', nav_podcast: 'پادکست', nav_companion: 'همراهی', nav_contact: 'تماس', nav_account: 'حساب من',
+    nav_about: 'درباره ماورا', nav_mansour: 'منصور نصیری', nav_team: 'اعضای خانه ماورا', nav_events: 'رویدادها', nav_podcast: 'پادکست', nav_companion: 'همراهی', nav_contact: 'تماس',
     hero_eyebrow: 'هنر · آگاهی · زندگی', hero_t1: 'خانه‌ی', hero_t2: 'ماورا',
     hero_tag: 'سفری به سوی خویشتن، از مسیر آگاهی، به یاری هنر',
     cta_events: 'رویدادها', cta_about: 'درباره ماورا',
@@ -50,12 +50,8 @@ const I18N = {
     empty_cat: 'رویدادی در این دسته ثبت نشده.', empty_event: 'رویداد پیدا نشد.',
     gal_eyebrow: 'گالری', gal_title: 'از نگاه من', gal_link: 'فایل رزومه',
     events_eyebrow: 'تقویم', events_title: 'رویدادهای خانه ماورا', events_sub: 'همین حالا، به‌زودی، و آنچه گذشت', tag_all: 'همه',
-    info_label: 'اطلاعات', loc_label: 'مکان', date_label: 'تاریخ', phone_label: 'تلفن', tg_label: 'تلگرام',
-    sessions_label: 'سانس‌ها', time_th: 'ساعت', capacity_th: 'ظرفیت', price_th: 'قیمت', book_tg: 'رزرو تلگرام',
+    info_label: 'اطلاعات', loc_label: 'مکان', date_label: 'تاریخ', book_tg: 'رزرو از تلگرام',
     fb_title: 'بازخورد و نظرات', fb_name_ph: 'نام شما (اختیاری)', fb_text_ph: 'نظر خود را بنویسید...', fb_submit: 'ثبت', empty_comment: 'هنوز نظری ثبت نشده.',
-    reserve_title: 'رزرو این رویداد', reserve_name: 'نام و نام خانوادگی', reserve_contact: 'شماره تماس یا تلگرام', reserve_qty: 'تعداد نفرات', reserve_note: 'یادداشت (اختیاری)', reserve_submit: 'ثبت درخواست رزرو', reserve_ok: 'درخواست رزرو ثبت شد؛ برای هماهنگی با شما تماس می‌گیریم.',
-    bk_date: 'تاریخ اجرا', bk_session: 'انتخاب سانس', bk_remaining: (n) => n + ' نفر باقی مانده', bk_full: 'تکمیل ظرفیت', bk_waitlist: 'افزودن به لیست انتظار', bk_qty: 'تعداد بلیت', bk_each: 'قیمت هر بلیت', bk_total: 'مبلغ کل', bk_buyer: 'اطلاعات خریدار', bk_confirm: 'ثبت رزرو', bk_done: 'رزرو شما ثبت شد — کد پیگیری شما:', bk_sel_date: 'ابتدا یک روز اجرا انتخاب کن', bk_tracking_id: 'شماره پیگیری', bk_waitlist_done: 'درخواست شما در لیست انتظار ثبت شد؛ در صورت آزاد شدن ظرفیت با شما تماس می‌گیریم.',
-    pay_title: 'پرداخت (کارت به کارت)', pay_card: 'شماره کارت فعال', pay_holder: 'نام صاحب کارت', pay_bank: 'بانک', pay_note: 'راهنمای پرداخت', pay_upload: 'آپلود رسید پرداخت', pay_uploaded: 'رسید دریافت شد.', pay_ok: 'رسید شما دریافت شد. پس از بررسی ادمین، تایید نهایی ارسال خواهد شد.', pay_fallback: 'اطلاعات کارت از پنل ادمین تنظیم می‌شود — برای دریافت شماره کارت به تلگرام پیام بدهید.',
     f_tag: 'سفری به سوی خویشتن<br>از مسیر آگاهی، به یاری هنر',
     f_social: 'شبکه‌های اجتماعی', f_contact: 'تماس',
     f_social_ig: 'اینستاگرام', f_social_tg: 'تلگرام', f_castbox: 'Castbox',
@@ -87,7 +83,7 @@ const I18N = {
   en: {
     logo: 'Mavara House',
     q1: '“What you seek is seeking you.”', q2: '“The journey begins with a single step.”', q3: '“Peace comes from within — do not seek it without.”', q4: '“Let things be as they are, just this once.”', q5: '“Every day is a new beginning.”', q6: '“Knowing the self is the beginning of all knowing.”',
-    nav_about: 'About Mavara', nav_mansour: 'Mansour Nasiri', nav_team: 'Our Team', nav_events: 'Events', nav_podcast: 'Podcast', nav_companion: 'Companionship', nav_contact: 'Contact', nav_account: 'My Account',
+    nav_about: 'About Mavara', nav_mansour: 'Mansour Nasiri', nav_team: 'Our Team', nav_events: 'Events', nav_podcast: 'Podcast', nav_companion: 'Companionship', nav_contact: 'Contact',
     hero_eyebrow: 'Art · Awareness · Life', hero_t1: 'Mavara', hero_t2: 'House',
     hero_tag: 'A journey toward the self — through awareness, by the hand of art.',
     cta_events: 'Events', cta_about: 'About Mavara',
@@ -107,12 +103,8 @@ const I18N = {
     empty_cat: 'No events in this category yet.', empty_event: 'Event not found.',
     gal_eyebrow: 'Gallery', gal_title: 'Through my lens', gal_link: 'Résumé',
     events_eyebrow: 'Calendar', events_title: 'Mavara events', events_sub: 'Now, soon, and what has passed', tag_all: 'All',
-    info_label: 'Details', loc_label: 'Location', date_label: 'Date', phone_label: 'Phone', tg_label: 'Telegram',
-    sessions_label: 'Sessions', time_th: 'Time', capacity_th: 'Capacity', price_th: 'Price', book_tg: 'Book on Telegram',
+    info_label: 'Details', loc_label: 'Location', date_label: 'Date', book_tg: 'Book on Telegram',
     fb_title: 'Feedback & comments', fb_name_ph: 'Your name (optional)', fb_text_ph: 'Write your comment...', fb_submit: 'Submit', empty_comment: 'No comments yet.',
-    reserve_title: 'Reserve this event', reserve_name: 'Full name', reserve_contact: 'Phone or Telegram', reserve_qty: 'Number of people', reserve_note: 'Note (optional)', reserve_submit: 'Submit reservation request', reserve_ok: 'Reservation request received; we will contact you to confirm.',
-    bk_date: 'Performance date', bk_session: 'Choose a session', bk_remaining: (n) => n + ' seats left', bk_full: 'Sold out', bk_waitlist: 'Join the waiting list', bk_qty: 'Number of tickets', bk_each: 'Price per ticket', bk_total: 'Total', bk_buyer: 'Buyer information', bk_confirm: 'Confirm reservation', bk_done: 'Your reservation is registered — your tracking code:', bk_sel_date: 'Pick a performance date first', bk_tracking_id: 'Tracking number', bk_waitlist_done: 'You have been added to the waiting list; we will contact you if a seat opens up.',
-    pay_title: 'Payment (card transfer)', pay_card: 'Active card number', pay_holder: 'Account holder', pay_bank: 'Bank', pay_note: 'Payment guide', pay_upload: 'Upload payment receipt', pay_uploaded: 'Receipt received.', pay_ok: 'Your receipt has been received. After admin review, final confirmation will be sent.', pay_fallback: 'Card details are set from the admin panel — contact us on Telegram for the card number.',
     f_tag: 'A journey toward the self<br>through awareness, by the hand of art',
     f_social: 'Social media', f_contact: 'Contact',
     f_social_ig: 'Instagram', f_social_tg: 'Telegram', f_castbox: 'Castbox',
@@ -174,7 +166,7 @@ function coverFallback(el) {
   el.innerHTML = ICON_STAR + '<span>خانه ماورا</span>';
 }
 function coverHTML(e) {
-  const img = e.images && e.images[0] ? e.images[0] : null;
+  const img = e.poster || (Array.isArray(e.gallery) && e.gallery[0]) || null;
   if (!img) return '<div class="event-cover is-fallback">' + ICON_STAR + '<span>خانه ماورا</span></div>';
   return '<div class="event-cover"><img src="' + pp(img) + '" alt="' + esc(evTitle(e)) + '" loading="lazy" onerror="coverFallback(this.parentNode)"></div>';
 }
@@ -212,7 +204,6 @@ function loadHeader(active) {
     <a class="logo" href="${home}"><img src="${logo}" alt="${T('logo')}">${T('logo')}</a>
     <nav class="nav-links" id="navLinks">${nav.map((n, i) => `<a href="${pp(n.h)}"${('pages/' + (__activeNav||'')) === n.h ? ' class="active"' : ''} style="--i:${i}">${n.l}</a>`).join('')}</nav>
     <div style="display:flex;align-items:center">
-      <a class="account-link" href="${pp('pages/account.html')}" style="margin-inline-end:12px;font-size:.85rem;opacity:.85;white-space:nowrap">${T('nav_account')}</a>
       <div class="lang-toggle" role="group" aria-label="Language">
         <button type="button" data-lang="fa"${l === 'fa' ? ' class="active"' : ''}>فا</button>
         <button type="button" data-lang="en"${l === 'en' ? ' class="active"' : ''}>EN</button>
@@ -285,7 +276,7 @@ async function initEventsPreview() {
   const el = document.getElementById('eventsPreview');
   if (!el) return;
   await API.init();
-  const ev = API.events.all().filter(e => e.status === 'upcoming' || e.status === 'active').slice(0, 3);
+  const ev = API.events.all().filter(e => e.status === 'ongoing' || e.status === 'upcoming').slice(0, 3);
   el.innerHTML = ev.length ? ev.map(e => {
     const meta = [e.date, evLoc(e)].filter(Boolean).join(' · ');
     return `<div class="event-card">${coverHTML(e)}<div class="event-card-body">
@@ -341,10 +332,6 @@ async function initEventDetail() {
   if (!e) { el.innerHTML = '<div class="empty-state">' + ICON_STAR + '<p>' + T('empty_event') + '</p></div>'; return; }
   document.title = esc(evTitle(e)) + ' | ' + T('logo');
 
-  await API.sessions.refresh(e.id);
-  const allSessions = API.sessions.all(e.id);
-  const sessions = allSessions.map(s => `<tr><td>${esc(s.date)} ${esc(s.time)}</td><td>${esc(s.capacity)}</td><td>${Number(e.price || 0).toLocaleString(lang() === 'en' ? 'en-US' : 'fa-IR')}</td></tr>`).join('');
-
   const galleryHTML = Array.isArray(e.gallery) && e.gallery.length
     ? `<div style="margin-top:22px"><h3 style="font-weight:700;margin-bottom:10px;color:var(--navy)">${T('gallery_label') || 'گالری تصاویر'}</h3>
        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px">
@@ -356,9 +343,18 @@ async function initEventDetail() {
        <video controls style="width:100%;border-radius:14px;background:#000" src="${pp(esc(e.video))}"></video></div>`
     : '';
 
-  // Two-column reservation layout (requested): poster on the right,
-  // everything else (info, sessions, booking) on the left, so the whole
-  // decision fits in one glance instead of one long scrolling column.
+  // Booking itself happens entirely on Telegram (see the split-architecture
+  // note at the top of this file) — this page just shows event info and a
+  // "book via Telegram/phone" CTA using the event's own contact fields, the
+  // same way every other page on this site hands off to Telegram/Instagram
+  // rather than running its own reservation flow.
+  const bookingCta = (e.contact_phone || e.contact_telegram)
+    ? `<div style="display:flex;gap:12px;flex-wrap:wrap">
+        ${e.contact_telegram ? `<a class="btn btn--gold" href="https://t.me/${esc(e.contact_telegram)}" target="_blank">${T('book_tg')}</a>` : ''}
+        ${e.contact_phone ? `<a class="btn btn--outline" href="tel:${esc(e.contact_phone)}" dir="ltr">${ICON_PIN.replace('stroke-width="1.8"', 'stroke-width="2"')} ${esc(e.contact_phone)}</a>` : ''}
+      </div>`
+    : '';
+
   el.innerHTML = `
     <h1 style="font-size:clamp(1.5rem,3vw,1.95rem);font-weight:700;margin-bottom:6px;color:var(--navy)">${esc(evTitle(e))}</h1>
     <p style="color:var(--text-muted);margin-bottom:24px;line-height:2">${esc(evCtx(e))}</p>
@@ -370,16 +366,9 @@ async function initEventDetail() {
           <table class="admin-table"><tbody>
             ${evLoc(e) ? `<tr><td style="font-weight:600;color:var(--gold-deep);width:110px">${T('loc_label')}</td><td>${esc(evLoc(e))}</td></tr>` : ''}
             ${e.date ? `<tr><td style="font-weight:600;color:var(--gold-deep)">${T('date_label')}</td><td>${esc(e.date)}</td></tr>` : ''}
-            ${e.contact_phone ? `<tr><td style="font-weight:600;color:var(--gold-deep)">${T('phone_label')}</td><td dir="ltr">${esc(e.contact_phone)}</td></tr>` : ''}
-            ${e.contact_telegram ? `<tr><td style="font-weight:600;color:var(--gold-deep)">${T('tg_label')}</td><td><a href="https://t.me/${esc(e.contact_telegram)}" target="_blank">@${esc(e.contact_telegram)}</a></td></tr>` : ''}
           </tbody></table>
         </div>
-        ${sessions ? `<div><h3 style="font-weight:700;margin-bottom:10px;color:var(--navy)">${T('sessions_label')}</h3><table class="admin-table"><thead><tr><th>${T('time_th')}</th><th>${T('capacity_th')}</th><th>${T('price_th')}</th></tr></thead><tbody>${sessions}</tbody></table></div>` : ''}
-        ${e.booking ? `<div style="display:flex;gap:12px;flex-wrap:wrap">
-          ${e.booking.phone ? `<a class="btn btn--gold" href="tel:${esc(e.booking.phone)}">${ICON_PIN.replace('stroke-width="1.8"', 'stroke-width="2"')} ${esc(e.booking.phone)}</a>` : ''}
-          ${e.booking.telegram ? `<a class="btn btn--outline" href="https://t.me/${esc(e.booking.telegram)}" target="_blank">${T('book_tg')}</a>` : ''}
-        </div>` : ''}
-        <div class="feedback-box" id="bookingWidget"><h4>${T('reserve_title')}</h4></div>
+        ${bookingCta}
       </div>
     </div>
     <div class="feedback-box" id="feedbackBox" style="max-width:640px;margin:24px auto 0"><h4>${T('fb_title')}</h4>
@@ -388,197 +377,6 @@ async function initEventDetail() {
     </div>
     <style>@media (max-width: 760px) { .event-detail-grid { grid-template-columns: 1fr !important; } .event-detail-poster { order: 1 !important; max-width: 380px; margin: 0 auto; } .event-detail-info { order: 2 !important; } }</style>`;
   loadFeedbacks(e.id);
-  await buildBooking(e);
-}
-
-/* ── Step-by-step booking (same contract as the Telegram bot backend) ── */
-const __bk = { eventId: null, dateId: null, sessionId: null, qty: 1 };
-async function buildBooking(e) {
-  const box = document.getElementById('bookingWidget');
-  if (!box) return;
-  __bk.eventId = e.id;
-  await API.sessions.refresh(e.id);
-  const dates = API.dates.forEvent(e.id);
-  if (!dates.length) {
-    box.insertAdjacentHTML('beforeend', `<p style="font-size:13px;color:var(--text-muted)">${T('bk_sel_date') || 'در حال حاضر سانسی برای رزرو تعریف نشده است.'}</p>`);
-    return;
-  }
-  box.insertAdjacentHTML('beforeend', `
-    <div style="display:grid;gap:18px" id="bkRoot">
-      <div><div class="bk-label">${T('bk_date')}</div><div class="bk-chips" id="bkDates">${dates.map(d => `<button type="button" class="bk-chip" data-date="${esc(d.id)}">${esc(d.jalali_date)}</button>`).join('')}</div></div>
-      <div id="bkSessionBlock" style="display:none"><div class="bk-label">${T('bk_session')}</div><div class="bk-sessions" id="bkSessions"></div></div>
-      <div id="bkQtyBlock" style="display:none"><div class="bk-label">${T('bk_qty')}</div>
-        <div class="bk-stepper"><button type="button" id="bkMinus" aria-label="−">−</button><span id="bkQtyVal">1</span><button type="button" id="bkPlus" aria-label="+">+</button></div>
-      </div>
-      <div id="bkSummary" style="display:none;background:var(--bg-soft);border-radius:12px;padding:14px;font-size:13.5px;line-height:2"></div>
-      <div id="bkUser" style="display:none"><div class="bk-label">${T('bk_buyer')}</div>
-        <input id="bkName" placeholder="${T('reserve_name')}" required maxlength="120" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;font-family:inherit;margin-bottom:8px">
-        <input id="bkContact" placeholder="${T('reserve_contact')}" required maxlength="120" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;font-family:inherit">
-      </div>
-      <button class="btn btn--gold" id="bkSubmit" type="button" style="display:none">${T('bk_confirm')}</button>
-      <p id="bkMsg" style="display:none;color:#2a7a2a;font-size:13.5px;line-height:2"></p>
-    </div>`);
-  box.querySelectorAll('.bk-chip').forEach(chip => chip.onclick = () => selectDate(chip.dataset.date, chip));
-  document.getElementById('bkMinus').onclick = () => stepQty(-1);
-  document.getElementById('bkPlus').onclick = () => stepQty(1);
-  document.getElementById('bkSubmit').onclick = () => submitBooking();
-}
-function selectDate(dateIso, chip) {
-  __bk.dateId = dateIso; __bk.sessionId = null; __bk.qty = 1;
-  document.querySelectorAll('#bkDates .bk-chip').forEach(c => c.classList.toggle('active', c === chip));
-  const sessions = API.sessions.forDate(__bk.eventId, dateIso);
-  const event = API.events.get(__bk.eventId);
-  const wrap = document.getElementById('bkSessions');
-  wrap.innerHTML = sessions.length ? sessions.map(s => {
-    const full = API.sessions.isFull(s);
-    return `<button type="button" class="bk-session ${full ? 'is-full' : ''}" data-sid="${esc(s.id)}" ${full ? 'disabled' : ''}>
-      <span dir="ltr" class="bk-time">${esc(s.time)}</span>
-      <span class="bk-cap">${full ? T('bk_full') : T('bk_remaining')(API.sessions.remaining(s))}</span>
-      <span class="bk-price">${Number(event.price || 0).toLocaleString(lang() === 'en' ? 'en-US' : 'fa-IR')} ${lang() === 'en' ? 'T' : (event.currency || 'تومان')}</span>
-      ${full ? `<small style="display:block;width:100%;margin-top:6px"><button type="button" class="bk-waitlist" data-sid="${esc(s.id)}">${T('bk_waitlist')}</button></small>` : ''}
-    </button>`;
-  }).join('') : `<p style="font-size:12.5px;color:var(--text-muted)">${T('bk_sel_date')}</p>`;
-  document.getElementById('bkSessionBlock').style.display = 'block';
-  hideAfterSession();
-  wrap.querySelectorAll('.bk-session:not(.is-full)').forEach(b => b.onclick = () => selectSession(b.dataset.sid, b));
-  wrap.querySelectorAll('.bk-waitlist').forEach(b => b.onclick = (ev) => { ev.stopPropagation(); joinWaitlist(b.dataset.sid); });
-}
-function selectSession(sessionId, btn) {
-  __bk.sessionId = sessionId; __bk.qty = 1;
-  document.querySelectorAll('#bkSessions .bk-session').forEach(b => b.classList.toggle('active', b === btn));
-  document.getElementById('bkQtyVal').textContent = '1';
-  document.getElementById('bkQtyBlock').style.display = 'block';
-  document.getElementById('bkUser').style.display = 'block';
-  document.getElementById('bkSubmit').style.display = 'inline-flex';
-  renderSummary();
-}
-function hideAfterSession() {
-  document.getElementById('bkQtyBlock').style.display = 'none';
-  document.getElementById('bkUser').style.display = 'none';
-  document.getElementById('bkSubmit').style.display = 'none';
-  document.getElementById('bkSummary').style.display = 'none';
-}
-function stepQty(delta) {
-  const s = API.sessions.get(__bk.eventId, __bk.sessionId); if (!s) return;
-  const max = Math.max(1, API.sessions.remaining(s));
-  __bk.qty = Math.min(max, Math.max(1, __bk.qty + delta));
-  document.getElementById('bkQtyVal').textContent = __bk.qty;
-  document.getElementById('bkPlus').disabled = __bk.qty >= max;
-  document.getElementById('bkMinus').disabled = __bk.qty <= 1;
-  renderSummary();
-}
-function renderSummary() {
-  const s = API.sessions.get(__bk.eventId, __bk.sessionId); if (!s) return;
-  const d = API.dates.forEvent(__bk.eventId).find(x => x.id === __bk.dateId);
-  const event = API.events.get(__bk.eventId);
-  const unitPrice = Number(event.price || 0);
-  const total = __bk.qty * unitPrice;
-  const currencyLabel = lang() === 'en' ? 'T' : (event.currency || 'تومان');
-  const el = document.getElementById('bkSummary');
-  el.style.display = 'block';
-  el.innerHTML = `${esc(evTitle(event))} · ${esc(d ? d.jalali_date : '')} · <span dir="ltr">${esc(s.time)}</span><br>${T('bk_qty')}: ${__bk.qty} · ${T('bk_each')}: ${unitPrice.toLocaleString(lang() === 'en' ? 'en-US' : 'fa-IR')}<br><strong style="color:var(--gold-deep)">${T('bk_total')}: ${total.toLocaleString(lang() === 'en' ? 'en-US' : 'fa-IR')} ${currencyLabel}</strong>`;
-}
-async function submitBooking() {
-  const name = document.getElementById('bkName').value.trim();
-  const contact = document.getElementById('bkContact').value.trim();
-  if (!name || !contact) return alert(T('reserve_name') + ' / ' + T('reserve_contact'));
-  const s = API.sessions.get(__bk.eventId, __bk.sessionId);
-  if (!s || API.sessions.isFull(s)) return alert(T('bk_full'));
-
-  const submitBtn = document.getElementById('bkSubmit');
-  submitBtn.disabled = true;
-  let record;
-  try {
-    // This is the real call — lands in the SAME database the Telegram
-    // bot and admin panel read from, not a local-only record.
-    record = await API.reservations.create({ session_id: s.id, phone: contact, full_name: name, people: __bk.qty });
-  } catch (err) {
-    submitBtn.disabled = false;
-    if (err.status === 409 && err.message === 'sold_out') return alert(T('bk_full'));
-    return alert('خطا در ثبت رزرو — لطفاً دوباره تلاش کنید. ' + (err.details || ''));
-  }
-  if (record && record.waiting) {
-    const msg = document.getElementById('bkMsg');
-    msg.style.display = 'block';
-    msg.innerHTML = T('bk_waitlist_done');
-    document.getElementById('bkUser').style.display = 'none';
-    submitBtn.style.display = 'none';
-    return;
-  }
-  const msg = document.getElementById('bkMsg');
-  msg.style.display = 'block';
-  // reservation_code is only assigned once the admin approves payment
-  // (same as the Telegram bot flow) — showing a fake code here before
-  // that would be inventing data the backend hasn't actually issued yet.
-  msg.innerHTML = `${T('bk_done')}<br>${T('bk_tracking_id')}: <strong dir="ltr" style="color:var(--gold-deep)">#${esc(record.id)}</strong>`;
-  document.getElementById('bkUser').style.display = 'none';
-  submitBtn.style.display = 'none';
-  document.getElementById('bkQtyBlock').style.display = 'none';
-  await showPayment(record, s);
-  selectDate(__bk.dateId, document.querySelector('#bkDates .bk-chip.active'));
-}
-async function showPayment(record, session) {
-  let info = T('pay_fallback');
-  try {
-    const p = await API.paymentInfo.get();
-    if (p && p.card_number) {
-      info = `${T('pay_card')}: <strong dir="ltr">${esc(p.card_number)}</strong>${p.card_holder ? ' · ' + esc(p.card_holder) : ''}${p.bank_name ? ' · ' + esc(p.bank_name) : ''}`;
-    }
-  } catch { /* fall back to the generic message rather than block the success screen on a payment-info fetch error */ }
-  const box = document.getElementById('bookingWidget');
-  const prev = document.getElementById('bkPay');
-  if (prev) prev.remove();
-  const div = document.createElement('div');
-  div.id = 'bkPay';
-  div.innerHTML = `<div class="feedback-box" style="background:var(--bg-soft)">
-    <h4>${T('pay_title')}</h4><p style="font-size:13px;line-height:2;margin-bottom:10px">${info}</p>
-    <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:6px">${T('pay_upload')}</label>
-    <input type="file" id="bkReceipt" accept="image/*" style="font-size:12.5px;margin-bottom:10px">
-    <button class="btn btn--gold" type="button" style="font-size:12.5px" onclick="uploadReceiptUI(${Number(record.id)})">${T('pay_upload')}</button>
-    <p id="bkPayMsg" style="display:none;color:#2a7a2a;font-size:13px;margin-top:10px;line-height:2"></p>
-  </div>`;
-  box.appendChild(div);
-}
-function uploadReceiptUI(reservationId) {
-  const file = document.getElementById('bkReceipt').files[0];
-  if (!file) return alert(T('pay_upload'));
-  if (!file.type.startsWith('image/')) return alert(T('bk_sel_date'));
-  if (file.size > 1_500_000) return alert(T('pay_upload') + ' ≤1.5MB');
-  const reader = new FileReader();
-  reader.onload = async () => {
-    const msg = document.getElementById('bkPayMsg');
-    try {
-      // Same submit_receipt() the Telegram bot's photo handler calls —
-      // triggers the exact same admin notification either way.
-      await API.receipts.submit(reservationId, String(reader.result));
-      msg.style.display = 'block'; msg.textContent = T('pay_ok');
-      document.getElementById('bkReceipt').disabled = true;
-    } catch (err) {
-      msg.style.display = 'block';
-      msg.style.color = '#c44';
-      msg.textContent = 'خطا در ارسال رسید — ' + (err.details || err.message || 'دوباره تلاش کنید.');
-    }
-  };
-  reader.readAsDataURL(file);
-}
-async function joinWaitlist(sid) {
-  const name = prompt(T('reserve_name')) || '';
-  const contact = prompt(T('reserve_contact')) || '';
-  if (!name || !contact) return;
-  let record;
-  try {
-    // The backend automatically routes to the waiting list when the
-    // session is full — same atomic check as a normal booking, no
-    // separate "waiting" status invented on the frontend.
-    record = await API.reservations.create({ session_id: sid, phone: contact, full_name: name, people: 1 });
-  } catch (err) {
-    return alert('خطا در ثبت درخواست — لطفاً دوباره تلاش کنید.');
-  }
-  const msg = document.getElementById('bkMsg');
-  msg.style.display = 'block';
-  msg.textContent = record.waiting
-    ? T('bk_waitlist_done')
-    : (T('bk_done') + ' #' + record.id);
 }
 
 function submitFeedback(eventId) {

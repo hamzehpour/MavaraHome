@@ -1,0 +1,6 @@
+# Deliberately minimal — every extra package is another thing that has
+# to install correctly on shared hosting. auth.py's JWT/password hashing
+# is stdlib-only (hashlib/hmac), the database is stdlib sqlite3, so
+# Flask itself is the only real dependency.
+Flask==3.0.3
+python-dotenv==1.0.1

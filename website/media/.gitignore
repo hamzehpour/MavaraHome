@@ -1,0 +1,7 @@
+# Uploaded media lands here at runtime (see backend_cms/app.py's
+# MEDIA_ROOT). Never commit real uploads — only the folder structure
+# (.gitkeep placeholders) is tracked.
+*
+!*/
+!.gitignore
+!*/.gitkeep
