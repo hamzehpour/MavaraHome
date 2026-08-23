@@ -3,7 +3,7 @@
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>مدیریت رویدادها</title><meta name="robots" content="noindex,nofollow"><link rel="icon" type="image/webp" href="../../assets/images/logo/favicon.webp"><link rel="stylesheet" href="../../assets/css/styles.css"></head>
 <body>
 <div class="admin-layout">
-    <aside class="admin-sidebar"><div style="font-weight:700;font-size:15px;padding:8px 14px;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.1)">خانه ماورا</div><a href="dashboard.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>داشبورد</a><a href="events.html" class="active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M4 5h16"/><path d="M4 5 3 21M20 5l1 16"/><path d="M8 5v16M12 5v16M16 5v16"/></svg>رویدادها</a><a href="calendar.html">تقویم و سانس</a><a href="portfolio.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.5"/><path d="M7 2v20M17 2v20M2 12h20"/></svg>رزومه</a><a href="team.html">اعضای خانه ماورا</a><a href="messages.html">پیام‌ها</a><a href="checkin.html">پذیرش بلیت</a><button onclick="MavaraTheme.toggle(); this.textContent = MavaraTheme.get()==='dark' ? '☀️ حالت روشن' : '🌙 حالت تیره'" id="themeToggleBtn" style="margin-top:auto">🌓 تغییر پوسته</button>
+    <aside class="admin-sidebar"><div style="font-weight:700;font-size:15px;padding:8px 14px;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.1)">خانه ماورا</div><a href="dashboard.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>داشبورد</a><a href="events.html" class="active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M4 5h16"/><path d="M4 5 3 21M20 5l1 16"/><path d="M8 5v16M12 5v16M16 5v16"/></svg>رویدادها</a><a href="calendar.html">تقویم و سانس</a><a href="portfolio.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.5"/><path d="M7 2v20M17 2v20M2 12h20"/></svg>رزومه</a><a href="team.html">اعضای خانه ماورا</a><a href="messages.html">پیام‌ها</a><a href="checkin.html">پذیرش بلیت</a><a href="ticket-template.html">قالب بلیت</a><button onclick="MavaraTheme.toggle(); this.textContent = MavaraTheme.get()==='dark' ? '☀️ حالت روشن' : '🌙 حالت تیره'" id="themeToggleBtn" style="margin-top:auto">🌓 تغییر پوسته</button>
         <button onclick="logout()" style="margin-top:auto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>خروج</button></aside>
     <main class="admin-main">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px"><h2>مدیریت رویدادها</h2><button class="btn btn--primary" onclick="openForm()" style="font-size:13px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>رویداد جدید</button></div>
@@ -30,6 +30,13 @@
         <label style="margin-top:14px">ویدیوی رویداد (فایل یا لینک)</label>
         <input type="file" id="evVideoFile" accept="video/*">
         <input id="evVideoUrl" placeholder="یا آدرس ویدیو (اختیاری)" style="margin-top:6px">
+        <label style="margin-top:14px">لوگوی بلیت این رویداد (اختیاری)</label>
+        <p style="font-size:11.5px;color:var(--text-muted);margin:2px 0 6px">اگر خالی بماند، لوگوی پیش‌فرض از «قالب بلیت» استفاده می‌شود.</p>
+        <input type="file" id="evTicketLogoFile" accept="image/*">
+        <div id="evTicketLogoPreview" style="margin-top:8px"></div>
+        <label style="margin-top:14px">نکات مهم و ملاحظات این رویداد</label>
+        <p style="font-size:11.5px;color:var(--text-muted);margin:2px 0 6px">هر نکته در یک خط جدا — این‌ها به‌صورت خودکار در بخش «ملاحظات» بلیت PDF چاپ می‌شوند. مثال: «جای پارک اختصاصی نداریم، لطفاً کمی بالاتر پارک کنید.»</p>
+        <textarea id="evNotes" placeholder="هر نکته در یک خط..." style="min-height:70px"></textarea>
         <div style="display:flex;gap:8px;margin-top:16px"><button type="submit" class="btn btn--primary">💾 ذخیره</button><button type="button" class="btn btn--outline" onclick="closeForm()">انصراف</button></div>
     </form>
 </div></div></div>
@@ -38,7 +45,7 @@
 <script>
 if (!API.auth.check()) window.location.href = 'login.html';
 let editingId = null;
-let evPoster = null, evGallery = [], evVideo = null;
+let evPoster = null, evGallery = [], evVideo = null, evTicketLogo = null;
 
 // Real file upload goes through API.events.uploadMedia() (app.js) — NOT a
 // locally re-declared helper here. A separate local copy previously hit a
@@ -72,6 +79,14 @@ document.getElementById('evVideoFile').addEventListener('change', async (ev) => 
         toast('ویدیو آپلود شد');
     } catch { toast('آپلود ویدیو ناموفق بود — سرور بک‌اند را بررسی کنید'); }
 });
+document.getElementById('evTicketLogoFile').addEventListener('change', async (ev) => {
+    const file = ev.target.files[0]; if (!file) return;
+    try {
+        evTicketLogo = await API.events.uploadMedia(file, 'ticket_logo');
+        document.getElementById('evTicketLogoPreview').innerHTML = `<img src="/${evTicketLogo}" style="max-width:100px;border-radius:8px;background:#fff;padding:4px">`;
+        toast('لوگوی بلیت آپلود شد');
+    } catch { toast('آپلود لوگو ناموفق بود — سرور بک‌اند را بررسی کنید'); }
+});
 
 async function load() {
     await API.init();
@@ -79,7 +94,7 @@ async function load() {
     document.getElementById('tBody').innerHTML = rows.map(e => `<tr><td><strong>${e.title}</strong></td><td>${e.location || '—'}</td><td><span class="badge ${e.is_active ? 'badge--active' : 'badge--ended'}">${e.is_active ? 'فعال' : 'غیرفعال'}</span></td><td style="display:flex;gap:6px"><button class="btn btn--outline btn--sm" onclick="editEv(${e.id})" style="font-size:11px;padding:4px 10px">✏️</button><button class="btn btn--outline btn--sm" onclick="toggleActive(${e.id}, ${e.is_active})" style="font-size:11px;padding:4px 10px;color:${e.is_active ? '#c44' : '#2a7a2a'}">${e.is_active ? '⏸️ غیرفعال کن' : '▶️ فعال کن'}</button></td></tr>`).join('') || '<tr><td colspan="4">رویدادی ثبت نشده.</td></tr>';
 }
 
-function openForm() { editingId = null; evPoster = null; evGallery = []; evVideo = null; document.getElementById('modalTitle').textContent = 'رویداد جدید'; document.getElementById('evForm').reset(); document.getElementById('evPosterPreview').innerHTML = ''; document.getElementById('evGalleryPreview').innerHTML = ''; document.getElementById('evModal').style.display = 'flex'; }
+function openForm() { editingId = null; evPoster = null; evGallery = []; evVideo = null; evTicketLogo = null; document.getElementById('modalTitle').textContent = 'رویداد جدید'; document.getElementById('evForm').reset(); document.getElementById('evPosterPreview').innerHTML = ''; document.getElementById('evGalleryPreview').innerHTML = ''; document.getElementById('evTicketLogoPreview').innerHTML = ''; document.getElementById('evModal').style.display = 'flex'; }
 
 function editEv(id) {
     const e = API.events.get(id); if (!e) return; editingId = id;
@@ -97,9 +112,12 @@ function editEv(id) {
     evPoster = e.poster || null;
     evGallery = Array.isArray(e.gallery) ? [...e.gallery] : [];
     evVideo = e.video || null;
+    evTicketLogo = e.ticket_logo || null;
     document.getElementById('evPosterPreview').innerHTML = evPoster ? `<img src="/${evPoster}" style="max-width:160px;border-radius:8px">` : '';
     document.getElementById('evGalleryPreview').innerHTML = evGallery.map(p => `<img src="/${p}" style="width:70px;height:70px;object-fit:cover;border-radius:8px">`).join('');
     document.getElementById('evVideoUrl').value = evVideo || '';
+    document.getElementById('evTicketLogoPreview').innerHTML = evTicketLogo ? `<img src="/${evTicketLogo}" style="max-width:100px;border-radius:8px;background:#fff;padding:4px">` : '';
+    document.getElementById('evNotes').value = e.important_notes || '';
     document.getElementById('evModal').style.display = 'flex';
 }
 
@@ -112,6 +130,7 @@ async function save(e) { e.preventDefault();
         is_active: document.getElementById('evStatus').value === 'ongoing',
         contact_phone: document.getElementById('evPhone').value, contact_telegram: document.getElementById('evTel').value,
         poster: evPoster, gallery: evGallery, video: videoField || evVideo || null,
+        ticket_logo: evTicketLogo, important_notes: document.getElementById('evNotes').value,
     };
     const submitBtn = e.target.querySelector('button[type=submit]');
     if (submitBtn) submitBtn.disabled = true;

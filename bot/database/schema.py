@@ -12,7 +12,7 @@ what's missing instead of guessing from column-already-exists errors.
 from database.connection import get_connection
 from config.settings import BOOTSTRAP_ADMIN_IDS
 
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 8
 
 SCHEMA_STATEMENTS = [
     # ---- users -------------------------------------------------
@@ -427,6 +427,17 @@ DEFAULT_SETTINGS = {
         "{admin_note_block}\n\n"
         "در صورت وجود سوال با پشتیبانی تماس بگیرید."
     ),
+
+    # ---- PDF ticket template (admin-editable from the website's
+    # admin panel — pages/admin/ticket-template.html — and, for parity,
+    # from the Telegram bot's settings menu too since it's the same
+    # generic EDITABLE_SETTINGS mechanism). `ticket_template_logo` is the
+    # header logo shown when a specific event has no `ticket_logo` of its
+    # own (events.ticket_logo, set per-event) — see utils/ticket_pdf.py.
+    "ticket_template_title": "خانه ماورا",
+    "ticket_template_subtitle": "بلیت الکترونیک",
+    "ticket_template_footer": "این بلیت را همراه داشته باشید و QR آن را دم در نشان دهید — فقط برای یک نفر معتبر است.",
+    "ticket_template_logo": "",
 }
 
 
@@ -489,6 +500,18 @@ def init_db() -> None:
             # overlay, so nothing that already reads `status` needs to
             # change.
             "ALTER TABLE reservations ADD COLUMN checked_in_at TEXT",
+            # Phase 6 follow-up (ticket template + per-event notes, requested
+            # after the original 8-phase handoff): `important_notes` is
+            # free text, one consideration per line (e.g. "جای پارک ندارد،
+            # لطفاً بالاتر پارک کنید" / "لطفاً سکوت را رعایت کنید") — the
+            # admin fills it in once per event, and every ticket PDF for
+            # that event prints it automatically, so nobody has to remember
+            # to repeat it per reservation. `ticket_logo` is an OPTIONAL
+            # per-event override of the ticket header logo (falls back to
+            # the global `ticket_template_logo` setting, and to a plain
+            # text header if neither is set — see utils/ticket_pdf.py).
+            "ALTER TABLE events ADD COLUMN important_notes TEXT",
+            "ALTER TABLE events ADD COLUMN ticket_logo TEXT",
         ):
             try:
                 conn.execute(alter_sql)

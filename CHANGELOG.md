@@ -1,9 +1,75 @@
-# CHANGELOG — Phase 4 through 8
+# CHANGELOG — Phase 4 through 8, + follow-up (ticket template)
 
 Full technical detail behind the summary in `README.md`'s checklist. Schema
 went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
+
+## Follow-up: real Persian ticket typesetting + admin-editable template (schema v7 → v8)
+
+Closes the one item Phase 4-8 explicitly left incomplete ("شکل‌یافته Persian
+RTL... reportlab has no built-in RTL/شکل‌دهی support") plus two related,
+explicitly requested features: an admin-editable ticket template (with an
+optional logo), and per-event "important notes" auto-printed on every
+ticket for that event.
+
+**Schema v8** (additive, same discipline as v7): `events.important_notes`
+(free text, one consideration per line), `events.ticket_logo` (optional
+per-event header logo override), and four new `settings` keys
+(`ticket_template_title`, `ticket_template_subtitle`,
+`ticket_template_footer`, `ticket_template_logo`).
+
+**`utils/persian_text.py`** (new) — `shape_fa()`: reshapes Persian text into
+correctly-joined letterforms (`arabic-reshaper`) and reorders it into visual
+order (`python-bidi`'s `get_display`) so a plain LTR `drawString` call
+renders it correctly. Degrades to unshaped text (doesn't crash) if the
+libraries are missing.
+
+**`assets/fonts/`** (new) — Vazirmatn Regular/Medium/SemiBold/Bold `.ttf`
+(same family the website already uses), embedded into the PDF via
+reportlab's `TTFont`/`pdfmetrics`. Previously the PDF used bare Helvetica,
+which has no Persian glyphs at all.
+
+**`utils/ticket_pdf.py`** (rewritten) — right-to-left layout: event title
+and every label/value line right-aligned with word-wrapping against the
+right margin; seat count and price rendered in Persian digits (reservation
+code stays plain ASCII — it's an identifier, not prose); a new "ملاحظات"
+section prints the event's `important_notes` as a bulleted list, wrapped
+the same way; header shows the admin-configured template title/subtitle,
+or a logo (event-specific `ticket_logo`, falling back to the template's
+default `ticket_template_logo`) with the subtitle only — a logo is assumed
+to already carry the brand name, so it isn't drawn redundantly alongside a
+second text title.
+
+**`api/server.py`** — `_ticket_context()` now also resolves the event's
+notes/logo and the global template; new `GET /api/v1/ticket-template`
+(public read, same pattern as `/payment-info`) and
+`PATCH /api/v1/admin/ticket-template` (admin-only write); `important_notes`
+and `ticket_logo` added to the events read/write surface (`_event_public`,
+`POST /admin/events`, `PATCH /admin/events/<id>` — already generic via
+`update_event_fields`'s whitelist); `/admin/upload` accepts
+`kind=ticket_logo`.
+
+**Website admin panel** — `pages/admin/events.html`: per-event "نکات مهم و
+ملاحظات" textarea (one note per line) and an optional ticket-logo upload,
+alongside the existing poster/gallery/video fields. New
+`pages/admin/ticket-template.html`: title/subtitle/footer text + logo
+upload with a live header preview, linked from every admin page's sidebar.
+`assets/js/app.js`: new `API.ticketTemplate` namespace
+(`get`/`update`/`uploadLogo`), mirroring the existing `API.paymentInfo`
+public-GET/admin-PATCH split.
+
+**Verified**: every new/changed Python file `py_compile`s clean; every
+changed JS file (`app.js` and the two admin pages' inline scripts)
+`node --check`s clean; a full run against a fresh test database
+(`schema.init_db()` → create event with `important_notes` +
+`ticket_logo` → real reservation → `_ticket_context()` →
+`build_ticket_pdf()`) produced a correct PDF, rendered to PNG and visually
+inspected: Persian text is properly joined/RTL/right-aligned, digits are
+Persian, the notes section lists both bullets, and the event-specific logo
+(with white card backing, no title-text collision) renders correctly.
+Tested both with and without a logo, and with/without notes/address, to
+confirm the layout degrades gracefully in each case.
 
 ## New tables (schema v7)
 - `customer_otp` — hashed OTP codes for customer login (Phase 4)

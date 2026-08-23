@@ -59,6 +59,11 @@ _UPDATABLE_WEBSITE_FIELDS = (
     "title", "title_en", "description", "description_en", "location", "location_en",
     "poster", "gallery", "video", "contact_phone", "contact_telegram",
     "ticket_price", "currency", "address",
+    # Per-event ticket template additions: important_notes (free text, one
+    # consideration per line, auto-printed on every ticket for this event
+    # — see utils/ticket_pdf.py) and ticket_logo (optional header image
+    # override, falls back to the global ticket_template_logo setting).
+    "important_notes", "ticket_logo",
 )
 
 

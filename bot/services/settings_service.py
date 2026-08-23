@@ -22,6 +22,9 @@ EDITABLE_SETTINGS = {
         "{session_time} {people} {full_name} {reservation_code} {total_price} {event_address}"
     ),
     "tmpl_reservation_rejected": "متن «رد شدن پرداخت» — متغیر: {admin_note_block}",
+    "ticket_template_title": "عنوان بالای بلیت PDF (مثلاً نام مجموعه)",
+    "ticket_template_subtitle": "زیرعنوان بالای بلیت PDF (مثلاً «بلیت الکترونیک»)",
+    "ticket_template_footer": "متن پایین بلیت PDF (زیر QR)",
 }
 
 
@@ -65,6 +68,23 @@ def update_setting(key: str, value: str) -> None:
     if key not in EDITABLE_SETTINGS:
         raise ValueError(f"Unknown setting key: {key}")
     settings_repo.set(key, value)
+
+
+def get_ticket_template() -> dict:
+    """Global PDF ticket template (title/subtitle/footer/logo) — admin-
+    editable from pages/admin/ticket-template.html (PATCH
+    /api/v1/admin/ticket-template) or, for title/subtitle/footer, from the
+    Telegram bot's own settings menu (same EDITABLE_SETTINGS mechanism as
+    every other admin-editable text). `logo` is a media/ path set only via
+    the website's upload UI (see api/server.py's ticket-template PATCH
+    handler) — there's no sane way to type a file path from a Telegram
+    settings menu, so it's deliberately not in EDITABLE_SETTINGS above."""
+    return {
+        "title": settings_repo.get("ticket_template_title", "خانه ماورا"),
+        "subtitle": settings_repo.get("ticket_template_subtitle", "بلیت الکترونیک"),
+        "footer": settings_repo.get("ticket_template_footer", ""),
+        "logo": settings_repo.get("ticket_template_logo", ""),
+    }
 
 
 # ---------------- admin-editable message templates ----------------

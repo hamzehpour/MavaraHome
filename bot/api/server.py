@@ -43,6 +43,7 @@ from database.repositories import logs as logs_repo
 from database.repositories import web_admins as web_admins_repo
 from database.repositories import messages as messages_repo
 from database.repositories import team_members as team_repo
+from database.repositories import settings as settings_repo
 from utils.auth import hash_password, verify_password, create_token, verify_token, ACCESS_TOKEN_TTL_SECONDS, REFRESH_TOKEN_TTL_SECONDS
 from utils.qr_signing import verify_signed_code
 from validators.validators import normalize_phone, is_valid_iranian_mobile, is_valid_full_name
@@ -138,6 +139,11 @@ def _event_public(e: dict) -> dict:
         "address": e.get("address"), "location": e.get("location"), "location_en": e.get("location_en"),
         "poster": e.get("poster"), "gallery": gallery, "video": e.get("video"),
         "contact_phone": e.get("contact_phone"), "contact_telegram": e.get("contact_telegram"),
+        # Ticket template additions: important_notes is admin-entered free
+        # text (one consideration per line) auto-printed on this event's
+        # ticket PDFs; ticket_logo optionally overrides the ticket header
+        # logo for this event only (see utils/ticket_pdf.py).
+        "important_notes": e.get("important_notes"), "ticket_logo": e.get("ticket_logo"),
     }
 
 
@@ -184,6 +190,22 @@ def _message_public(m: dict) -> dict:
     }
 
 
+def _resolve_media_path(rel_path: str | None) -> str | None:
+    """Turns a stored 'media/xxx/yyy.png' path (as returned by
+    /api/v1/admin/upload) into a real filesystem path for reportlab to
+    open. Returns None for anything falsy or unexpected, instead of
+    raising — a missing/malformed logo path must never break ticket
+    generation, it should just mean no logo gets drawn."""
+    if not rel_path or not isinstance(rel_path, str):
+        return None
+    bot_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    full = os.path.normpath(os.path.join(bot_root, rel_path))
+    # Guard against a stray '../' in a stored path ever escaping bot_root.
+    if not full.startswith(bot_root):
+        return None
+    return full
+
+
 def _ticket_context(reservation: dict) -> dict:
     """Assembles what a ticket PDF/screen needs from a bare reservation
     row — pure lookups + the existing display_date_for_event formatter,
@@ -192,11 +214,18 @@ def _ticket_context(reservation: dict) -> dict:
     from utils.jalali import display_date_for_event
     session = sessions_repo.get_session(reservation["session_id"]) or {}
     event = events_repo.get_event(session.get("event_id")) if session else None
+    template = settings_service.get_ticket_template()
+    logo_rel = ((event or {}).get("ticket_logo") or template.get("logo") or "").strip()
     return {
         "event_title": event["title"] if event else "",
         "address": (event or {}).get("address"),
         "session_date_display": display_date_for_event(session.get("session_date", ""), (event or {}).get("calendar_type", "jalali")) if session else "",
         "session_time": session.get("session_time", ""),
+        # Per-event "important notes" (parking, silence, etc.) — printed
+        # automatically under the ملاحظات heading, see utils/ticket_pdf.py.
+        "important_notes": (event or {}).get("important_notes"),
+        "logo_path": _resolve_media_path(logo_rel) if logo_rel else None,
+        "template": {"title": template["title"], "subtitle": template["subtitle"], "footer": template["footer"]},
     }
 
 
@@ -400,6 +429,12 @@ class Handler(BaseHTTPRequestHandler):
                 # informational (e.g. 'active' for "currently running").
                 items = portfolio_repo.list_all()
                 return self._send_json(200, {"data": items})
+
+            if path == "/api/v1/ticket-template":
+                # Public, read-only — same reasoning as /payment-info below:
+                # the admin panel's edit form prefills from this same GET
+                # rather than needing a separate admin-only read endpoint.
+                return self._send_json(200, {"data": settings_service.get_ticket_template()})
 
             if path == "/api/v1/payment-info":
                 # Public, read-only: what the website's payment step needs to
@@ -690,8 +725,10 @@ class Handler(BaseHTTPRequestHandler):
                     currency=body.get("currency", "تومان"),
                     is_active=bool(body.get("is_active", True)),
                 )
-                if any(k in body for k in ("title_en", "description_en", "location", "location_en", "poster", "gallery", "video", "contact_phone", "contact_telegram")):
-                    fields = {k: body[k] for k in ("title_en", "description_en", "location", "location_en", "poster", "video", "contact_phone", "contact_telegram") if k in body}
+                optional_fields = ("title_en", "description_en", "location", "location_en", "poster", "gallery",
+                                   "video", "contact_phone", "contact_telegram", "important_notes", "ticket_logo")
+                if any(k in body for k in optional_fields):
+                    fields = {k: body[k] for k in optional_fields if k in body and k != "gallery"}
                     if "gallery" in body and isinstance(body["gallery"], list):
                         fields["gallery"] = json.dumps(body["gallery"], ensure_ascii=False)
                     events_repo.update_event_fields(event_id, **fields)
@@ -702,7 +739,7 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send_json(401, {"error": "unauthorized"})
                 body = self._read_json_body()
                 data_url = body.get("data")
-                kind = body.get("kind") if body.get("kind") in ("poster", "gallery", "video", "portfolio") else "gallery"
+                kind = body.get("kind") if body.get("kind") in ("poster", "gallery", "video", "portfolio", "ticket_logo") else "gallery"
                 if not data_url or not isinstance(data_url, str) or not data_url.startswith("data:"):
                     return self._send_json(400, {"error": "validation", "details": "data must be a base64 data URL"})
                 match = re.match(r"^data:([^;]+);base64,(.*)$", data_url, re.S)
@@ -921,6 +958,27 @@ class Handler(BaseHTTPRequestHandler):
                 if not updated:
                     return self._send_json(404, {"error": "not_found"})
                 return self._send_json(200, {"data": updated})
+
+            if path == "/api/v1/admin/ticket-template":
+                # Admin-only write side of GET /api/v1/ticket-template.
+                # `logo` is a media/... path already produced by
+                # /api/v1/admin/upload (kind=ticket_logo) — the panel
+                # uploads the file first, then PATCHes the resulting path
+                # here, same two-step flow events.poster already uses.
+                if not self._is_admin():
+                    return self._send_json(401, {"error": "unauthorized"})
+                body = self._read_json_body()
+                key_map = {
+                    "title": "ticket_template_title",
+                    "subtitle": "ticket_template_subtitle",
+                    "footer": "ticket_template_footer",
+                    "logo": "ticket_template_logo",
+                }
+                for field, settings_key in key_map.items():
+                    if field in body:
+                        settings_repo.set(settings_key, str(body[field] or ""))
+                return self._send_json(200, {"data": settings_service.get_ticket_template()})
+
             return self._send_json(404, {"error": "not_found"})
         except Exception as exc:
             logger.exception("API PATCH error on %s", path)

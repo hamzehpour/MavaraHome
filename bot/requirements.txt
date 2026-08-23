@@ -3,3 +3,11 @@ python-dotenv==1.0.1
 qrcode[pil]==7.4.2
 Pillow==10.4.0
 openpyxl==3.1.5
+# Was already imported by utils/ticket_pdf.py (Phase 6) but never actually
+# listed here — a pre-existing gap in the delivered requirements.txt, fixed
+# in the same pass as the Persian-shaping work below.
+reportlab==5.0.1
+# Persian/Arabic-script shaping + bidi reordering for PDF tickets —
+# reportlab has no built-in RTL support, see utils/persian_text.py.
+arabic-reshaper==3.0.1
+python-bidi==0.6.11

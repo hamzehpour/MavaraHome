@@ -190,6 +190,25 @@ const API = {
     async get() { return apiFetch('/payment-info'); },
     async set(d) { return apiFetchAdmin('/admin/payment-info', { method: 'POST', body: JSON.stringify(d) }); },
   },
+  // PDF ticket template (title/subtitle/footer text + optional logo) —
+  // admin-editable from pages/admin/ticket-template.html. Same
+  // public-GET/admin-PATCH split as paymentInfo above.
+  ticketTemplate: {
+    async get() { return apiFetch('/ticket-template'); },
+    async update(d) { return apiFetchAdmin('/admin/ticket-template', { method: 'PATCH', body: JSON.stringify(d) }); },
+    async uploadLogo(file) {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const result = await apiFetchAdmin('/admin/upload', {
+        method: 'POST', body: JSON.stringify({ data: dataUrl, filename: file.name, kind: 'ticket_logo' }),
+      });
+      return result.path;
+    },
+  },
   receipts: {
     async submit(reservationId, dataUrl) {
       return apiFetch(`/reservations/${reservationId}/receipt`, {
