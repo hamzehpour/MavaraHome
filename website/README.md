@@ -19,6 +19,7 @@ website/
 ├── backend_cms/                  ← بک‌اند واقعی — Flask (پایتون)، SQLite خودش
 │   ├── app.py                    ← کل API
 │   ├── DEPLOYMENT.md             ← نصب روی هاست اشتراکی (سی‌پنل/دایرکت‌ادمین)
+│   ├── DEPLOYMENT_VPS.md         ← نصب روی یک سرور ابری واقعی (root/SSH کامل)
 │   └── create_admin.py           ← ساخت حساب ادمین اول
 └── backend/                      ← منسوخ (Node.js قدیمی) — استفاده نمی‌شود
 ```
@@ -46,10 +47,12 @@ window.MAAVARA_API_BASE = 'http://localhost:8790';
 
 ## استقرار روی هاست واقعی
 
-به `backend_cms/DEPLOYMENT.md` مراجعه کن — برای هاست اشتراکی (سی‌پنل
-«Setup Python App» یا معادل دایرکت‌ادمین) نوشته شده؛ نیازی به SSH
-ندارد، ولی اگر پلن هاست شما SSH هم داشته باشد (مثل پکیج «پایتون»ی
-ایران‌سرور)، همان‌جا توضیح داده چطور از آن هم استفاده کنید.
+دو حالت:
+- **هاست اشتراکی** (سی‌پنل «Setup Python App» یا معادل دایرکت‌ادمین) →
+  `backend_cms/DEPLOYMENT.md`
+- **یک VPS واقعی** (دسترسی root/SSH کامل — مثلاً یک سرور ابری) →
+  `backend_cms/DEPLOYMENT_VPS.md` (Nginx + systemd، مستقیم‌تر و بدون
+  گمانه‌زنی روی رفتار پنل)
 
 ## رزرو کجاست؟
 

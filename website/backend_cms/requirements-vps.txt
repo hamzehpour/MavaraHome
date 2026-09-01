@@ -1,0 +1,6 @@
+# Only for the real-VPS deployment path (DEPLOYMENT_VPS.md). On shared
+# hosting (DEPLOYMENT.md, cPanel/DirectAdmin "Setup Python App") the panel's
+# own Passenger process serves the app - gunicorn isn't needed there, which
+# is why it's kept out of requirements.txt.
+-r requirements.txt
+gunicorn==22.0.0
