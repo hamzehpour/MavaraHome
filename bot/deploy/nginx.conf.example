@@ -26,6 +26,21 @@ server {
     root /opt/mavara-home-website;  # <-- path to the extracted website zip
     index index.html;
 
+    # HTML/JS/CSS must always be revalidated with the server before a
+    # cached copy is trusted. Without this, nginx sends no Cache-Control
+    # header at all, so each browser applies its own heuristic caching —
+    # and after a deploy that touches multiple files, one can end up
+    # served fresh while another stays stale (e.g. new site.js loaded
+    # against old styles.css), producing broken-looking behavior with no
+    # error, until the visitor happens to hard-refresh. `no-cache` still
+    # lets the browser keep a local copy; it just forces a conditional GET
+    # first — cheap, since nginx already sends an ETag/Last-Modified and
+    # answers with a 304 when the file hasn't actually changed.
+    location ~* \.(?:html|js|css)$ {
+        add_header Cache-Control "no-cache";
+        try_files $uri =404;
+    }
+
     location / {
         try_files $uri $uri/ =404;
     }
