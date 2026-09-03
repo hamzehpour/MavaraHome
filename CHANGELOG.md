@@ -5,6 +5,41 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Booking form: staged flow (picker → form → confirm → result)
+
+**Why:** direct feedback on the just-shipped modal — the date/session
+picker stayed on screen underneath the buyer-info fields once a session
+was picked, growing the form instead of focusing it; and pressing
+"ثبت رزرو" booked immediately with no chance to review what was about to
+be sent, then left the whole (now-disabled) form sitting on screen next
+to the result.
+
+- **Picking a session now switches the view**, it doesn't just reveal
+  more of it: the date chips + session list (`bkPickerBlock`) hide, and
+  only the form (name/phone/email + payment) shows. A "بازگشت" button
+  brings the picker back on demand — nothing about the date is shown
+  while filling out the form, only when the buyer explicitly asks to
+  change it.
+- **The form's button no longer books anything.** It validates (same
+  checks as before: sold-out race, file type/size) and moves to a
+  read-only recap of exactly what's about to be sent — event, date,
+  session, quantity, total, name, phone, email, and the receipt's
+  filename (or "بدون رسید پرداخت" if none was attached). A "ویرایش" link
+  goes back to the form with everything still filled in.
+- **Only the recap's own button calls the API** — reservation, then
+  receipt upload if one was attached — behind a spinner + "در حال ثبت
+  رزرو…". When it resolves, `bookingWidget`'s entire contents are
+  replaced with just the outcome message; the form/picker/confirm markup
+  is gone, not hidden, so there's nothing left over to scroll past.
+- **Verified** with Playwright: session pick hides the picker and shows
+  only the form; back returns to the picker (date chips included) with
+  the form hidden; picking a different date/session and continuing shows
+  a confirm screen with the actual typed values and receipt filename;
+  edit returns to the form with values intact; confirming shows the
+  loading spinner then replaces everything with only the result message;
+  a rejected file type on "ادامه" correctly stays on the form instead of
+  advancing. No console errors in any of it.
+
 ## Booking form: one step, modal/bottom-sheet, and rewritten messages
 
 **Why:** direct feedback on the live booking widget — it was two forms

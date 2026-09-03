@@ -539,6 +539,8 @@ body::before{
 .bk-form-msg{border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.9}
 .bk-form-msg--error{background:rgba(204,68,68,0.10);color:#c44;border:1px solid rgba(204,68,68,0.3)}
 .bk-form-msg--success{background:rgba(30,158,90,0.10);color:#1e9e5a;border:1px solid rgba(30,158,90,0.3)}
+.bk-spinner{width:36px;height:36px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--gold);margin:0 auto;animation:bkSpin .8s linear infinite}
+@keyframes bkSpin{to{transform:rotate(360deg)}}
 
 /* Booking modal: centered dialog on desktop, bottom sheet on mobile — the
    inline widget it replaces gave no visual separation from the rest of the

@@ -73,6 +73,8 @@ const I18N = {
     bk_file_size_error: 'حجم فایل باید کمتر از ۱.۵ مگابایت باشد.',
     bk_no_receipt_note: 'برای نهایی‌شدن رزرو، رسید پرداخت را هر وقت آماده بود از طریق تلگرام برایمان بفرست.',
     bk_receipt_failed_note: 'رزروت ثبت شد، ولی ارسال رسید با خطا مواجه شد — لطفاً آن را از طریق تلگرام برایمان بفرست.',
+    bk_back: 'بازگشت', bk_continue: 'ادامه', bk_edit: 'ویرایش',
+    bk_review_title: 'بازبینی اطلاعات رزرو', bk_no_receipt: 'بدون رسید پرداخت', bk_loading: 'در حال ثبت رزرو…',
     pay_title: 'پرداخت (کارت به کارت)', pay_upload_label: 'رسید پرداخت (اختیاری)',
     pay_upload_hint: 'اگر رسید را همین حالا داری، آپلودش کن؛ در غیر این صورت می‌تونی بعداً از تلگرام برایمان بفرستی.',
     pay_ok: 'رسید پرداختت هم دریافت شد؛ پس از بررسی ادمین، تاییدیه‌ی نهایی به ایمیلت ارسال می‌شود.',
@@ -143,6 +145,8 @@ const I18N = {
     bk_file_size_error: 'The file must be smaller than 1.5MB.',
     bk_no_receipt_note: "To finalize your reservation, send us the payment receipt on Telegram whenever it's ready.",
     bk_receipt_failed_note: "Your reservation is booked, but the receipt failed to upload — please send it to us on Telegram.",
+    bk_back: 'Back', bk_continue: 'Continue', bk_edit: 'Edit',
+    bk_review_title: 'Review your reservation', bk_no_receipt: 'No receipt attached', bk_loading: 'Booking your reservation…',
     pay_title: 'Payment (bank transfer)', pay_upload_label: 'Payment receipt (optional)',
     pay_upload_hint: 'Upload it now if you have it — or send it to us on Telegram later.',
     pay_ok: "Receipt received too — you'll get a confirmation email once it's reviewed.",
@@ -503,35 +507,76 @@ async function buildBooking(e) {
   // demonstrates "these are clickable" instead of asking the buyer to
   // infer it from a plain rounded label).
   const multipleDates = dates.length > 1;
+  // Four steps, one visible at a time — picker → form → confirm → (loading
+  // → ) result. Picking a session used to reveal qty/buyer/payment fields
+  // *underneath* the still-visible date/session picker, so the whole
+  // screen just kept growing. Now picking a session switches the view to
+  // just the form (bkFormBlock) — the date/session picker (bkPickerBlock)
+  // is hidden, not gone: the "بازگشت" button in the form flips back to it.
+  // Submitting the form doesn't book anything by itself either anymore —
+  // it moves to a read-only recap (bkConfirmBlock) of exactly what's about
+  // to be sent, and only *that* screen's button actually calls the API,
+  // behind a brief loading state. Once that call resolves, box.innerHTML
+  // is replaced outright (see showResult()) — no leftover form underneath.
   box.innerHTML = `
     <div id="bkFormError" class="bk-form-msg bk-form-msg--error" style="display:none"></div>
-    <div id="bkFormSuccess" class="bk-form-msg bk-form-msg--success" style="display:none"></div>
-    <form id="bkForm" style="display:grid;gap:18px">
+    <div id="bkPickerBlock">
       ${multipleDates ? `<div><div class="bk-label">${T('bk_date')}</div><div class="bk-chips" id="bkDates">${dates.map(d => `<button type="button" class="bk-chip" data-date="${esc(d.id)}">${esc(d.jalali_date)}</button>`).join('')}</div></div>` : `<div id="bkDates" style="display:none"></div>`}
       <div id="bkSessionBlock"><div class="bk-label">${T('bk_session')}</div><div class="bk-sessions" id="bkSessions"></div></div>
-      <div id="bkQtyBlock" style="display:none"><div class="bk-label">${T('bk_qty')}</div>
+    </div>
+    <form id="bkForm" style="display:none">
+      <div id="bkSummary" style="background:var(--bg-soft);border-radius:12px;padding:14px;font-size:13.5px;line-height:2;margin-bottom:18px"></div>
+      <div id="bkQtyBlock" style="margin-bottom:18px"><div class="bk-label">${T('bk_qty')}</div>
         <div class="bk-stepper"><button type="button" id="bkMinus" aria-label="−">−</button><span id="bkQtyVal">1</span><button type="button" id="bkPlus" aria-label="+">+</button></div>
       </div>
-      <div id="bkSummary" style="display:none;background:var(--bg-soft);border-radius:12px;padding:14px;font-size:13.5px;line-height:2"></div>
-      <div id="bkUser" style="display:none"><div class="bk-label">${T('bk_buyer')}</div>
+      <div id="bkUser" style="margin-bottom:18px"><div class="bk-label">${T('bk_buyer')}</div>
         <input id="bkName" placeholder="${T('reserve_name')}" required maxlength="120" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;font-family:inherit;margin-bottom:8px">
         <input id="bkPhone" placeholder="${T('reserve_phone')}" required maxlength="20" dir="ltr" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;font-family:inherit;margin-bottom:8px">
         <input id="bkEmail" type="email" placeholder="${T('reserve_email')}" required maxlength="180" dir="ltr" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;font-family:inherit">
       </div>
-      <div id="bkPayment" style="display:none">
+      <div id="bkPayment" style="margin-bottom:18px">
         <div class="bk-label">${T('pay_title')}</div>
         <p style="font-size:13px;line-height:2;margin-bottom:10px">${payInfoHTML}</p>
         <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:6px">${T('pay_upload_label')}</label>
         <input type="file" id="bkReceipt" accept="image/*" style="font-size:12.5px;display:block;margin-bottom:6px">
         <p style="font-size:11.5px;color:var(--text-muted);line-height:1.8">${T('pay_upload_hint')}</p>
       </div>
-      <button class="btn btn--gold" id="bkSubmit" type="submit" style="display:none">${T('bk_confirm')}</button>
-    </form>`;
-  document.getElementById('bkForm').addEventListener('submit', submitBooking);
+      <div style="display:flex;gap:10px">
+        <button type="button" class="btn btn--outline" id="bkBackBtn">${T('bk_back')}</button>
+        <button class="btn btn--gold" id="bkSubmit" type="submit" style="flex:1">${T('bk_continue')}</button>
+      </div>
+    </form>
+    <div id="bkConfirmBlock" style="display:none">
+      <div class="bk-label">${T('bk_review_title')}</div>
+      <div id="bkConfirmBody" style="background:var(--bg-soft);border-radius:12px;padding:14px;font-size:13.5px;line-height:2;margin-bottom:18px"></div>
+      <div style="display:flex;gap:10px">
+        <button type="button" class="btn btn--outline" id="bkEditBtn">${T('bk_edit')}</button>
+        <button type="button" class="btn btn--gold" id="bkConfirmSubmit" style="flex:1">${T('bk_confirm')}</button>
+      </div>
+    </div>
+    <div id="bkLoading" style="display:none;text-align:center;padding:34px 0">
+      <div class="bk-spinner"></div>
+      <p style="margin-top:14px;font-size:13.5px;color:var(--text-muted)">${T('bk_loading')}</p>
+    </div>`;
+  document.getElementById('bkForm').addEventListener('submit', handleFormContinue);
+  document.getElementById('bkBackBtn').onclick = goToPicker;
+  document.getElementById('bkEditBtn').onclick = goToForm;
+  document.getElementById('bkConfirmSubmit').onclick = confirmAndSubmit;
   box.querySelectorAll('.bk-chip').forEach(chip => chip.onclick = () => selectDate(chip.dataset.date, chip));
   document.getElementById('bkMinus').onclick = () => stepQty(-1);
   document.getElementById('bkPlus').onclick = () => stepQty(1);
   selectDate(dates[0].id, box.querySelector('.bk-chip') || null);
+}
+function goToPicker() {
+  document.getElementById('bkPickerBlock').style.display = 'block';
+  document.getElementById('bkForm').style.display = 'none';
+  document.getElementById('bkConfirmBlock').style.display = 'none';
+}
+function goToForm() {
+  document.getElementById('bkPickerBlock').style.display = 'none';
+  document.getElementById('bkForm').style.display = 'block';
+  document.getElementById('bkConfirmBlock').style.display = 'none';
+  document.getElementById('bkFormError').style.display = 'none';
 }
 function selectDate(dateIso, chip) {
   __bk.dateId = dateIso; __bk.sessionId = null; __bk.qty = 1;
@@ -556,7 +601,6 @@ function selectDate(dateIso, chip) {
     </div>`;
   }).join('') : `<p style="font-size:12.5px;color:var(--text-muted)">${T('bk_no_sessions_date')}</p>`;
   document.getElementById('bkSessionBlock').style.display = 'block';
-  hideAfterSession();
   wrap.querySelectorAll('.bk-session:not(.is-full)').forEach(b => {
     const pick = () => selectSession(b.dataset.sid, b);
     b.onclick = pick;
@@ -568,18 +612,8 @@ function selectSession(sessionId, btn) {
   __bk.sessionId = sessionId; __bk.qty = 1;
   document.querySelectorAll('#bkSessions .bk-session').forEach(b => b.classList.toggle('active', b === btn));
   document.getElementById('bkQtyVal').textContent = '1';
-  document.getElementById('bkQtyBlock').style.display = 'block';
-  document.getElementById('bkUser').style.display = 'block';
-  document.getElementById('bkPayment').style.display = 'block';
-  document.getElementById('bkSubmit').style.display = 'inline-flex';
   renderSummary();
-}
-function hideAfterSession() {
-  document.getElementById('bkQtyBlock').style.display = 'none';
-  document.getElementById('bkUser').style.display = 'none';
-  document.getElementById('bkPayment').style.display = 'none';
-  document.getElementById('bkSubmit').style.display = 'none';
-  document.getElementById('bkSummary').style.display = 'none';
+  goToForm();
 }
 function stepQty(delta) {
   const s = API.sessions.get(__bk.eventId, __bk.sessionId); if (!s) return;
@@ -601,34 +635,71 @@ function renderSummary() {
   el.style.display = 'block';
   el.innerHTML = `${esc(evTitle(event))} · ${esc(d ? d.jalali_date : '')} · <span dir="ltr">${esc(s.time)}</span><br>${T('bk_qty')}: ${__bk.qty} · ${T('bk_each')}: ${unitPrice.toLocaleString(lang() === 'en' ? 'en-US' : 'fa-IR')}<br><strong style="color:var(--gold-deep)">${T('bk_total')}: ${total.toLocaleString(lang() === 'en' ? 'en-US' : 'fa-IR')} ${currencyLabel}</strong>`;
 }
-async function submitBooking(ev) {
-  if (ev) ev.preventDefault();
-  // Guards a double-fire (e.g. a fast double-click before the button's
-  // own `disabled` takes effect) from creating a second reservation for
-  // the same booking — once a reservation exists there is no "resubmit",
-  // only report what happened next (receipt attached or not).
-  if (__bk.submitted) return;
+// Form submit ("ادامه") only validates and moves to the read-only recap —
+// it never calls the API itself. That happens once, in confirmAndSubmit(),
+// only after the buyer has seen exactly what's about to be sent.
+function handleFormContinue(ev) {
+  ev.preventDefault();
   const errBox = document.getElementById('bkFormError');
-  const okBox = document.getElementById('bkFormSuccess');
   errBox.style.display = 'none';
   // Name/phone/email are `required` on their <input>s, so the browser's
   // own validation UI stops the submit before this handler runs on an
   // empty or malformed value — nothing to duplicate here.
-  const name = document.getElementById('bkName').value.trim();
-  const phone = document.getElementById('bkPhone').value.trim();
-  const email = document.getElementById('bkEmail').value.trim();
   const s = API.sessions.get(__bk.eventId, __bk.sessionId);
-  if (!s || API.sessions.isFull(s)) { errBox.style.display = 'block'; errBox.textContent = T('bk_full_alert'); return; }
-
+  if (!s || API.sessions.isFull(s)) {
+    errBox.style.display = 'block'; errBox.textContent = T('bk_full_alert');
+    goToPicker();
+    return;
+  }
   const fileInput = document.getElementById('bkReceipt');
   const file = fileInput && fileInput.files[0];
   if (file) {
     if (!file.type.startsWith('image/')) { errBox.style.display = 'block'; errBox.textContent = T('bk_file_type_error'); return; }
     if (file.size > 1_500_000) { errBox.style.display = 'block'; errBox.textContent = T('bk_file_size_error'); return; }
   }
+  goToConfirm();
+}
+function goToConfirm() {
+  document.getElementById('bkForm').style.display = 'none';
+  document.getElementById('bkConfirmBlock').style.display = 'block';
+  renderConfirm();
+}
+function renderConfirm() {
+  const s = API.sessions.get(__bk.eventId, __bk.sessionId);
+  const d = API.dates.forEvent(__bk.eventId).find(x => x.id === __bk.dateId);
+  const event = API.events.get(__bk.eventId);
+  const unitPrice = Number(event.price || 0);
+  const total = __bk.qty * unitPrice;
+  const currencyLabel = lang() === 'en' ? 'T' : (event.currency || 'تومان');
+  const name = document.getElementById('bkName').value.trim();
+  const phone = document.getElementById('bkPhone').value.trim();
+  const email = document.getElementById('bkEmail').value.trim();
+  const file = document.getElementById('bkReceipt').files[0];
+  document.getElementById('bkConfirmBody').innerHTML = `
+    ${esc(evTitle(event))} · ${esc(d ? d.jalali_date : '')} · <span dir="ltr">${esc(s.time)}</span><br>
+    ${T('bk_qty')}: ${__bk.qty} · <strong style="color:var(--gold-deep)">${T('bk_total')}: ${total.toLocaleString(lang() === 'en' ? 'en-US' : 'fa-IR')} ${currencyLabel}</strong>
+    <hr style="border:none;border-top:1px solid var(--border);margin:10px 0">
+    ${T('reserve_name')}: ${esc(name)}<br>
+    ${T('reserve_phone')}: <span dir="ltr">${esc(phone)}</span><br>
+    ${T('reserve_email')}: <span dir="ltr">${esc(email)}</span><br>
+    ${T('pay_upload_label')}: ${file ? esc(file.name) : T('bk_no_receipt')}`;
+}
+async function confirmAndSubmit() {
+  // Guards a double-fire (e.g. a fast double-click before the screen
+  // switches away from this button) from creating a second reservation
+  // for the same booking — once a reservation exists there is no
+  // "resubmit", only report what happened next (receipt attached or not).
+  if (__bk.submitted) return;
+  const s = API.sessions.get(__bk.eventId, __bk.sessionId);
+  const name = document.getElementById('bkName').value.trim();
+  const phone = document.getElementById('bkPhone').value.trim();
+  const email = document.getElementById('bkEmail').value.trim();
+  const fileInput = document.getElementById('bkReceipt');
+  const file = fileInput && fileInput.files[0];
 
-  const submitBtn = document.getElementById('bkSubmit');
-  submitBtn.disabled = true;
+  document.getElementById('bkConfirmBlock').style.display = 'none';
+  document.getElementById('bkLoading').style.display = 'block';
+
   let record;
   try {
     // This is the real call — lands in the SAME database the Telegram
@@ -638,20 +709,20 @@ async function submitBooking(ev) {
     // start_reservation_web()'s docstring for why it's required.
     record = await API.reservations.create({ session_id: s.id, phone, full_name: name, email, people: __bk.qty });
   } catch (err) {
-    submitBtn.disabled = false;
+    document.getElementById('bkLoading').style.display = 'none';
+    document.getElementById('bkConfirmBlock').style.display = 'block';
+    const errBox = document.getElementById('bkFormError');
     errBox.style.display = 'block';
     errBox.textContent = (err.status === 409 && err.message === 'sold_out') ? T('bk_full_alert') : T('bk_submit_error');
     return;
   }
 
-  // The reservation now exists server-side — lock the form so nothing
-  // below (including a receipt-upload failure) can trigger a second one.
+  // The reservation now exists server-side — from here on nothing
+  // (including a receipt-upload failure below) can trigger a second one.
   __bk.submitted = true;
-  document.getElementById('bkForm').querySelectorAll('input,button').forEach(el => el.disabled = true);
 
   if (record && record.waiting) {
-    okBox.style.display = 'block';
-    okBox.textContent = T('bk_waitlist_done');
+    showResult(T('bk_waitlist_done'));
     return;
   }
 
@@ -672,19 +743,22 @@ async function submitBooking(ev) {
       receiptNote = T('bk_receipt_failed_note');
     }
   }
-  okBox.style.display = 'block';
   // reservation_code is only assigned once the admin approves payment
   // (same as the Telegram bot flow) — showing a fake code here before
   // that would be inventing data the backend hasn't actually issued yet.
-  okBox.innerHTML = `${T('bk_done')}<br>${T('bk_tracking_id')}: <strong dir="ltr" style="color:var(--gold-deep)">#${esc(record.id)}</strong><br>${receiptNote}`;
+  showResult(`${T('bk_done')}<br>${T('bk_tracking_id')}: <strong dir="ltr" style="color:var(--gold-deep)">#${esc(record.id)}</strong><br>${receiptNote}`);
+}
+// Replaces the picker/form/confirm/loading steps outright with just the
+// outcome — nothing left to scroll past once the operation is done.
+function showResult(html) {
+  const box = document.getElementById('bookingWidget');
+  if (box) box.innerHTML = `<div class="bk-form-msg bk-form-msg--success">${html}</div>`;
 }
 async function joinWaitlist(sid) {
   const name = prompt(T('reserve_name')) || '';
   const phone = prompt(T('reserve_phone')) || '';
   const email = prompt(T('reserve_email')) || '';
   if (!name || !phone || !email) return;
-  const errBox = document.getElementById('bkFormError');
-  const okBox = document.getElementById('bkFormSuccess');
   let record;
   try {
     // The backend automatically routes to the waiting list when the
@@ -692,13 +766,11 @@ async function joinWaitlist(sid) {
     // separate "waiting" status invented on the frontend.
     record = await API.reservations.create({ session_id: sid, phone, full_name: name, email, people: 1 });
   } catch {
+    const errBox = document.getElementById('bkFormError');
     if (errBox) { errBox.style.display = 'block'; errBox.textContent = T('bk_submit_error'); }
     return;
   }
-  if (okBox) {
-    okBox.style.display = 'block';
-    okBox.textContent = record.waiting ? T('bk_waitlist_done') : (T('bk_done') + ' #' + record.id);
-  }
+  showResult(record.waiting ? T('bk_waitlist_done') : (T('bk_done') + ' #' + record.id));
 }
 
 function submitFeedback(eventId) {
