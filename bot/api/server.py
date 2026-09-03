@@ -170,10 +170,20 @@ def _event_public(e: dict) -> dict:
     }
 
 
-def _session_public(s: dict) -> dict:
+def _session_public(s: dict, calendar_type: str = "jalali") -> dict:
     available = event_service.get_available_seats(s)
+    from utils.jalali import display_date_for_event
     return {
         "id": s["id"], "event_id": s["event_id"], "date": s["session_date"],
+        # Phase 3 (reservation-migration): the website booking widget
+        # groups sessions into date cards for a human to pick, and needs
+        # a Persian/Jalali (or Gregorian, per the event's own
+        # calendar_type) display string — computing that in JS meant
+        # restoring a whole client-side calendar-conversion library
+        # (jalali-calendar.js, deleted as unused in the split) just to
+        # duplicate what utils/jalali.py already does correctly and is
+        # already used for tickets/emails.
+        "date_display": display_date_for_event(s["session_date"], calendar_type),
         "time": s["session_time"], "capacity": s["capacity"],
         "available": available, "status": s.get("status", "active"),
     }
@@ -378,6 +388,8 @@ class Handler(BaseHTTPRequestHandler):
                 date = qs.get("date", [None])[0]
                 if not event_id:
                     return self._send_json(400, {"error": "validation", "details": "event_id query param is required"})
+                _event_for_calendar = events_repo.get_event(int(event_id))
+                _calendar_type = (_event_for_calendar or {}).get("calendar_type", "jalali")
                 if self._is_admin():
                     # Admin calendar view: ALL sessions for the event (including
                     # inactive/sold-out ones), optionally still filterable by date.
@@ -395,7 +407,7 @@ class Handler(BaseHTTPRequestHandler):
                     sessions = event_service.get_bookable_dates(int(event_id))
                     if date:
                         sessions = [s for s in sessions if s["session_date"] == date]
-                return self._send_json(200, {"data": [_session_public(s) for s in sessions]})
+                return self._send_json(200, {"data": [_session_public(s, _calendar_type) for s in sessions]})
 
             # REMOVED (security finding, phase 0): GET /api/v1/reservations
             # ?phone=... used to return anyone's reservation list — name,
@@ -678,6 +690,7 @@ class Handler(BaseHTTPRequestHandler):
                 body = self._read_json_body()
                 phone = body.get("phone")
                 full_name = body.get("full_name")
+                email = str(body.get("email", "")).strip().lower()
                 session_id = body.get("session_id")
                 people = body.get("people")
 
@@ -685,6 +698,12 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send_json(400, {"error": "validation", "details": "valid phone is required"})
                 if not full_name or not is_valid_full_name(str(full_name)):
                     return self._send_json(400, {"error": "validation", "details": "valid full_name is required"})
+                # Required (phase 3), not optional: login is email-only
+                # right now (customer_auth_service), so a booking made
+                # without an email has no way back to it later — see
+                # start_reservation_web()'s docstring.
+                if not email or not is_valid_email(email):
+                    return self._send_json(400, {"error": "validation", "details": "valid email is required"})
                 if not isinstance(session_id, int):
                     return self._send_json(400, {"error": "validation", "details": "session_id must be an integer"})
                 if not isinstance(people, int) or people < 1:
@@ -694,7 +713,7 @@ class Handler(BaseHTTPRequestHandler):
                 # atomic-capacity-checked reservation function the Telegram
                 # bot itself uses — no separate logic, no separate database.
                 result = reservation_service.start_reservation_web(
-                    phone=phone, full_name=full_name, session_id=session_id, people=people,
+                    phone=phone, full_name=full_name, session_id=session_id, people=people, email=email,
                 )
                 if not result.get("success"):
                     if result.get("waiting"):

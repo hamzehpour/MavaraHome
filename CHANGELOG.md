@@ -5,6 +5,59 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Reservation migration — phase 3 (booking, live on the website)
+
+**Why:** the whole point of this migration — a customer can now book an
+event directly on mavarahome.com, no Telegram required, and the
+reservation lands in the exact same database, visible to the same admin
+tools, the same instant. Journeys 2 and 4 from the original request.
+
+- **`GET /api/v1/reservations`** (website booking) now requires `email`,
+  not just phone — not optional, on purpose: login is email-only
+  (customer_auth_service), so a booking made without one would have no
+  way back to it later. `reservation_service.start_reservation_web()`
+  now goes through `get_or_create_customer()` (phase 0) with phone AND
+  email together, which is what actually closes the "reservation archive
+  is empty" finding — the account is matched/created at booking time,
+  not left for a login attempt to somehow resolve to the same row later.
+- **`_session_public()` gained `date_display`** — a pre-formatted Persian
+  Jalali (or Gregorian, per the event's `calendar_type`) date string,
+  computed server-side via the already-tested `utils/jalali.
+  display_date_for_event()`. This is what let the booking widget group
+  sessions into date cards without resurrecting `jalali-calendar.js` (a
+  whole client-side calendar-conversion library, deleted as unused in the
+  split) just to duplicate logic the backend already had correct.
+- **`website/assets/js/site.js`**: restored the step-by-step booking
+  widget on `event-detail.html` (date → session → quantity → buyer info →
+  payment → receipt upload) from before the split, adapted to collect
+  email alongside name/phone, and to the current design system. The
+  event's own Telegram/phone contact buttons stay underneath as a
+  fallback — an event with no sessions yet, or one an admin still prefers
+  to handle personally, both keep working exactly as before. All the
+  `.bk-*` CSS this needed was already sitting unused in `styles.css`
+  (the split only ever removed the JS/HTML) — found by checking before
+  writing any new CSS.
+- **New `website/pages/account.html`**: email-OTP login, reservation
+  archive, ticket PDF download. Restored from before the split with two
+  real fixes, not just a copy: (1) the old ticket-download was a plain
+  `<a href>` to an endpoint that requires a `Bearer` token — a link can't
+  set that header, so it always 401'd; now an authenticated `fetch()` →
+  blob → triggered download. (2) dropped the buyer-support messaging
+  section entirely — out of this migration's scope (journeys 1-4 only),
+  and it doesn't work stand-alone without also restoring
+  `admin/messages.html`, which nothing here asked for.
+- Nav gained a "حساب من" (My Account) link; `nav_account` and the
+  `bk_*`/`pay_*`/`reserve_*` i18n keys (both languages) — all pruned in
+  the split — are back.
+- Verified with a live server + Playwright driving the actual UI, not
+  just API calls: picked a date and session, filled buyer info, submitted
+  a real reservation, uploaded a receipt image, approved it as admin,
+  logged into the account page with the real OTP read live off the
+  server's log (SMTP unset in this sandbox), and downloaded the resulting
+  ticket — confirmed as a genuine single-page PDF, not just a 200
+  response. Zero console errors, zero failed/4xx/5xx requests throughout;
+  a homepage/events/team regression pass afterward came back clean too.
+
 ## Reservation migration — phase 2 (schema v11 → v12)
 
 **Why:** phase 3 (booking UI on the website) needs a customer identity

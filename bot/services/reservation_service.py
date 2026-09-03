@@ -23,15 +23,26 @@ def start_reservation(telegram_id: int, session_id: int, people: int,
                                          attendee_name=attendee_name, attendee_phone=attendee_phone)
 
 
-def start_reservation_web(phone: str, full_name: str, session_id: int, people: int) -> dict:
+def start_reservation_web(phone: str, full_name: str, session_id: int, people: int,
+                           email: str | None = None) -> dict:
     """Website-originated booking (Phase 1: unified backend). Same reservation
     core as the Telegram path — capacity check, pricing, atomic insert are
     ALL the same code, just identified by phone instead of telegram_id since
     a website visitor has no Telegram account yet. `source='website'` is
-    what lets the admin/monitoring tell the two apart."""
+    what lets the admin/monitoring tell the two apart.
+
+    `email` (reservation-migration phase 3): collected in the same booking
+    form now, specifically so this goes through get_or_create_customer()
+    (phase 0) instead of the phone-only lookup — the buyer's account is
+    created/matched by email right here, at booking time, rather than
+    needing a separate "log in later and hope it resolves to the same
+    row" step. This is the actual fix for the "reservation archive is
+    empty" finding: without an email attached from the start, a
+    phone-only booking has no login path back to it at all, since login
+    is email-only (see customer_auth_service)."""
     from validators.validators import normalize_phone
     normalized = normalize_phone(phone)
-    user = users_repo.get_or_create_user_by_phone(normalized, full_name)
+    user = users_repo.get_or_create_customer(email=email, phone=normalized, full_name=full_name)
     return _create_reservation_for_user(user, session_id, people, source="website",
                                          attendee_name=None, attendee_phone=None)
 

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حساب من | خانه‌ی ماورا</title>
+<meta name="description" content="ورود به حساب کاربری، مشاهده رزروها و دانلود بلیت">
+<link rel="icon" type="image/webp" href="../assets/images/logo/favicon.webp">
+<link rel="stylesheet" href="../assets/css/styles.css">
+<style>
+  .acc-box{max-width:420px;margin:0 auto;background:var(--bg-card);border-radius:var(--radius);padding:26px;box-shadow:var(--shadow-sm);border:1px solid var(--border)}
+  .acc-box input{width:100%;padding:11px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:12px;font-size:15px;font-family:inherit;background:var(--bg-soft);color:var(--text)}
+  .res-card{background:var(--bg-card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow-sm);border:1px solid var(--border)}
+</style>
+</head>
+<body data-page="account">
+<div id="header"></div>
+<main class="section"><div class="container" id="accRoot" style="max-width:640px">
+  <p style="text-align:center;color:var(--text-muted)">در حال بارگذاری...</p>
+</div></main>
+<div id="footer"></div>
+<script src="../assets/js/app.js"></script>
+<script src="../assets/js/site.js"></script>
+<script>
+loadHeader('account.html'); loadFooter();
+
+const STATUS_FA = {
+  pending_payment: 'در انتظار پرداخت', pending_review: 'در انتظار بررسی', approved: 'تأییدشده',
+  rejected: 'رد شده', awaiting_buyer_confirmation: 'در انتظار تأیید شما', expired: 'منقضی‌شده', cancelled: 'لغوشده',
+};
+
+function renderLogin() {
+  const root = document.getElementById('accRoot');
+  root.innerHTML = `
+    <section class="hero" style="padding:10px 0 26px"><h1>حساب من</h1><p style="color:var(--text-muted)">با ایمیل خود وارد شوید — کد ورود همان‌جا برایتان ارسال می‌شود</p></section>
+    <div class="acc-box">
+      <div id="stepEmail">
+        <input id="accEmail" type="email" placeholder="ایمیل (مثلاً you@example.com)" inputmode="email" dir="ltr" style="text-align:left">
+        <button class="btn btn--gold" style="width:100%" onclick="requestOtp()">ارسال کد ورود</button>
+      </div>
+      <div id="stepOtp" style="display:none"></div>
+      <p id="accError" style="color:#c44;font-size:13px;margin-top:10px"></p>
+    </div>`;
+}
+
+async function requestOtp() {
+  const email = document.getElementById('accEmail').value.trim();
+  const errEl = document.getElementById('accError');
+  errEl.textContent = '';
+  if (!email) { errEl.textContent = 'ایمیل را وارد کنید.'; return; }
+  try {
+    await API.customerAuth.requestOtp(email);
+    document.getElementById('stepEmail').style.display = 'none';
+    document.getElementById('stepOtp').style.display = 'block';
+    document.getElementById('stepOtp').innerHTML = `
+      <p style="font-size:13.5px;color:var(--text-muted);margin-bottom:10px">کد ۶ رقمی که به ایمیل‌تان ارسال شد را وارد کنید.</p>
+      <input id="accCode" placeholder="کد ۶ رقمی" inputmode="numeric" maxlength="6">
+      <button class="btn btn--gold" style="width:100%" onclick="verifyOtp('${esc(email)}')">تأیید و ورود</button>
+      <button class="btn btn--outline" style="width:100%;margin-top:8px" onclick="renderLogin()">تغییر ایمیل</button>`;
+  } catch (err) {
+    errEl.textContent = err.details || (err.status === 429 ? 'تعداد تلاش زیاد بود — کمی صبر کنید.' : 'خطایی رخ داد.');
+  }
+}
+
+async function verifyOtp(email) {
+  const code = document.getElementById('accCode').value.trim();
+  const errEl = document.getElementById('accError');
+  errEl.textContent = '';
+  try {
+    await API.customerAuth.verifyOtp(email, code);
+    await renderDashboard();
+  } catch (err) {
+    errEl.textContent = 'کد نادرست است یا منقضی شده — دوباره تلاش کنید.';
+  }
+}
+
+async function renderDashboard() {
+  const root = document.getElementById('accRoot');
+  root.innerHTML = `<p style="text-align:center;color:var(--text-muted)">در حال بارگذاری رزروها...</p>`;
+  let reservations = [];
+  try { reservations = await API.account.reservations(); } catch { /* token might be stale; fall through to empty */ }
+
+  root.innerHTML = `
+    <section class="hero" style="padding:10px 0 20px;text-align:center">
+      <h1>سلام 👋</h1>
+      <p style="color:var(--text-muted)" dir="ltr">${esc(API.customerAuth.getEmail())}</p>
+      <button class="btn btn--outline" style="font-size:12px;margin-top:8px" onclick="API.customerAuth.logout(); renderLogin();">خروج از حساب</button>
+    </section>
+    <h3 style="margin-bottom:10px;color:var(--navy)">رزروهای من</h3>
+    <div id="resList">${reservations.length ? reservations.map(reservationCard).join('') : '<p style="color:var(--text-muted)">هنوز رزروی ثبت نکرده‌اید.</p>'}</div>`;
+}
+
+function reservationCard(r) {
+  const status = STATUS_FA[r.status] || r.status;
+  const statusColor = r.status === 'approved' ? '#1e9e5a' : (r.status === 'rejected' ? '#c44' : 'var(--text-muted)');
+  const canDownload = r.status === 'approved' && r.reservation_code;
+  return `<div class="res-card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+      <div>
+        <strong>${esc(r.event_title || 'رویداد')}</strong>
+        <div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">
+          ${esc(r.session_date || '')} <span dir="ltr">${esc(r.session_time || '')}</span> · ${r.people} نفر
+        </div>
+      </div>
+      <span style="font-size:12px;padding:3px 10px;border-radius:var(--radius-full);background:var(--bg-soft);color:${statusColor};font-weight:600">${esc(status)}</span>
+    </div>
+    ${r.reservation_code ? `<div style="font-family:monospace;font-size:12.5px;margin-top:8px;color:var(--text-muted)" dir="ltr">${esc(r.reservation_code)}</div>` : ''}
+    ${canDownload ? `<button class="btn btn--outline" style="font-size:12px;margin-top:10px" onclick="downloadTicket(${Number(r.id)}, '${esc(r.reservation_code)}')">📄 دانلود بلیت PDF</button>` : ''}
+  </div>`;
+}
+
+// The ticket endpoint requires a Bearer token (customer JWT) — a plain
+// <a href> link can't attach that header, so it needs to be an actual
+// authenticated fetch, turned into a downloadable blob.
+async function downloadTicket(reservationId, code) {
+  try {
+    const res = await fetch(`${window.MAAVARA_API_BASE || ''}/api/v1/account/reservations/${reservationId}/ticket.pdf`, {
+      headers: { 'Authorization': `Bearer ${API.customerAuth.getAccessToken()}` },
+    });
+    if (!res.ok) throw new Error('failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `ticket-${code}.pdf`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  } catch {
+    alert('خطا در دریافت بلیت — دوباره تلاش کنید.');
+  }
+}
+
+(async function init() {
+  await API.init();
+  if (API.customerAuth.check()) {
+    await renderDashboard();
+  } else {
+    renderLogin();
+  }
+})();
+</script>
+</body>
+</html>
