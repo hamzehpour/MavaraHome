@@ -732,6 +732,49 @@ def _t():
     assert totals["revenue"] >= total_expected, f"expected at least {total_expected}, got {totals['revenue']}"
 
 
+@test("Phase 0: booking by phone, then logging in by email, lands on ONE customer row — archive isn't empty")
+def _t():
+    # This is the exact bug behind the "archive always empty" finding:
+    # book_web created a phone-only row, email login created a SEPARATE
+    # email-only row, and the reservation stayed attached to the first —
+    # invisible to the second. get_or_create_customer must resolve both
+    # identifiers to the same row once the email is known.
+    event_id = events_repo.create_event(title="تست ادغام موبایل و ایمیل")
+    session_id = sessions_repo.create_session(event_id, "2027-05-01", "19:00", capacity=10)
+    web_result = reservation_service.start_reservation_web(
+        phone="09127778888", full_name="مشتری فرم رزرو", session_id=session_id, people=1
+    )
+    phone_only_user = users_repo.get_or_create_user_by_phone("09127778888")
+    assert phone_only_user["id"] == web_result["user_id"]
+
+    # The same person later logs in with an email tied to the same phone —
+    # get_or_create_customer(email=..., phone=...) must find the existing
+    # phone row and attach the email to it, not create a second row.
+    merged = users_repo.get_or_create_customer(email="mostafa@example.com", phone="09127778888")
+    assert merged["id"] == web_result["user_id"], "email login must resolve to the SAME row as the phone booking"
+
+    archive = reservations_repo.list_for_user(merged["id"])
+    assert any(r["id"] == web_result["reservation_id"] for r in archive), \
+        "the phone-made reservation must be visible from the merged (email-known) identity"
+
+
+@test("Phase 0: an email that already has a user is reused, never duplicated")
+def _t():
+    first = users_repo.get_or_create_customer(email="sara@example.com", full_name="سارا")
+    again = users_repo.get_or_create_customer(email="sara@example.com", full_name="نام دیگر — نباید بازنویسی شود")
+    assert again["id"] == first["id"]
+    assert again["full_name"] == "سارا", "an existing non-empty field must never be silently overwritten"
+
+
+@test("Phase 0: NULL/blank phone or email never collide under the new unique index")
+def _t():
+    # Two different email-only customers, neither with a phone — must NOT
+    # be treated as "the same phone" just because both are blank/NULL.
+    a = users_repo.get_or_create_customer(email="a@example.com")
+    b = users_repo.get_or_create_customer(email="b@example.com")
+    assert a["id"] != b["id"]
+
+
 def main() -> None:
     print("=" * 60)
     print("  MAVARA BOT — AUTOMATED TEST SUITE")

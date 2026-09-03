@@ -58,6 +58,17 @@ logger = get_logger()
 # auth design.
 API_ADMIN_TOKEN = os.getenv("API_ADMIN_TOKEN", "1234")  # deprecated, see _is_admin() below
 
+BOT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Security finding (phase 0): payment receipts used to be written into
+# media/receipts/ — the exact same directory GET /media/* serves to
+# anyone, no auth, since it holds public poster/gallery images too. A
+# customer's bank receipt (card number, name, balance) was one guessed
+# filename away from being public. private_media/ is a SEPARATE tree
+# outside anything /media/* or Nginx's static root ever reaches — the only
+# way to read a file in it is GET /api/v1/admin/reservations/<id>/receipt,
+# which requires _is_admin().
+PRIVATE_MEDIA_ROOT = os.path.join(BOT_ROOT, "private_media")
+
 # Login rate limiting — deliberately simple in-process state (a dict), not
 # a distributed store. Correct for a single mavara-api process (the
 # deployment this project actually runs as — see DEPLOYMENT.md); would
@@ -374,21 +385,50 @@ class Handler(BaseHTTPRequestHandler):
                         sessions = [s for s in sessions if s["session_date"] == date]
                 return self._send_json(200, {"data": [_session_public(s) for s in sessions]})
 
-            if path == "/api/v1/reservations":
-                phone = qs.get("phone", [None])[0]
-                if not phone:
-                    return self._send_json(400, {"error": "validation", "details": "phone query param is required"})
-                user = users_repo.get_or_create_user_by_phone(normalize_phone(phone))
-                # Look up without creating side effects beyond the lookup above
-                # being idempotent (get_or_create is safe to call for reads too).
-                rows = reservations_repo.list_for_user(user["id"])
-                return self._send_json(200, {"data": [_reservation_public(r) for r in rows]})
+            # REMOVED (security finding, phase 0): GET /api/v1/reservations
+            # ?phone=... used to return anyone's reservation list — name,
+            # event, amount, status — to any caller who knew (or guessed) a
+            # phone number, no authentication at all. It also created a
+            # user row as a side effect of a GET. Nothing in the website's
+            # own JS ever called it (grepped before removing); the
+            # authenticated replacement is GET /api/v1/account/reservations
+            # (JWT-based, see _get_customer_payload()).
 
             if path == "/api/v1/admin/reservations":
                 if not self._is_admin():
                     return self._send_json(401, {"error": "unauthorized"})
                 rows = reservations_repo.list_recent(limit=200)
                 return self._send_json(200, {"data": [_reservation_public(r) for r in rows]})
+
+            m = re.match(r"^/api/v1/admin/reservations/(\d+)/receipt$", path)
+            if m:
+                # Admin-only counterpart to the now-private receipt upload
+                # (see PRIVATE_MEDIA_ROOT). Only serves a receipt that was
+                # actually submitted through the website (receipt_source=
+                # "website" → a local file); a Telegram-submitted receipt's
+                # receipt_file_id is a Telegram file_id, not a path on this
+                # disk at all, and isn't retrievable through this route —
+                # that one is viewed inside Telegram itself, same as today.
+                if not self._is_admin():
+                    return self._send_json(401, {"error": "unauthorized"})
+                reservation_id = int(m.group(1))
+                from database.repositories import payments as payments_repo
+                payment = payments_repo.get_latest_payment(reservation_id)
+                if not payment or payment.get("receipt_source") != "website":
+                    return self._send_json(404, {"error": "not_found"})
+                file_path = os.path.abspath(os.path.join(PRIVATE_MEDIA_ROOT, "receipts", payment["receipt_file_id"].split("/")[-1]))
+                receipts_root = os.path.abspath(os.path.join(PRIVATE_MEDIA_ROOT, "receipts"))
+                if not file_path.startswith(receipts_root) or not os.path.isfile(file_path):
+                    return self._send_json(404, {"error": "not_found"})
+                ext = os.path.splitext(file_path)[1]
+                with open(file_path, "rb") as f:
+                    body = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", _MIME.get(ext, "application/octet-stream"))
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
 
             if path == "/api/v1/admin/activity":
                 if not self._is_admin():
@@ -596,11 +636,15 @@ class Handler(BaseHTTPRequestHandler):
                 ext = ext_map.get(mime, ".jpg")
                 import base64, time, random
                 safe_name = f"{reservation_id}-{int(time.time() * 1000)}-{random.randint(1000, 9999)}{ext}"
-                upload_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "media", "receipts")
+                # private_media/, NOT media/ — see PRIVATE_MEDIA_ROOT's
+                # comment above. This is the fix for the receipt-leak
+                # finding; only GET /api/v1/admin/.../receipt (admin-only)
+                # can read this file back.
+                upload_dir = os.path.join(PRIVATE_MEDIA_ROOT, "receipts")
                 os.makedirs(upload_dir, exist_ok=True)
                 with open(os.path.join(upload_dir, safe_name), "wb") as f:
                     f.write(base64.b64decode(b64))
-                receipt_path = f"media/receipts/{safe_name}"
+                receipt_path = f"receipts/{safe_name}"
 
                 # Same service function the Telegram bot uses for a photo
                 # receipt — a website upload is identified by

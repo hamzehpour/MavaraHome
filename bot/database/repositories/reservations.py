@@ -108,11 +108,13 @@ def set_checked_in(reservation_id: int) -> bool:
 
 
 def list_for_user(user_id: int) -> list[dict]:
-    """All reservations for one customer, newest first — used by the
-    unified API's GET /api/v1/reservations?phone=... (Phase 1: lets a
-    website visitor look up bookings they made, regardless of whether that
-    booking happened via the bot or the website, since both write to the
-    same user_id now)."""
+    """All reservations for one customer, newest first — regardless of
+    whether the booking happened via the bot or the website, since both
+    write to the same user_id. Used by the authenticated GET
+    /api/v1/account/reservations (JWT-identified customer); the old
+    unauthenticated ?phone= lookup that used to call this was removed as a
+    security finding (phase 0) — anyone who knew a phone number could read
+    that person's reservation history."""
     with get_connection() as conn:
         rows = conn.execute(
             "SELECT * FROM reservations WHERE user_id = ? ORDER BY created_at DESC",

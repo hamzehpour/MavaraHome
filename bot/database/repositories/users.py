@@ -9,39 +9,77 @@ def get_by_telegram_id(telegram_id: int) -> dict | None:
         return dict(row) if row else None
 
 
-def get_or_create_user_by_phone(phone: str, full_name: str | None = None) -> dict:
-    """Website-originated users have no telegram_id yet, so they're looked
-    up/created by phone instead. If this same phone number later starts a
-    conversation with the bot, `link_telegram_id_by_phone` (below) merges
-    the identity instead of creating a duplicate user row — one customer,
-    one row, regardless of which channel they used first."""
+def get_or_create_customer(email: str | None = None, phone: str | None = None,
+                            full_name: str | None = None) -> dict:
+    """Schema v10: THE single identity function for a non-Telegram customer
+    — website booking, phone/manual booking, and email login all go through
+    this now, instead of three near-identical functions that used three
+    slightly different WHERE clauses (that divergence was the actual bug:
+    one of them filtered `AND telegram_id IS NULL`, so a phone number
+    belonging to a user who'd *also* used the bot was invisible to it and
+    got a second, duplicate row).
+
+    Priority is email, per product decision: if an email is given and a
+    user already exists with it, that row is reused — never a new one —
+    regardless of what phone/full_name accompany it. Falls back to phone
+    when no email is given or no row matches it yet. Passing neither is a
+    caller bug (raises), since there'd be nothing to look up or create by.
+
+    A row found by one identifier gets the *other* one backfilled onto it
+    when the caller supplied it and the row didn't have it yet — this is
+    what turns "booked by phone once, logs in by email later" into the
+    same row instead of two (see the empty-archive finding this fixes).
+    Never overwrites a non-empty phone/email that's already there — only
+    fills a blank, so this can't silently reassign an identifier from one
+    real person to another.
+    """
+    if not email and not phone:
+        raise ValueError("get_or_create_customer requires an email or a phone")
+
     with get_connection() as conn:
-        row = conn.execute("SELECT * FROM users WHERE phone = ?", (phone,)).fetchone()
+        row = None
+        if email:
+            row = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+        if not row and phone:
+            row = conn.execute("SELECT * FROM users WHERE phone = ?", (phone,)).fetchone()
+
         if row:
-            return dict(row)
+            row = dict(row)
+            updates, params = [], []
+            if email and not row.get("email"):
+                updates.append("email = ?"); params.append(email); row["email"] = email
+            if phone and not row.get("phone"):
+                updates.append("phone = ?"); params.append(phone); row["phone"] = phone
+            if full_name and not row.get("full_name"):
+                updates.append("full_name = ?"); params.append(full_name); row["full_name"] = full_name
+            if updates:
+                params.append(row["id"])
+                conn.execute(f"UPDATE users SET {', '.join(updates)} WHERE id = ?", params)
+            return row
+
         cur = conn.execute(
-            "INSERT INTO users(phone, full_name) VALUES (?, ?)",
-            (phone, full_name),
+            "INSERT INTO users(email, phone, full_name) VALUES (?, ?, ?)",
+            (email, phone, full_name),
         )
-        return {"id": cur.lastrowid, "telegram_id": None, "phone": phone, "full_name": full_name}
+        return {"id": cur.lastrowid, "telegram_id": None, "email": email, "phone": phone, "full_name": full_name}
+
+
+def get_or_create_user_by_phone(phone: str, full_name: str | None = None) -> dict:
+    """Website-originated booking, identified by phone only (no email
+    collected at this call site yet). Thin wrapper — see
+    get_or_create_customer for the actual (now-unified) lookup/create/merge
+    logic. If this same phone number later starts a conversation with the
+    bot, `link_telegram_id_by_phone` (below) merges the identity instead of
+    creating a duplicate user row — one customer, one row, regardless of
+    which channel they used first."""
+    return get_or_create_customer(phone=phone, full_name=full_name)
 
 
 def get_or_create_user_by_email(email: str, full_name: str | None = None) -> dict:
-    """Schema v9: customer account login identity (replaces the old
-    phone+Telegram-linking flow — see services/customer_auth_service.py).
-    One row per email, independent of whether that person separately has
-    a phone-based guest-reservation row or a telegram_id — merging those
-    identities isn't attempted here (same as the old phone/telegram split
-    already had before this rewrite)."""
-    with get_connection() as conn:
-        row = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
-        if row:
-            return dict(row)
-        cur = conn.execute(
-            "INSERT INTO users(email, full_name) VALUES (?, ?)",
-            (email, full_name),
-        )
-        return {"id": cur.lastrowid, "telegram_id": None, "email": email, "full_name": full_name}
+    """Customer account login identity (services/customer_auth_service.py).
+    Thin wrapper — see get_or_create_customer. Product decision: an email
+    that already has a user row is always reused, never duplicated."""
+    return get_or_create_customer(email=email, full_name=full_name)
 
 
 def set_email(user_id: int, email: str) -> None:
@@ -110,20 +148,10 @@ def count_users() -> int:
 def get_or_create_by_phone(phone: str, full_name: str) -> dict:
     """
     For phone/manual bookings taken by support staff — no Telegram account
-    involved. Reuses an existing row if this phone number already booked
-    before (keeps their history in one place), otherwise creates a new
-    telegram_id-less user.
+    involved. Thin wrapper — see get_or_create_customer. Used to filter
+    `AND telegram_id IS NULL`, which was the actual bug this consolidation
+    fixes: a phone number belonging to a user who'd separately used the bot
+    was invisible to that filter and got a second, duplicate row created
+    for it every time staff took a manual booking for them.
     """
-    with get_connection() as conn:
-        row = conn.execute(
-            "SELECT * FROM users WHERE phone = ? AND telegram_id IS NULL", (phone,)
-        ).fetchone()
-        if row:
-            conn.execute("UPDATE users SET full_name = ? WHERE id = ?", (full_name, row["id"]))
-            return dict(row)
-
-        cur = conn.execute(
-            "INSERT INTO users(telegram_id, full_name, phone) VALUES (NULL, ?, ?)",
-            (full_name, phone),
-        )
-        return {"id": cur.lastrowid, "telegram_id": None, "full_name": full_name, "phone": phone}
+    return get_or_create_customer(phone=phone, full_name=full_name)

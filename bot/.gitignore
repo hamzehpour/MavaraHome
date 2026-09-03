@@ -6,6 +6,11 @@ data/*.db
 data/*.sqlite3
 logs/*.log
 
+# payment receipts (phase 0 security fix: moved out of media/, which is
+# publicly servable, into this private tree — see PRIVATE_MEDIA_ROOT in
+# api/server.py). Never commit these, test data or not.
+private_media/
+
 # python
 __pycache__/
 *.pyc

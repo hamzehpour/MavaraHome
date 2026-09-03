@@ -12,7 +12,7 @@ what's missing instead of guessing from column-already-exists errors.
 from database.connection import get_connection
 from config.settings import BOOTSTRAP_ADMIN_IDS
 
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 
 SCHEMA_STATEMENTS = [
     # ---- users -------------------------------------------------
@@ -221,8 +221,17 @@ SCHEMA_STATEMENTS = [
     "CREATE INDEX IF NOT EXISTS idx_payments_reservation ON payments(reservation_id)",
     "CREATE INDEX IF NOT EXISTS idx_sessions_event ON sessions(event_id)",
     "CREATE INDEX IF NOT EXISTS idx_users_telegram ON users(telegram_id)",
-    "CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone)",
-    # NOTE: idx_users_email / idx_customer_otp_email (schema v9) are NOT
+    # Schema v10: was a plain (non-unique) index — replaced with a partial
+    # UNIQUE one now that get_or_create_customer() (database/repositories/
+    # users.py) is the single lookup/create path for phone identity. A
+    # plain index let the two now-retired near-duplicate lookup functions
+    # each create their own row for the same phone number; this makes that
+    # impossible at the database level, not just by convention. Partial
+    # (WHERE phone IS NOT NULL) because many rows legitimately have no
+    # phone (email-only customers) and NULL/blank must never collide.
+    "CREATE UNIQUE INDEX IF NOT EXISTS uq_users_phone ON users(phone) "
+    "WHERE phone IS NOT NULL AND phone != ''",
+    # NOTE: uq_users_email / idx_customer_otp_email (schema v9/v10) are NOT
     # here — `email` is an ALTER-added column (see init_db() below), and
     # this list runs BEFORE that ALTER loop, so creating an index on it
     # here would fail on any database that doesn't already have the
@@ -535,11 +544,24 @@ def init_db() -> None:
             except Exception:
                 pass  # column already exists
 
-        # Schema v9: these index the `email` column just added above by
-        # the ALTER loop — must run after it, not inside SCHEMA_STATEMENTS
+        # Schema v9/v10: these index the `email` column added above by the
+        # ALTER loop — must run after it, not inside SCHEMA_STATEMENTS
         # (which runs before any ALTER, and would fail on a database that
-        # doesn't have the column yet).
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
+        # doesn't have the column yet). uq_users_email is UNIQUE (v10) for
+        # the same reason uq_users_phone is — see that statement's comment
+        # above; wrapped in try/except like the ALTER loop just above it
+        # since, unlike SCHEMA_STATEMENTS, statements here were never
+        # individually guarded, and a database with pre-existing duplicate
+        # emails (from testing before this constraint existed) must not
+        # crash startup over it — same "warn and continue" fallback.
+        try:
+            conn.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_users_email ON users(email) "
+                "WHERE email IS NOT NULL AND email != ''"
+            )
+        except Exception as exc:
+            import logging
+            logging.getLogger("mavara_bot").warning("Could not create uq_users_email: %s", exc)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_customer_otp_email ON customer_otp(email)")
 
         for key, value in DEFAULT_SETTINGS.items():
