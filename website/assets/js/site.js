@@ -61,12 +61,22 @@ const I18N = {
     events_eyebrow: 'تقویم', events_title: 'رویدادهای خانه ماورا', events_sub: 'همین حالا، به‌زودی، و آنچه گذشت', tag_all: 'همه',
     info_label: 'اطلاعات', loc_label: 'مکان', date_label: 'تاریخ', book_tg: 'رزرو از تلگرام',
     reserve_title: 'رزرو این رویداد', reserve_name: 'نام و نام خانوادگی', reserve_phone: 'شماره موبایل', reserve_email: 'ایمیل (برای پیگیری رزرو و دریافت بلیت)',
-    bk_date: 'تاریخ اجرا', bk_session: 'انتخاب سانس', bk_remaining: (n) => n + ' نفر باقی مانده', bk_full: 'تکمیل ظرفیت', bk_waitlist: 'افزودن به لیست انتظار',
+    bk_book_now: 'رزرو بلیت', bk_close: 'بستن پنجره',
+    bk_date: 'تاریخ اجرا', bk_session: 'انتخاب سانس', bk_remaining: (n) => n + ' نفر باقی مانده', bk_full: 'تکمیل ظرفیت', bk_full_alert: 'این سانس همین الان تکمیل شد — سانس دیگری را انتخاب کن یا در لیست انتظار ثبت‌نام کن.', bk_waitlist: 'ثبت‌نام در لیست انتظار',
     bk_qty: 'تعداد بلیت', bk_each: 'قیمت هر بلیت', bk_total: 'مبلغ کل', bk_buyer: 'اطلاعات خریدار', bk_confirm: 'ثبت رزرو',
-    bk_done: 'رزرو شما ثبت شد — کد پیگیری شما:', bk_sel_date: 'ابتدا یک روز اجرا انتخاب کن', bk_tracking_id: 'شماره پیگیری',
-    bk_waitlist_done: 'درخواست شما در لیست انتظار ثبت شد؛ در صورت آزاد شدن ظرفیت با شما تماس می‌گیریم.',
-    pay_title: 'پرداخت (کارت به کارت)', pay_upload: 'آپلود رسید پرداخت', pay_ok: 'رسید شما دریافت شد. پس از بررسی ادمین، تایید نهایی به ایمیل‌تان ارسال می‌شود.',
-    pay_fallback: 'اطلاعات کارت از پنل ادمین تنظیم می‌شود — برای دریافت شماره کارت به تلگرام پیام بدهید.',
+    bk_done: 'رزرو شما ثبت شد.', bk_tracking_id: 'کد پیگیری',
+    bk_no_sessions: 'در حال حاضر سانسی برای رزرو این رویداد تعریف نشده — از راه‌های زیر با ما در تماس باش.',
+    bk_no_sessions_date: 'برای این تاریخ سانسی ثبت نشده — یک تاریخ دیگر را امتحان کن.',
+    bk_waitlist_done: 'درخواستت در لیست انتظار ثبت شد؛ اگر ظرفیتی آزاد شود، با شما تماس می‌گیریم.',
+    bk_submit_error: 'ثبت رزرو با خطا مواجه شد — لطفاً دوباره تلاش کن یا از تلگرام با ما در تماس باش.',
+    bk_file_type_error: 'فقط فایل تصویری (مثل jpg یا png) پذیرفته می‌شود.',
+    bk_file_size_error: 'حجم فایل باید کمتر از ۱.۵ مگابایت باشد.',
+    bk_no_receipt_note: 'برای نهایی‌شدن رزرو، رسید پرداخت را هر وقت آماده بود از طریق تلگرام برایمان بفرست.',
+    bk_receipt_failed_note: 'رزروت ثبت شد، ولی ارسال رسید با خطا مواجه شد — لطفاً آن را از طریق تلگرام برایمان بفرست.',
+    pay_title: 'پرداخت (کارت به کارت)', pay_upload_label: 'رسید پرداخت (اختیاری)',
+    pay_upload_hint: 'اگر رسید را همین حالا داری، آپلودش کن؛ در غیر این صورت می‌تونی بعداً از تلگرام برایمان بفرستی.',
+    pay_ok: 'رسید پرداختت هم دریافت شد؛ پس از بررسی ادمین، تاییدیه‌ی نهایی به ایمیلت ارسال می‌شود.',
+    pay_fallback: 'اطلاعات کارت هنوز تنظیم نشده — برای دریافت شماره کارت از تلگرام با ما در تماس باش.',
     fb_title: 'بازخورد و نظرات', fb_name_ph: 'نام شما (اختیاری)', fb_text_ph: 'نظر خود را بنویسید...', fb_submit: 'ثبت', empty_comment: 'هنوز نظری ثبت نشده.',
     f_tag: 'سفری به سوی خویشتن<br>از مسیر آگاهی، به یاری هنر',
     f_social: 'شبکه‌های اجتماعی', f_contact: 'تماس',
@@ -121,12 +131,22 @@ const I18N = {
     events_eyebrow: 'Calendar', events_title: 'Mavara events', events_sub: 'Now, soon, and what has passed', tag_all: 'All',
     info_label: 'Details', loc_label: 'Location', date_label: 'Date', book_tg: 'Book on Telegram',
     reserve_title: 'Reserve this event', reserve_name: 'Full name', reserve_phone: 'Mobile number', reserve_email: 'Email (to track your reservation and get your ticket)',
-    bk_date: 'Show date', bk_session: 'Choose a session', bk_remaining: (n) => n + ' left', bk_full: 'Sold out', bk_waitlist: 'Join waiting list',
+    bk_book_now: 'Book a ticket', bk_close: 'Close',
+    bk_date: 'Show date', bk_session: 'Choose a session', bk_remaining: (n) => n + ' left', bk_full: 'Sold out', bk_full_alert: 'This session just sold out — pick another session or join the waiting list.', bk_waitlist: 'Join the waiting list',
     bk_qty: 'Number of tickets', bk_each: 'Price per ticket', bk_total: 'Total', bk_buyer: 'Your details', bk_confirm: 'Confirm reservation',
-    bk_done: 'Your reservation is in — tracking code:', bk_sel_date: 'Pick a show date first', bk_tracking_id: 'Tracking number',
+    bk_done: 'Your reservation is booked.', bk_tracking_id: 'Tracking code',
+    bk_no_sessions: 'No sessions are open for booking on this event yet — reach us through the options below.',
+    bk_no_sessions_date: 'No sessions are set for this date — try another date.',
     bk_waitlist_done: "You're on the waiting list — we'll reach out if a seat opens up.",
-    pay_title: 'Payment (bank transfer)', pay_upload: 'Upload payment receipt', pay_ok: "Receipt received. You'll get a confirmation email once it's reviewed.",
-    pay_fallback: 'Payment details are set from the admin panel — message us on Telegram for the card number.',
+    bk_submit_error: "We couldn't complete your reservation — please try again, or reach us on Telegram.",
+    bk_file_type_error: 'Please choose an image file (jpg, png, etc.).',
+    bk_file_size_error: 'The file must be smaller than 1.5MB.',
+    bk_no_receipt_note: "To finalize your reservation, send us the payment receipt on Telegram whenever it's ready.",
+    bk_receipt_failed_note: "Your reservation is booked, but the receipt failed to upload — please send it to us on Telegram.",
+    pay_title: 'Payment (bank transfer)', pay_upload_label: 'Payment receipt (optional)',
+    pay_upload_hint: 'Upload it now if you have it — or send it to us on Telegram later.',
+    pay_ok: "Receipt received too — you'll get a confirmation email once it's reviewed.",
+    pay_fallback: 'Card details are not set up yet — message us on Telegram for the card number.',
     fb_title: 'Feedback & comments', fb_name_ph: 'Your name (optional)', fb_text_ph: 'Write your comment...', fb_submit: 'Submit', empty_comment: 'No comments yet.',
     f_tag: 'A journey toward the self<br>through awareness, by the hand of art',
     f_social: 'Social media', f_contact: 'Contact',
@@ -381,7 +401,7 @@ async function initEventDetail() {
     : '';
   const bookingCta = `<div>
       <h3 style="font-weight:700;margin-bottom:10px;color:var(--navy)">${T('reserve_title')}</h3>
-      <div id="bookingWidget"></div>
+      <button class="btn btn--gold" type="button" id="bkOpenBtn">${T('bk_book_now')}</button>
       ${directContact}
     </div>`;
 
@@ -407,19 +427,67 @@ async function initEventDetail() {
     </div>
     <style>@media (max-width: 760px) { .event-detail-grid { grid-template-columns: 1fr !important; } .event-detail-poster { order: 1 !important; max-width: 380px; margin: 0 auto; } .event-detail-info { order: 2 !important; } }</style>`;
   loadFeedbacks(e.id);
-  await buildBooking(e);
+  __bk.eventObj = e;
+  const openBtn = document.getElementById('bkOpenBtn');
+  if (openBtn) openBtn.onclick = () => openBookingModal();
 }
 
-/* ── Step-by-step booking (same backend the Telegram bot itself uses) ── */
-const __bk = { eventId: null, dateId: null, sessionId: null, qty: 1 };
+/* ── Booking (same backend the Telegram bot itself uses) ──
+   The form used to be two steps — buyer info first, then a second
+   "payment" panel that only appeared after the reservation already
+   existed. Splitting it that way suggested two separate actions when
+   there's really one: "book this session." It's now a single form —
+   name/phone/email + the (optional) payment receipt together — submitted
+   once. The reservation and the receipt upload still happen as two API
+   calls under the hood (the backend has always kept them separate), but
+   the buyer only sees one step and one button. */
+const __bk = { eventId: null, dateId: null, sessionId: null, qty: 1, eventObj: null, submitted: false };
+
+function openBookingModal() {
+  const e = __bk.eventObj;
+  if (!e) return;
+  __bk.eventId = e.id; __bk.dateId = null; __bk.sessionId = null; __bk.qty = 1; __bk.submitted = false;
+  let overlay = document.getElementById('bkModalOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'bkModalOverlay';
+    overlay.className = 'bk-modal-overlay';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', (ev) => { if (ev.target === overlay) closeBookingModal(); });
+    document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && overlay.classList.contains('open')) closeBookingModal(); });
+  }
+  overlay.innerHTML = `<div class="bk-modal" role="dialog" aria-modal="true" aria-labelledby="bkModalTitle">
+      <div class="bk-sheet-handle"></div>
+      <div class="bk-modal-header"><h3 id="bkModalTitle">${T('reserve_title')}</h3><button type="button" class="modal-close" id="bkModalClose" aria-label="${T('bk_close')}">✕</button></div>
+      <div class="bk-modal-body" id="bookingWidget"></div>
+    </div>`;
+  document.getElementById('bkModalClose').onclick = closeBookingModal;
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  buildBooking(e);
+}
+function closeBookingModal() {
+  const overlay = document.getElementById('bkModalOverlay');
+  if (!overlay) return;
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
 async function buildBooking(e) {
   const box = document.getElementById('bookingWidget');
   if (!box) return;
-  __bk.eventId = e.id;
-  await API.sessions.refresh(e.id);
+  box.innerHTML = `<p style="font-size:13px;color:var(--text-muted)">…</p>`;
+  const [, paymentInfo] = await Promise.all([
+    API.sessions.refresh(e.id),
+    API.paymentInfo.get().catch(() => null),
+  ]);
+  let payInfoHTML = T('pay_fallback');
+  if (paymentInfo && paymentInfo.card_number) {
+    payInfoHTML = `${lang() === 'en' ? 'Card' : 'شماره کارت'}: <strong dir="ltr">${esc(paymentInfo.card_number)}</strong>${paymentInfo.card_holder ? ' · ' + esc(paymentInfo.card_holder) : ''}`;
+  }
   const dates = API.dates.forEvent(e.id);
   if (!dates.length) {
-    box.insertAdjacentHTML('beforeend', `<p style="font-size:13px;color:var(--text-muted)">${T('bk_sel_date')}</p>`);
+    box.innerHTML = `<p class="bk-form-msg bk-form-msg--error">${T('bk_no_sessions')}</p>`;
     return;
   }
   // UX fix: a date "chip" that looks identical to the plain info-table
@@ -435,8 +503,10 @@ async function buildBooking(e) {
   // demonstrates "these are clickable" instead of asking the buyer to
   // infer it from a plain rounded label).
   const multipleDates = dates.length > 1;
-  box.insertAdjacentHTML('beforeend', `
-    <div style="display:grid;gap:18px" id="bkRoot">
+  box.innerHTML = `
+    <div id="bkFormError" class="bk-form-msg bk-form-msg--error" style="display:none"></div>
+    <div id="bkFormSuccess" class="bk-form-msg bk-form-msg--success" style="display:none"></div>
+    <form id="bkForm" style="display:grid;gap:18px">
       ${multipleDates ? `<div><div class="bk-label">${T('bk_date')}</div><div class="bk-chips" id="bkDates">${dates.map(d => `<button type="button" class="bk-chip" data-date="${esc(d.id)}">${esc(d.jalali_date)}</button>`).join('')}</div></div>` : `<div id="bkDates" style="display:none"></div>`}
       <div id="bkSessionBlock"><div class="bk-label">${T('bk_session')}</div><div class="bk-sessions" id="bkSessions"></div></div>
       <div id="bkQtyBlock" style="display:none"><div class="bk-label">${T('bk_qty')}</div>
@@ -448,13 +518,19 @@ async function buildBooking(e) {
         <input id="bkPhone" placeholder="${T('reserve_phone')}" required maxlength="20" dir="ltr" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;font-family:inherit;margin-bottom:8px">
         <input id="bkEmail" type="email" placeholder="${T('reserve_email')}" required maxlength="180" dir="ltr" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;font-family:inherit">
       </div>
-      <button class="btn btn--gold" id="bkSubmit" type="button" style="display:none">${T('bk_confirm')}</button>
-      <p id="bkMsg" style="display:none;color:#2a7a2a;font-size:13.5px;line-height:2"></p>
-    </div>`);
+      <div id="bkPayment" style="display:none">
+        <div class="bk-label">${T('pay_title')}</div>
+        <p style="font-size:13px;line-height:2;margin-bottom:10px">${payInfoHTML}</p>
+        <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:6px">${T('pay_upload_label')}</label>
+        <input type="file" id="bkReceipt" accept="image/*" style="font-size:12.5px;display:block;margin-bottom:6px">
+        <p style="font-size:11.5px;color:var(--text-muted);line-height:1.8">${T('pay_upload_hint')}</p>
+      </div>
+      <button class="btn btn--gold" id="bkSubmit" type="submit" style="display:none">${T('bk_confirm')}</button>
+    </form>`;
+  document.getElementById('bkForm').addEventListener('submit', submitBooking);
   box.querySelectorAll('.bk-chip').forEach(chip => chip.onclick = () => selectDate(chip.dataset.date, chip));
   document.getElementById('bkMinus').onclick = () => stepQty(-1);
   document.getElementById('bkPlus').onclick = () => stepQty(1);
-  document.getElementById('bkSubmit').onclick = () => submitBooking();
   selectDate(dates[0].id, box.querySelector('.bk-chip') || null);
 }
 function selectDate(dateIso, chip) {
@@ -463,18 +539,29 @@ function selectDate(dateIso, chip) {
   const sessions = API.sessions.forDate(__bk.eventId, dateIso);
   const event = API.events.get(__bk.eventId);
   const wrap = document.getElementById('bkSessions');
+  // Rendered as <div> rows, not nested <button>s: the "join waiting list"
+  // control for a sold-out session used to sit *inside* a disabled
+  // <button class="bk-session">, which is invalid HTML — a <button>
+  // cannot contain another <button>, and browsers silently restructure
+  // the markup to cope, which is not something to depend on. A plain row
+  // with role="button" on the selectable case keeps the same look and
+  // keyboard access without relying on that.
   wrap.innerHTML = sessions.length ? sessions.map(s => {
     const full = API.sessions.isFull(s);
-    return `<button type="button" class="bk-session ${full ? 'is-full' : ''}" data-sid="${esc(s.id)}" ${full ? 'disabled' : ''}>
+    return `<div class="bk-session ${full ? 'is-full' : ''}" data-sid="${esc(s.id)}" ${full ? '' : 'role="button" tabindex="0"'}>
       <span dir="ltr" class="bk-time">${esc(s.time)}</span>
       <span class="bk-cap">${full ? T('bk_full') : T('bk_remaining')(API.sessions.remaining(s))}</span>
       <span class="bk-price">${Number(event.price || 0).toLocaleString(lang() === 'en' ? 'en-US' : 'fa-IR')} ${lang() === 'en' ? 'T' : (event.currency || 'تومان')}</span>
-      ${full ? `<small style="display:block;width:100%;margin-top:6px"><button type="button" class="bk-waitlist" data-sid="${esc(s.id)}">${T('bk_waitlist')}</button></small>` : ''}
-    </button>`;
-  }).join('') : `<p style="font-size:12.5px;color:var(--text-muted)">${T('bk_sel_date')}</p>`;
+      ${full ? `<button type="button" class="bk-waitlist" data-sid="${esc(s.id)}">${T('bk_waitlist')}</button>` : ''}
+    </div>`;
+  }).join('') : `<p style="font-size:12.5px;color:var(--text-muted)">${T('bk_no_sessions_date')}</p>`;
   document.getElementById('bkSessionBlock').style.display = 'block';
   hideAfterSession();
-  wrap.querySelectorAll('.bk-session:not(.is-full)').forEach(b => b.onclick = () => selectSession(b.dataset.sid, b));
+  wrap.querySelectorAll('.bk-session:not(.is-full)').forEach(b => {
+    const pick = () => selectSession(b.dataset.sid, b);
+    b.onclick = pick;
+    b.onkeydown = (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); pick(); } };
+  });
   wrap.querySelectorAll('.bk-waitlist').forEach(b => b.onclick = (ev) => { ev.stopPropagation(); joinWaitlist(b.dataset.sid); });
 }
 function selectSession(sessionId, btn) {
@@ -483,12 +570,14 @@ function selectSession(sessionId, btn) {
   document.getElementById('bkQtyVal').textContent = '1';
   document.getElementById('bkQtyBlock').style.display = 'block';
   document.getElementById('bkUser').style.display = 'block';
+  document.getElementById('bkPayment').style.display = 'block';
   document.getElementById('bkSubmit').style.display = 'inline-flex';
   renderSummary();
 }
 function hideAfterSession() {
   document.getElementById('bkQtyBlock').style.display = 'none';
   document.getElementById('bkUser').style.display = 'none';
+  document.getElementById('bkPayment').style.display = 'none';
   document.getElementById('bkSubmit').style.display = 'none';
   document.getElementById('bkSummary').style.display = 'none';
 }
@@ -512,13 +601,31 @@ function renderSummary() {
   el.style.display = 'block';
   el.innerHTML = `${esc(evTitle(event))} · ${esc(d ? d.jalali_date : '')} · <span dir="ltr">${esc(s.time)}</span><br>${T('bk_qty')}: ${__bk.qty} · ${T('bk_each')}: ${unitPrice.toLocaleString(lang() === 'en' ? 'en-US' : 'fa-IR')}<br><strong style="color:var(--gold-deep)">${T('bk_total')}: ${total.toLocaleString(lang() === 'en' ? 'en-US' : 'fa-IR')} ${currencyLabel}</strong>`;
 }
-async function submitBooking() {
+async function submitBooking(ev) {
+  if (ev) ev.preventDefault();
+  // Guards a double-fire (e.g. a fast double-click before the button's
+  // own `disabled` takes effect) from creating a second reservation for
+  // the same booking — once a reservation exists there is no "resubmit",
+  // only report what happened next (receipt attached or not).
+  if (__bk.submitted) return;
+  const errBox = document.getElementById('bkFormError');
+  const okBox = document.getElementById('bkFormSuccess');
+  errBox.style.display = 'none';
+  // Name/phone/email are `required` on their <input>s, so the browser's
+  // own validation UI stops the submit before this handler runs on an
+  // empty or malformed value — nothing to duplicate here.
   const name = document.getElementById('bkName').value.trim();
   const phone = document.getElementById('bkPhone').value.trim();
   const email = document.getElementById('bkEmail').value.trim();
-  if (!name || !phone || !email) return alert(`${T('reserve_name')} / ${T('reserve_phone')} / ${T('reserve_email')}`);
   const s = API.sessions.get(__bk.eventId, __bk.sessionId);
-  if (!s || API.sessions.isFull(s)) return alert(T('bk_full'));
+  if (!s || API.sessions.isFull(s)) { errBox.style.display = 'block'; errBox.textContent = T('bk_full_alert'); return; }
+
+  const fileInput = document.getElementById('bkReceipt');
+  const file = fileInput && fileInput.files[0];
+  if (file) {
+    if (!file.type.startsWith('image/')) { errBox.style.display = 'block'; errBox.textContent = T('bk_file_type_error'); return; }
+    if (file.size > 1_500_000) { errBox.style.display = 'block'; errBox.textContent = T('bk_file_size_error'); return; }
+  }
 
   const submitBtn = document.getElementById('bkSubmit');
   submitBtn.disabled = true;
@@ -532,92 +639,66 @@ async function submitBooking() {
     record = await API.reservations.create({ session_id: s.id, phone, full_name: name, email, people: __bk.qty });
   } catch (err) {
     submitBtn.disabled = false;
-    if (err.status === 409 && err.message === 'sold_out') return alert(T('bk_full'));
-    return alert('خطا در ثبت رزرو — لطفاً دوباره تلاش کنید. ' + (err.details || ''));
-  }
-  if (record && record.waiting) {
-    const msg = document.getElementById('bkMsg');
-    msg.style.display = 'block';
-    msg.innerHTML = T('bk_waitlist_done');
-    document.getElementById('bkUser').style.display = 'none';
-    submitBtn.style.display = 'none';
+    errBox.style.display = 'block';
+    errBox.textContent = (err.status === 409 && err.message === 'sold_out') ? T('bk_full_alert') : T('bk_submit_error');
     return;
   }
-  const msg = document.getElementById('bkMsg');
-  msg.style.display = 'block';
+
+  // The reservation now exists server-side — lock the form so nothing
+  // below (including a receipt-upload failure) can trigger a second one.
+  __bk.submitted = true;
+  document.getElementById('bkForm').querySelectorAll('input,button').forEach(el => el.disabled = true);
+
+  if (record && record.waiting) {
+    okBox.style.display = 'block';
+    okBox.textContent = T('bk_waitlist_done');
+    return;
+  }
+
+  let receiptNote = T('bk_no_receipt_note');
+  if (file) {
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      // Same submit_receipt() the Telegram bot's photo handler calls —
+      // triggers the exact same admin notification either way.
+      await API.receipts.submit(record.id, dataUrl);
+      receiptNote = T('pay_ok');
+    } catch {
+      receiptNote = T('bk_receipt_failed_note');
+    }
+  }
+  okBox.style.display = 'block';
   // reservation_code is only assigned once the admin approves payment
   // (same as the Telegram bot flow) — showing a fake code here before
   // that would be inventing data the backend hasn't actually issued yet.
-  msg.innerHTML = `${T('bk_done')}<br>${T('bk_tracking_id')}: <strong dir="ltr" style="color:var(--gold-deep)">#${esc(record.id)}</strong>`;
-  document.getElementById('bkUser').style.display = 'none';
-  submitBtn.style.display = 'none';
-  document.getElementById('bkQtyBlock').style.display = 'none';
-  await showPayment(record, s);
-  selectDate(__bk.dateId, document.querySelector('#bkDates .bk-chip.active'));
-}
-async function showPayment(record, session) {
-  let info = T('pay_fallback');
-  try {
-    const p = await API.paymentInfo.get();
-    if (p && p.card_number) {
-      info = `${lang() === 'en' ? 'Card' : 'شماره کارت'}: <strong dir="ltr">${esc(p.card_number)}</strong>${p.card_holder ? ' · ' + esc(p.card_holder) : ''}`;
-    }
-  } catch { /* fall back to the generic message rather than block the success screen on a payment-info fetch error */ }
-  const box = document.getElementById('bookingWidget');
-  const prev = document.getElementById('bkPay');
-  if (prev) prev.remove();
-  const div = document.createElement('div');
-  div.id = 'bkPay';
-  div.innerHTML = `<div class="feedback-box" style="background:var(--bg-soft)">
-    <h4>${T('pay_title')}</h4><p style="font-size:13px;line-height:2;margin-bottom:10px">${info}</p>
-    <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:6px">${T('pay_upload')}</label>
-    <input type="file" id="bkReceipt" accept="image/*" style="font-size:12.5px;margin-bottom:10px">
-    <button class="btn btn--gold" type="button" style="font-size:12.5px" onclick="uploadReceiptUI(${Number(record.id)})">${T('pay_upload')}</button>
-    <p id="bkPayMsg" style="display:none;color:#2a7a2a;font-size:13px;margin-top:10px;line-height:2"></p>
-  </div>`;
-  box.appendChild(div);
-}
-function uploadReceiptUI(reservationId) {
-  const file = document.getElementById('bkReceipt').files[0];
-  if (!file) return alert(T('pay_upload'));
-  if (!file.type.startsWith('image/')) return alert(T('bk_sel_date'));
-  if (file.size > 1_500_000) return alert(T('pay_upload') + ' ≤1.5MB');
-  const reader = new FileReader();
-  reader.onload = async () => {
-    const msg = document.getElementById('bkPayMsg');
-    try {
-      // Same submit_receipt() the Telegram bot's photo handler calls —
-      // triggers the exact same admin notification either way.
-      await API.receipts.submit(reservationId, String(reader.result));
-      msg.style.display = 'block'; msg.textContent = T('pay_ok');
-      document.getElementById('bkReceipt').disabled = true;
-    } catch (err) {
-      msg.style.display = 'block';
-      msg.style.color = '#c44';
-      msg.textContent = 'خطا در ارسال رسید — ' + (err.details || err.message || 'دوباره تلاش کنید.');
-    }
-  };
-  reader.readAsDataURL(file);
+  okBox.innerHTML = `${T('bk_done')}<br>${T('bk_tracking_id')}: <strong dir="ltr" style="color:var(--gold-deep)">#${esc(record.id)}</strong><br>${receiptNote}`;
 }
 async function joinWaitlist(sid) {
   const name = prompt(T('reserve_name')) || '';
   const phone = prompt(T('reserve_phone')) || '';
   const email = prompt(T('reserve_email')) || '';
   if (!name || !phone || !email) return;
+  const errBox = document.getElementById('bkFormError');
+  const okBox = document.getElementById('bkFormSuccess');
   let record;
   try {
     // The backend automatically routes to the waiting list when the
     // session is full — same atomic check as a normal booking, no
     // separate "waiting" status invented on the frontend.
     record = await API.reservations.create({ session_id: sid, phone, full_name: name, email, people: 1 });
-  } catch (err) {
-    return alert('خطا در ثبت درخواست — لطفاً دوباره تلاش کنید.');
+  } catch {
+    if (errBox) { errBox.style.display = 'block'; errBox.textContent = T('bk_submit_error'); }
+    return;
   }
-  const msg = document.getElementById('bkMsg');
-  msg.style.display = 'block';
-  msg.textContent = record.waiting
-    ? T('bk_waitlist_done')
-    : (T('bk_done') + ' #' + record.id);
+  if (okBox) {
+    okBox.style.display = 'block';
+    okBox.textContent = record.waiting ? T('bk_waitlist_done') : (T('bk_done') + ' #' + record.id);
+  }
 }
 
 function submitFeedback(eventId) {

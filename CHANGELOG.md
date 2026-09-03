@@ -5,6 +5,65 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Booking form: one step, modal/bottom-sheet, and rewritten messages
+
+**Why:** direct feedback on the live booking widget — it was two forms
+pretending to be one flow (buyer info, then a second reveal for the
+payment receipt), it sat as plain page content with no visual separation
+from the rest of the event page, and several of its messages were
+unclear or, in one case, outright wrong.
+
+- **Merged into one form.** `submitBooking()`/`showPayment()`/
+  `uploadReceiptUI()` used to be three separate functions across two
+  visible steps — creating the reservation, then revealing a second panel
+  for the payment receipt. It's now a single `<form>`: buyer info and the
+  (optional) receipt upload are shown together, and one submit does both
+  API calls in sequence (create reservation, then upload the receipt if
+  one was attached) before showing one combined result. Once the
+  reservation succeeds the whole form locks (`__bk.submitted` latch) so a
+  stray double-click or a receipt-upload failure can never fire a second
+  reservation for the same booking attempt.
+- **New `.bk-modal`/`.bk-modal-overlay` component**: centered dialog on
+  desktop, bottom sheet (slides up, rounded top corners, grab handle) on
+  mobile at the site's existing 760px breakpoint. The booking widget used
+  to render inline into the event page itself; it's now opened from a
+  "رزرو بلیت" button and closes via the ✕, the overlay backdrop, or Esc.
+- **Real bug fixed**: the file-type validation for the payment receipt
+  showed `bk_sel_date` ("ابتدا یک روز اجرا انتخاب کن" — pick a date
+  first) on a non-image file — copy for a completely unrelated step,
+  left over from a shared string. It now has its own message
+  (`bk_file_type_error`).
+- **Message rewrite across the flow**: the missing-fields alert used to
+  slash-join three field labels (`نام / موبایل / ایمیل`) with no
+  sentence around them — replaced by relying on the browser's own
+  required-field validation (the three inputs already had `required`)
+  instead of a custom alert. Native `alert()`/`prompt()` popups for
+  submit-time errors (sold-out race, network failure) are now inline
+  banners inside the modal instead — jarring next to a custom dialog, and
+  blocking. The one generic "pick a date" string previously reused for
+  three different situations (no sessions on the event at all, no
+  sessions on this specific date, and the file-type bug above) is now
+  three separate, situation-specific messages. Success copy now reflects
+  what actually happened: whether the receipt was attached and accepted,
+  skipped (with a clear next step — send it via Telegram), or attempted
+  but failed to upload (the reservation itself still stands either way —
+  the copy says so explicitly, so the buyer doesn't think they need to
+  start over).
+- **Small structural fix while touching this code**: the sold-out
+  session's "join waiting list" button used to sit *inside* a disabled
+  `<button class="bk-session">` — a `<button>` cannot contain another
+  `<button>`, which browsers silently restructure to cope with. Session
+  rows are now `<div>`s (`role="button"`/`tabindex`/Enter-Space handling
+  on the selectable ones), so the waiting-list button nests cleanly.
+- **Verified** with Playwright at both a desktop viewport (centered
+  modal) and a mobile viewport (bottom sheet): a single-date event (date
+  picker skipped, as before), a multi-date event (chips shown, first
+  auto-selected), a sold-out session's waitlist button, the corrected
+  file-type error message, a full submit with a receipt attached, a full
+  submit with the receipt skipped, and a forced double-submit call
+  confirmed as a no-op after the first succeeds — no console errors, no
+  failed requests, in every scenario.
+
 ## Reservation migration — phase 4 (admin reservation panel, on the website)
 
 **Why:** the last piece — an admin no longer needs Telegram to run the

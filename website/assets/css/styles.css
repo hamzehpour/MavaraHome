@@ -534,6 +534,30 @@ body::before{
 .bk-stepper button:hover{background:rgba(201,162,93,0.15)}
 .bk-stepper button:disabled{opacity:.35;cursor:not-allowed}
 .bk-stepper span{min-width:44px;text-align:center;font-weight:700;color:var(--navy)}
+.bk-session{cursor:pointer}
+.bk-session.is-full{cursor:not-allowed}
+.bk-form-msg{border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.9}
+.bk-form-msg--error{background:rgba(204,68,68,0.10);color:#c44;border:1px solid rgba(204,68,68,0.3)}
+.bk-form-msg--success{background:rgba(30,158,90,0.10);color:#1e9e5a;border:1px solid rgba(30,158,90,0.3)}
+
+/* Booking modal: centered dialog on desktop, bottom sheet on mobile — the
+   inline widget it replaces gave no visual separation from the rest of the
+   page, so the booking flow read as more page content to scroll past
+   rather than a focused task. */
+.bk-modal-overlay{position:fixed;inset:0;background:rgba(14,25,43,0.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
+.bk-modal-overlay.open{display:flex}
+.bk-modal{background:var(--bg-card);border-radius:var(--radius);width:100%;max-width:520px;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow-lg);border-top:4px solid var(--gold);animation:slideUp .35s var(--spring)}
+.bk-sheet-handle{display:none}
+.bk-modal-header{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:16px 22px;border-bottom:1px solid var(--border);background:var(--bg-card);border-radius:var(--radius) var(--radius) 0 0}
+.bk-modal-header h3{font-size:17px;font-weight:700;color:var(--navy);margin:0;min-width:0}
+.bk-modal-body{padding:22px;display:grid;gap:18px}
+@media (max-width: 760px) {
+  .bk-modal-overlay{align-items:flex-end;padding:0}
+  .bk-modal{max-width:100%;max-height:86vh;border-radius:20px 20px 0 0;border-top:none;animation:bkSheetUp .32s var(--spring)}
+  .bk-sheet-handle{display:block;width:40px;height:4px;border-radius:999px;background:var(--border);margin:10px auto 0}
+  .bk-modal-header{border-radius:0}
+}
+@keyframes bkSheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 
 /* ═══════════ ADMIN ═══════════ */
 .admin-layout{display:flex;min-height:100vh}
