@@ -1,11 +1,103 @@
-# CHANGELOG — Phase 4 through 8, + follow-ups (ticket template, email login, split architecture)
+# CHANGELOG — Phase 4 through 8, + follow-ups (ticket template, email login, split architecture, reservation migration)
 
 Full technical detail behind the summary in `README.md`'s checklist. Schema
 went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Reservation migration — phase 0 + phase 1 (schema v9 → v11)
+
+**Why:** a product review ("critically review the reservation journey and
+prepare a migration plan") found the split below had, in the meantime,
+left three real security gaps and re-introduced a two-source-of-truth
+content problem, on top of the original goal (bring booking onto the
+website itself, still reachable from Telegram too) needing a shared
+backend the split had deliberately removed. Full findings and the
+5-phase plan are in the product-review doc shared with the client;
+phases 0 and 1 are done, phases 2-4 (customer identity UX, booking UI,
+admin reservation panel on the website) are still ahead.
+
+**Phase 0 — closed the three critical findings**, verified against a live
+server (curl), not just the test suite:
+- Removed `GET /api/v1/reservations?phone=...` (`bot/api/server.py`) — it
+  returned anyone's full reservation history to any caller who knew or
+  guessed a phone number, no auth at all, and created a user row as a
+  side effect of a GET. The authenticated replacement customers already
+  have is `GET /api/v1/account/reservations` (JWT).
+- Payment receipts moved out of `media/` (served to anyone, and directly
+  by Nginx in production) into a new `private_media/` tree. New
+  `GET /api/v1/admin/reservations/<id>/receipt` serves it, admin-only.
+  Two receipt images already committed at the old public path (test data)
+  were removed from git; `private_media/` added to `.gitignore`.
+- `database/repositories/users.py`: three near-identical
+  get-or-create-user functions (each with a subtly different `WHERE`
+  clause — the actual bug: one filtered `AND telegram_id IS NULL`, so a
+  phone number belonging to someone who'd separately used the bot got a
+  duplicate row on every manual booking) collapsed into one
+  `get_or_create_customer()`. Email takes priority over phone (product
+  decision); an existing row found by either identifier gets backfilled
+  with whichever field the caller newly supplied, never overwriting a
+  field that's already non-empty — this is also the fix for "a
+  reservation made by phone, then logged into later by email, showed an
+  empty archive" (the two used to resolve to two different rows). Backed
+  by real partial-`UNIQUE` indexes on `users.phone` and `users.email` now
+  (`WHERE ... IS NOT NULL AND != ''`, so the many legitimately-blank rows
+  never collide). Three new tests in `bot/test_bot.py` cover this.
+
+**Phase 1 — reunified the backend, since the reason to split it away is
+gone.** `website/backend_cms/` (a standalone content-only Flask CMS,
+built when this site needed to run on shared hosting with no SSH) is
+retired now that a real VPS with SSH exists. `website/` connects directly
+to the same unified API the bot uses again — one database, one source of
+truth for events/portfolio/team, immediately available to both channels.
+- Schema v11: `events` gained `date` (free-text showtime), `status`
+  (`ongoing`/`upcoming`/`archived` — the website's display lifecycle) and
+  `tags` (JSON array) — the three columns `backend_cms`'s own `events`
+  table had that bot's never did. `status` also drives `is_active` (what
+  the bot's booking flow actually checks) unless a caller passes
+  `is_active` explicitly in the same request — see
+  `events_repo.update_event_fields()`'s docstring for why the two can't
+  be allowed to silently drift apart.
+- `bot/api/server.py`: `_event_public()` now returns `date`/`status`/
+  `tags`; admin event create/update accept them (`tags`, like `gallery`,
+  json-encoded before storage). Fixed the admin `PATCH /admin/events/<id>`
+  handler's `is_active` handling while touching this code anyway — it
+  used to run as a *separate* `set_event_active()` call before
+  `update_event_fields()`, which raced with the new status→is_active
+  derivation when both were in the same request body; both now flow
+  through `update_event_fields()` together. Also added the missing
+  `"team"` entry to `/admin/upload`'s `kind` whitelist — team-photo
+  uploads were silently landing in `media/gallery/` instead of
+  `media/team/` (worked, just confusing on disk).
+- `website/assets/js/site.js`'s `pp()` path helper never had a case for
+  `media/...`-prefixed paths (what the upload endpoint actually returns)
+  — fine from the site root, but resolved against the wrong base from any
+  `/pages/*.html` page (event detail, team, portfolio — most image
+  displays), silently swapped for a fallback icon by every image's
+  `onerror` handler instead of surfacing as an error. Fixed.
+- `bot/utils/scheduler.py`: the expiry loop that frees a `pending_payment`
+  reservation's seat, and the daily DB backup, only ever ran inside
+  `bot.py`'s asyncio loop — if the API is deployed without the Telegram
+  bot process running (the exact situation this project was in), neither
+  ran at all: a session would look increasingly "full" without actually
+  being full, and the database was never backed up. New
+  `run_expiry_loop_sync()`/`run_backup_loop_sync()` run as plain daemon
+  threads inside `api/server.py` itself (started from `main()`), so both
+  work regardless of whether `bot.py` is up. Deliberately not a port of
+  the full async `run_expiry_loop` — that one also does Telegram-only
+  chores (card-rotation reminders, review nudges, owner-removal
+  finalization) that genuinely need `bot`; only the correctness-critical
+  part (freeing the seat) needed a bot-independent path.
+- Verified with a live server + Playwright walkthrough (homepage, events
+  listing, event detail, admin login, admin events list) against the
+  reunified API — zero console errors, zero failed/4xx/5xx requests,
+  `status`/`tags`/`date` round-tripping correctly end to end.
+
 ## Follow-up: split website/ from bot/ so the site can host on plain shared hosting (no SSH)
+
+> **Superseded by the reservation-migration phase 1 above** —
+> `website/backend_cms/` described in this section no longer exists.
+> Left in place for history; do not follow its deployment instructions.
 
 **Why:** `website/` previously had no backend of its own — every admin
 action (events, portfolio, team) went through `bot/api/server.py`, the

@@ -14,6 +14,15 @@ function pp(p) {
   if (p === 'index.html') return inPages ? '../index.html' : p;
   if (inPages && p.startsWith('assets/')) return '../' + p;
   if (inPages && p.startsWith('pages/')) return p.replace('pages/', '');
+  // Uploaded media (poster/gallery/video/team photos) comes back from the
+  // API as a bare relative path — "media/poster/xxx.jpg" — with no case
+  // above matching it, so it fell through to `return p` unchanged. From
+  // site root that resolves fine; from any /pages/*.html (event detail,
+  // team, portfolio — most image displays) the browser resolved it
+  // against the wrong base and 404'd. onerror="coverFallback(...)" on
+  // every image tag silently swapped in a fallback icon instead of
+  // surfacing this, which is why it went unnoticed.
+  if (inPages && p.startsWith('media/')) return '../' + p;
   return p;
 }
 

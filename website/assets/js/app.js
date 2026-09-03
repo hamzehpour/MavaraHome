@@ -1,20 +1,22 @@
 /* ══════════════════════════════════════════════
    Maavara Home — App Logic
-   Split architecture: this site is CONTENT ONLY (events, resume, team) —
-   backed by its own small Flask/WSGI CMS (backend_cms/), deployable on
-   ordinary shared hosting (cPanel/DirectAdmin "Setup Python App", no SSH
-   needed). Reservation, payment, tickets, and customer accounts are
-   entirely the Telegram bot's responsibility (bot/) — a separate project
-   on separate hosting, with its own database. Nothing here talks to it;
-   "booking" on this site is just a link to Telegram/phone, same as the
-   original brief before the reservation platform existed.
+   Reservation-migration phase 1: back on the unified backend (bot/api/
+   server.py) — the same API the Telegram bot itself uses, one database,
+   one source of truth for events/portfolio/team AND (as later phases land)
+   reservations. website/backend_cms/ (a standalone content-only Flask CMS,
+   built when this site briefly needed to run on shared hosting with no
+   SSH) is retired — see CHANGELOG.md. Nothing here changed shape because
+   of that: backend_cms was deliberately built to answer the exact same
+   /api/v1/... routes with the exact same {"data": ...} envelope, so this
+   file talks to whichever backend is actually running without caring
+   which one it is.
    ══════════════════════════════════════════════ */
 
 const PREFIX = 'mh_';
-// backend_cms's own origin. Same-origin default ('') works when the CMS
-// is deployed under this site's own domain (e.g. proxied under /api/ —
-// see backend_cms/DEPLOYMENT.md). Override via window.MAAVARA_API_BASE
-// only if the CMS is genuinely on a different origin/port.
+// The unified API's own origin. Same-origin default ('') works when it's
+// deployed under this site's own domain (Nginx proxying /api/v1/ to it —
+// see bot/DEPLOYMENT.md). Override via window.MAAVARA_API_BASE only if
+// it's genuinely on a different origin/port (e.g. local dev).
 const MAVARA_API_BASE = window.MAAVARA_API_BASE || '';
 const API_VERSION = 'v1';
 const db = {

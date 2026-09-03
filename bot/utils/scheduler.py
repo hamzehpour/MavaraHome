@@ -198,3 +198,69 @@ async def run_backup_loop() -> None:
             logger.exception("Database backup failed")
 
         await asyncio.sleep(24 * 60 * 60)
+
+
+# ---------------------------------------------------------------------
+# Phase 1 (reservation-migration finding #4): the expiry and backup loops
+# above only ever ran inside bot.py's asyncio event loop — if the site is
+# deployed with the unified API (api/server.py) but the Telegram bot isn't
+# running (the exact situation this project was in for a while), a
+# pending_payment reservation's seat was NEVER freed; the session would
+# silently look more and more "full" without actually being full, and the
+# database was never backed up either. These two run as plain threads
+# inside api/server.py itself, so both work regardless of whether bot.py
+# is up. Deliberately NOT a port of the async run_expiry_loop above: this
+# skips the Telegram-notification / bank-card-rotation / review-reminder /
+# owner-removal chores bundled into that one (all genuinely need `bot`,
+# none are correctness-critical the way freeing a seat is) — if bot.py
+# IS also running, both loops end up doing the same expiry pass twice on
+# occasion, which is harmless (expire_stale_reservations() only acts on
+# rows still in pending_payment, so a reservation already expired by one
+# loop is simply not picked up by the other).
+def run_expiry_loop_sync(interval_seconds: int = CHECK_INTERVAL_SECONDS) -> None:
+    """Blocking; call via threading.Thread(daemon=True). Frees capacity for
+    reservations whose payment deadline has passed. No Telegram side
+    effects — see the module note above for why."""
+    import time
+
+    while True:
+        try:
+            expired = expire_stale_reservations()
+            for reservation in expired:
+                logs_repo.record(
+                    "reservation_expired", None, f"reservation_id={reservation['id']}"
+                )
+            if expired:
+                logger.info("Expired %d stale reservation(s) (sync/API-process loop)", len(expired))
+        except Exception:
+            logger.exception("Error while running the sync reservation-expiry job")
+
+        time.sleep(interval_seconds)
+
+
+def run_backup_loop_sync() -> None:
+    """Blocking; call via threading.Thread(daemon=True). Same backup logic
+    as run_backup_loop() above, just without asyncio — see the module note
+    above for why api/server.py needs its own copy."""
+    import shutil
+    import time
+    from datetime import datetime, timezone
+    from config.settings import DB_PATH, BASE_DIR
+
+    backup_dir = BASE_DIR / "backups"
+    backup_dir.mkdir(exist_ok=True)
+
+    while True:
+        try:
+            timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M")
+            dest = backup_dir / f"mavara_backup_{timestamp}.db"
+            shutil.copy2(DB_PATH, dest)
+            logger.info("Database backed up to %s (sync/API-process loop)", dest)
+
+            backups = sorted(backup_dir.glob("mavara_backup_*.db"))
+            for old in backups[:-14]:
+                old.unlink(missing_ok=True)
+        except Exception:
+            logger.exception("Database backup failed (sync/API-process loop)")
+
+        time.sleep(24 * 60 * 60)

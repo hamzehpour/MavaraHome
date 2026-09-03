@@ -12,7 +12,7 @@ what's missing instead of guessing from column-already-exists errors.
 from database.connection import get_connection
 from config.settings import BOOTSTRAP_ADMIN_IDS
 
-SCHEMA_VERSION = 10
+SCHEMA_VERSION = 11
 
 SCHEMA_STATEMENTS = [
     # ---- users -------------------------------------------------
@@ -538,6 +538,20 @@ def init_db() -> None:
             # a full table rebuild just to relax that constraint.
             "ALTER TABLE users ADD COLUMN email TEXT",
             "ALTER TABLE customer_otp ADD COLUMN email TEXT",
+            # Schema v11 (reservation-migration phase 1): website/
+            # backend_cms's `events` table had three columns bot's never
+            # had — date (free-text showtime, distinct from sessions'
+            # structured session_date/session_time), status (a 3-state
+            # display lifecycle: ongoing/upcoming/archived — separate
+            # concern from is_active, which gates whether the bot lets
+            # anyone book it; see update_event_fields() in
+            # repositories/events.py for how the two stay consistent),
+            # and tags (JSON array, site.js's tag-filter bar). Adding
+            # them here instead of standing up a second content database
+            # is the whole point of this migration — see CHANGELOG.md.
+            "ALTER TABLE events ADD COLUMN date TEXT",
+            "ALTER TABLE events ADD COLUMN status TEXT NOT NULL DEFAULT 'upcoming'",
+            "ALTER TABLE events ADD COLUMN tags TEXT",
         ):
             try:
                 conn.execute(alter_sql)

@@ -142,6 +142,12 @@ def _event_public(e: dict) -> dict:
             gallery = json.loads(e["gallery"])
         except (json.JSONDecodeError, TypeError):
             gallery = []
+    tags = []
+    if e.get("tags"):
+        try:
+            tags = json.loads(e["tags"])
+        except (json.JSONDecodeError, TypeError):
+            tags = []
     return {
         "id": e["id"], "title": e["title"], "title_en": e.get("title_en"),
         "description": e.get("description"), "description_en": e.get("description_en"),
@@ -150,6 +156,12 @@ def _event_public(e: dict) -> dict:
         "address": e.get("address"), "location": e.get("location"), "location_en": e.get("location_en"),
         "poster": e.get("poster"), "gallery": gallery, "video": e.get("video"),
         "contact_phone": e.get("contact_phone"), "contact_telegram": e.get("contact_telegram"),
+        # Schema v11 (reservation-migration phase 1): the website's own
+        # event lifecycle/display fields — see events_repo.py's comment on
+        # _UPDATABLE_WEBSITE_FIELDS for how `status` and `is_active` above
+        # relate. `status` defaults to 'upcoming' at the column level, so
+        # this is never actually None for a real row.
+        "date": e.get("date"), "status": e.get("status") or "upcoming", "tags": tags,
         # Ticket template additions: important_notes is admin-entered free
         # text (one consideration per line) auto-printed on this event's
         # ticket PDFs; ticket_logo optionally overrides the ticket header
@@ -762,13 +774,22 @@ class Handler(BaseHTTPRequestHandler):
                 title = body.get("title")
                 if not title:
                     return self._send_json(400, {"error": "validation", "details": "title is required"})
-                event_id = events_repo.create_event(
+                # is_active only passed through when the caller actually
+                # sent it — otherwise create_event() derives it from
+                # `status` (the website admin form's only lifecycle
+                # control; it doesn't expose is_active directly). See
+                # events_repo.create_event()'s docstring.
+                create_kwargs = dict(
                     title=title, description=body.get("description", ""),
                     icon=body.get("icon", "🎭"), calendar_type=body.get("calendar_type", "jalali"),
                     address=body.get("address", ""), ticket_price=body.get("price"),
                     currency=body.get("currency", "تومان"),
-                    is_active=bool(body.get("is_active", True)),
+                    date=body.get("date"), status=body.get("status"),
+                    tags=json.dumps(body["tags"], ensure_ascii=False) if isinstance(body.get("tags"), list) else None,
                 )
+                if "is_active" in body:
+                    create_kwargs["is_active"] = bool(body["is_active"])
+                event_id = events_repo.create_event(**create_kwargs)
                 optional_fields = ("title_en", "description_en", "location", "location_en", "poster", "gallery",
                                    "video", "contact_phone", "contact_telegram", "important_notes", "ticket_logo")
                 if any(k in body for k in optional_fields):
@@ -783,7 +804,12 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send_json(401, {"error": "unauthorized"})
                 body = self._read_json_body()
                 data_url = body.get("data")
-                kind = body.get("kind") if body.get("kind") in ("poster", "gallery", "video", "portfolio", "ticket_logo") else "gallery"
+                # "team" (member photos) was missing here — every team
+                # photo upload from the website admin silently landed in
+                # media/gallery/ instead of media/team/ (this whitelist's
+                # fallback), harmless functionally (the returned path was
+                # still correct and still served) but confusing on disk.
+                kind = body.get("kind") if body.get("kind") in ("poster", "gallery", "video", "portfolio", "team", "ticket_logo") else "gallery"
                 if not data_url or not isinstance(data_url, str) or not data_url.startswith("data:"):
                     return self._send_json(400, {"error": "validation", "details": "data must be a base64 data URL"})
                 match = re.match(r"^data:([^;]+);base64,(.*)$", data_url, re.S)
@@ -962,8 +988,17 @@ class Handler(BaseHTTPRequestHandler):
                 fields = dict(body)
                 if "gallery" in fields and isinstance(fields["gallery"], list):
                     fields["gallery"] = json.dumps(fields["gallery"], ensure_ascii=False)
-                if "is_active" in fields:
-                    events_repo.set_event_active(event_id, bool(fields.pop("is_active")))
+                if "tags" in fields and isinstance(fields["tags"], list):
+                    fields["tags"] = json.dumps(fields["tags"], ensure_ascii=False)
+                # is_active flows through to update_event_fields() as a
+                # plain kwarg now (used to be split into a separate
+                # set_event_active() call before this ran) — that function
+                # already handles it correctly whether or not `status` is
+                # ALSO in the same request, which a two-call split can't:
+                # an admin PATCHing {status, is_active} together used to
+                # silently race, since set_event_active() ran in its own
+                # statement with no way to know update_event_fields() was
+                # about to derive and overwrite the very value it just set.
                 updated = events_repo.update_event_fields(event_id, **fields)
                 if not updated:
                     return self._send_json(404, {"error": "not_found"})
@@ -1057,6 +1092,15 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
+    # Phase 1 (migration finding #4): these must run even when bot.py is
+    # not — see utils/scheduler.py's module note above run_expiry_loop_sync
+    # for why a plain background thread here, not a port of bot.py's
+    # asyncio loops.
+    import threading
+    from utils.scheduler import run_expiry_loop_sync, run_backup_loop_sync
+    threading.Thread(target=run_expiry_loop_sync, daemon=True, name="expiry-loop").start()
+    threading.Thread(target=run_backup_loop_sync, daemon=True, name="backup-loop").start()
+
     server = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
     logger.info("Mavara unified API listening on :%d", PORT)
     print(f"[mavara-api] listening on :{PORT}")
