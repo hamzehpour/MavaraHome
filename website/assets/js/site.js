@@ -422,10 +422,23 @@ async function buildBooking(e) {
     box.insertAdjacentHTML('beforeend', `<p style="font-size:13px;color:var(--text-muted)">${T('bk_sel_date')}</p>`);
     return;
   }
+  // UX fix: a date "chip" that looks identical to the plain info-table
+  // pill above it (both just a rounded label with a date in it) gave no
+  // hint it was clickable — nothing was pre-selected, so nothing ever
+  // showed the CSS's own hover/.active affordance until acted on, and a
+  // buyer had no reason to act on what read as a static label. Now: with
+  // only one date (the common case), skip the picker entirely — it'd be
+  // a second, redundant control for a choice that doesn't exist — and go
+  // straight to that date's sessions. With more than one date, the first
+  // is auto-selected (so its sessions are visible immediately, and the
+  // chip itself visibly renders "active" — which is what actually
+  // demonstrates "these are clickable" instead of asking the buyer to
+  // infer it from a plain rounded label).
+  const multipleDates = dates.length > 1;
   box.insertAdjacentHTML('beforeend', `
     <div style="display:grid;gap:18px" id="bkRoot">
-      <div><div class="bk-label">${T('bk_date')}</div><div class="bk-chips" id="bkDates">${dates.map(d => `<button type="button" class="bk-chip" data-date="${esc(d.id)}">${esc(d.jalali_date)}</button>`).join('')}</div></div>
-      <div id="bkSessionBlock" style="display:none"><div class="bk-label">${T('bk_session')}</div><div class="bk-sessions" id="bkSessions"></div></div>
+      ${multipleDates ? `<div><div class="bk-label">${T('bk_date')}</div><div class="bk-chips" id="bkDates">${dates.map(d => `<button type="button" class="bk-chip" data-date="${esc(d.id)}">${esc(d.jalali_date)}</button>`).join('')}</div></div>` : `<div id="bkDates" style="display:none"></div>`}
+      <div id="bkSessionBlock"><div class="bk-label">${T('bk_session')}</div><div class="bk-sessions" id="bkSessions"></div></div>
       <div id="bkQtyBlock" style="display:none"><div class="bk-label">${T('bk_qty')}</div>
         <div class="bk-stepper"><button type="button" id="bkMinus" aria-label="−">−</button><span id="bkQtyVal">1</span><button type="button" id="bkPlus" aria-label="+">+</button></div>
       </div>
@@ -442,6 +455,7 @@ async function buildBooking(e) {
   document.getElementById('bkMinus').onclick = () => stepQty(-1);
   document.getElementById('bkPlus').onclick = () => stepQty(1);
   document.getElementById('bkSubmit').onclick = () => submitBooking();
+  selectDate(dates[0].id, box.querySelector('.bk-chip') || null);
 }
 function selectDate(dateIso, chip) {
   __bk.dateId = dateIso; __bk.sessionId = null; __bk.qty = 1;
