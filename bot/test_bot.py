@@ -775,6 +775,41 @@ def _t():
     assert a["id"] != b["id"]
 
 
+@test("Phase 2: OTP channel picker defaults to email-only, phone is a clean not-yet-supported error")
+def _t():
+    from services import settings_service, customer_auth_service
+
+    assert settings_service.get_otp_channels_enabled() == ["email"]
+    result = customer_auth_service.request_otp("09121234567", channel="phone")
+    assert result == {"error": "channel_not_supported"}, \
+        "phone must fail cleanly, not silently pretend to send a code nobody receives"
+
+
+@test("Phase 2: approving a reservation emails the customer when they have an email on file")
+def _t():
+    import io
+    import contextlib
+
+    event_id = events_repo.create_event(title="تست اعلان ایمیل")
+    session_id = sessions_repo.create_session(event_id, "2027-06-01", "20:00", capacity=5)
+    web_result = reservation_service.start_reservation_web(
+        phone="09120001111", full_name="مشتری اعلان", session_id=session_id, people=1
+    )
+    # Same merge path phase 0 added — a real reservation flow will collect
+    # email up front once the website booking form exists (phase 3); for
+    # now, simulate "this customer is also known by email" directly.
+    users_repo.get_or_create_customer(email="notify-me@example.com", phone="09120001111")
+
+    reservations_repo.set_status(web_result["reservation_id"], "pending_review")
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        result = reservation_service.approve_reservation(web_result["reservation_id"], reviewed_by=1)
+    assert result is not None
+    printed = buf.getvalue()
+    assert "notify-me@example.com" in printed, "no email was sent (SMTP unset -> printed) to the customer's address"
+    assert "تست اعلان ایمیل" in printed, "the notification must name the actual event, not a placeholder"
+
+
 def main() -> None:
     print("=" * 60)
     print("  MAVARA BOT — AUTOMATED TEST SUITE")

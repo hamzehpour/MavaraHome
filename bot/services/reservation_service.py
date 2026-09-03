@@ -143,6 +143,56 @@ def submit_receipt(reservation_id: int, receipt_file_id: str, receipt_source: st
     return True
 
 
+def _email_context_for_reservation(reservation: dict) -> dict:
+    """event title + human-readable session date/time for a notification
+    email — same join shape as get_user_reservations() above, just for
+    one reservation instead of a whole list."""
+    from database.connection import get_connection
+    from utils.jalali import display_date_for_event
+
+    with get_connection() as conn:
+        row = conn.execute(
+            """
+            SELECT s.session_date, s.session_time, e.title AS event_title, e.calendar_type
+            FROM reservations r
+            JOIN sessions s ON s.id = r.session_id
+            JOIN events e ON e.id = s.event_id
+            WHERE r.id = ?
+            """,
+            (reservation["id"],),
+        ).fetchone()
+    if not row:
+        return {"event_title": "", "session_date": "", "session_time": ""}
+    return {
+        "event_title": row["event_title"],
+        "session_date": display_date_for_event(row["session_date"], row["calendar_type"]),
+        "session_time": row["session_time"],
+    }
+
+
+def _notify_customer_by_email(reservation: dict, subject: str, body: str) -> None:
+    """Reservation-migration finding #5: a customer who booked without
+    ever talking to the Telegram bot (website-originated, no telegram_id)
+    used to get NO notification at all when their reservation was
+    approved or rejected — the only delivery channel (bot_outbox) is
+    keyed by telegram_id. Called from every status-transition function
+    below regardless of which channel (Telegram or the future website
+    booking flow) triggered it, so this can't drift out of sync with one
+    of them the way two separate notification code paths eventually
+    would. A no-op if the user has no email on file (e.g. a Telegram-only
+    customer — they already got a Telegram message from the handler that
+    called into this service). Best-effort: send_email() itself never
+    raises (see utils/email_sender.py), so a delivery failure here can
+    never fail the status transition that already committed."""
+    from database.repositories import users as users_repo
+    from utils.email_sender import send_email
+
+    user = users_repo.get_by_id(reservation["user_id"])
+    if not user or not user.get("email"):
+        return
+    send_email(to=user["email"], subject=subject, body=body)
+
+
 def approve_reservation(
     reservation_id: int, reviewed_by: int, expected_status: str = "pending_review"
 ) -> tuple[str, "io.BytesIO"] | None:
@@ -169,6 +219,21 @@ def approve_reservation(
         payments_repo.set_payment_status(payment["id"], "approved", reviewed_by)
 
     code, qr_image = issue_ticket(reservation_id)
+
+    reservation = reservations_repo.get_reservation(reservation_id)
+    ctx = _email_context_for_reservation(reservation)
+    _notify_customer_by_email(
+        reservation,
+        subject=f"رزرو شما برای {ctx['event_title']} تایید شد",
+        body=(
+            f"رزرو شما تایید شد ✅\n\n"
+            f"رویداد: {ctx['event_title']}\n"
+            f"تاریخ: {ctx['session_date']}\n"
+            f"ساعت: {ctx['session_time']}\n"
+            f"کد رزرو: {code}\n\n"
+            "برای دیدن/دانلود بلیت، از همین ایمیل وارد سایت خانه ماورا بشوید."
+        ),
+    )
     return code, qr_image
 
 
@@ -188,6 +253,25 @@ def mark_awaiting_buyer_confirmation(reservation_id: int, admin_note: str) -> bo
                                             "awaiting_buyer_confirmation", admin_note=admin_note)
 
 
+def _notify_rejection_email(reservation_id: int, reason: str) -> None:
+    reservation = reservations_repo.get_reservation(reservation_id)
+    if not reservation:
+        return
+    ctx = _email_context_for_reservation(reservation)
+    reason_block = f"\n\nدلیل: {reason}" if reason else ""
+    _notify_customer_by_email(
+        reservation,
+        subject=f"رزرو شما برای {ctx['event_title']} تایید نشد",
+        body=(
+            f"متاسفانه رزرو شما تایید نشد.\n\n"
+            f"رویداد: {ctx['event_title']}\n"
+            f"تاریخ: {ctx['session_date']}"
+            f"{reason_block}\n\n"
+            "در صورت وجود سوال با پشتیبانی تماس بگیرید."
+        ),
+    )
+
+
 def finalize_rejection_if(reservation_id: int, expected_status: str, reviewed_by: int, reason: str) -> bool:
     """Same idea as approve_reservation's atomic guard — used by the buyer's
     'accept cancellation' button and the admin's dispute-resolution button,
@@ -201,6 +285,7 @@ def finalize_rejection_if(reservation_id: int, expected_status: str, reviewed_by
     payment = payments_repo.get_latest_payment(reservation_id)
     if payment:
         payments_repo.set_payment_status(payment["id"], "rejected", reviewed_by)
+    _notify_rejection_email(reservation_id, reason)
     return True
 
 
@@ -216,6 +301,7 @@ def reject_reservation(reservation_id: int, reviewed_by: int, reason: str) -> No
         payments_repo.set_payment_status(payment["id"], "rejected", reviewed_by)
 
     reservations_repo.set_status(reservation_id, "rejected", admin_note=reason)
+    _notify_rejection_email(reservation_id, reason)
 
 
 def expire_stale_reservations() -> list[dict]:

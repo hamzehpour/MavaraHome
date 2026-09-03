@@ -25,6 +25,10 @@ EDITABLE_SETTINGS = {
     "ticket_template_title": "عنوان بالای بلیت PDF (مثلاً نام مجموعه)",
     "ticket_template_subtitle": "زیرعنوان بالای بلیت PDF (مثلاً «بلیت الکترونیک»)",
     "ticket_template_footer": "متن پایین بلیت PDF (زیر QR)",
+    "otp_channels_enabled": (
+        "روش‌های ورود مشتری (با کاما جدا کنید — فقط email فعلاً واقعاً کار می‌کند، "
+        "phone فقط زیرساختش آماده است، تا سرویس پیامک وصل نشود کار نمی‌کند)"
+    ),
 }
 
 
@@ -62,6 +66,21 @@ def get_rules_text() -> str:
 
 def get_support_contact() -> str:
     return settings_repo.get("support_contact", "")
+
+
+_KNOWN_OTP_CHANNELS = ("email", "phone")
+
+
+def get_otp_channels_enabled() -> list[str]:
+    """Comma-separated setting -> list, silently dropping anything that
+    isn't a recognized channel name (a typo in the Telegram settings menu
+    must never lock every customer out of login, or crash it — see the
+    setting's own comment in database/schema.py for why this is a comma
+    list and not JSON). Always falls back to ["email"] if the result would
+    otherwise be empty, since that's the one channel guaranteed to work."""
+    raw = settings_repo.get("otp_channels_enabled", "email")
+    channels = [c.strip().lower() for c in raw.split(",") if c.strip().lower() in _KNOWN_OTP_CHANNELS]
+    return channels or ["email"]
 
 
 def update_setting(key: str, value: str) -> None:

@@ -12,7 +12,7 @@ what's missing instead of guessing from column-already-exists errors.
 from database.connection import get_connection
 from config.settings import BOOTSTRAP_ADMIN_IDS
 
-SCHEMA_VERSION = 11
+SCHEMA_VERSION = 12
 
 SCHEMA_STATEMENTS = [
     # ---- users -------------------------------------------------
@@ -454,6 +454,17 @@ DEFAULT_SETTINGS = {
     "ticket_template_subtitle": "بلیت الکترونیک",
     "ticket_template_footer": "این بلیت را همراه داشته باشید و QR آن را دم در نشان دهید — فقط برای یک نفر معتبر است.",
     "ticket_template_logo": "",
+
+    # Schema v12 (reservation-migration phase 2): comma-separated, not
+    # JSON — this is edited as free text from the Telegram settings menu
+    # (see services/settings_service.EDITABLE_SETTINGS), where a typo in
+    # JSON syntax would quietly break login for everyone; a comma list
+    # degrades safely (get_otp_channels_enabled() drops anything it
+    # doesn't recognize). Only "email" actually works today — "phone" is
+    # accepted here (infrastructure-ready) but customer_auth_service
+    # returns channel_not_supported for it until a real SMS provider is
+    # wired in; don't enable it expecting it to work.
+    "otp_channels_enabled": "email",
 }
 
 
@@ -552,6 +563,19 @@ def init_db() -> None:
             "ALTER TABLE events ADD COLUMN date TEXT",
             "ALTER TABLE events ADD COLUMN status TEXT NOT NULL DEFAULT 'upcoming'",
             "ALTER TABLE events ADD COLUMN tags TEXT",
+            # Schema v12 (reservation-migration phase 2): customer_otp
+            # rows didn't record which channel produced them (finding #9
+            # in the product review) — harmless while email was the only
+            # channel, but a real gap now that `otp_channels_enabled`
+            # (below) exists to admin-toggle more than one. Metadata only:
+            # the actual per-channel lookup still goes through the
+            # existing `email`/`phone` columns (see
+            # repositories/customer_auth.py) — this isn't a full
+            # normalization to a generic identifier column, since only
+            # email is a real, working channel right now (see
+            # services/customer_auth_service.py's module note on why
+            # phone stays infrastructure-only).
+            "ALTER TABLE customer_otp ADD COLUMN channel TEXT NOT NULL DEFAULT 'email'",
         ):
             try:
                 conn.execute(alter_sql)

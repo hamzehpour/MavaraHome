@@ -5,6 +5,57 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Reservation migration — phase 2 (schema v11 → v12)
+
+**Why:** phase 3 (booking UI on the website) needs a customer identity
+that works the same regardless of which channel someone books through —
+phase 0 built the merge logic (`get_or_create_customer()`), phase 2 is
+what actually uses it for something a customer notices: picking a login
+method, and finding out what happened to a reservation without having to
+go check Telegram.
+
+- **Admin-configurable login channels.** New setting
+  `otp_channels_enabled` (comma-separated — deliberately not JSON, since
+  it's edited as free text from the Telegram settings menu, where a
+  syntax typo must degrade safely instead of locking out every customer;
+  `settings_service.get_otp_channels_enabled()` drops anything it doesn't
+  recognize and always falls back to `["email"]`). New public
+  `GET /api/v1/otp-channels` so a login page can build its channel picker
+  from this instead of hardcoding "email". `customer_otp` gained a
+  `channel` column (metadata; the actual lookup is still by the `email`
+  column, since email is the only channel with a real send path).
+- **Phone login is infrastructure-only, not implemented** — matches the
+  explicit decision to prepare the schema/settings for it without
+  building a non-functional feature: `channel="phone"` is accepted
+  end-to-end (settings, API, service) and always returns
+  `channel_not_supported`, checked BEFORE the enabled-channels list so
+  enabling it in settings can never look like it would work when it
+  can't. Wiring in a real SMS provider later only means implementing one
+  branch in `customer_auth_service.request_otp()`.
+- **`/api/v1/auth/customer/request-otp` and `/verify-otp`** now take
+  `{"identifier", "channel"}` (channel defaults to `"email"`); the old
+  `{"email": ...}` shape still works unchanged.
+- **Dual-channel reservation notifications** (the "website customer never
+  finds out their reservation was approved/rejected" finding from the
+  product review — the only delivery channel, `bot_outbox`, is keyed by
+  `telegram_id`, which a website-only customer doesn't have).
+  `services/reservation_service.py`'s `approve_reservation()`,
+  `finalize_rejection_if()` and `reject_reservation()` now email the
+  customer (event title, Jalali-formatted session date, reservation code
+  or rejection reason) whenever they have an email on file — regardless
+  of which channel (Telegram or the future website flow) triggered the
+  approval/rejection, so this can't drift out of sync with either one.
+  No-op, not an error, for a Telegram-only customer with no email (they
+  already got a Telegram message from the handler that called into this
+  service) or a send failure (best-effort — `send_email()` never raises,
+  so this can never fail a status transition that already committed).
+  `database/repositories/users.py` gained `get_by_id()`, a genuinely
+  missing basic lookup this needed.
+- Two new tests in `bot/test_bot.py`; verified again through the real
+  HTTP admin-approve endpoint (not just the service layer) — captured the
+  printed fallback email (no SMTP configured) and confirmed it named the
+  actual event, date and reservation code, not placeholders.
+
 ## Reservation migration — phase 0 + phase 1 (schema v9 → v11)
 
 **Why:** a product review ("critically review the reservation journey and

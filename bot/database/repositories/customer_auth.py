@@ -33,8 +33,12 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def create_otp(email: str, code: str) -> int:
-    """Stores a hashed OTP for `email`."""
+def create_otp(email: str, code: str, channel: str = "email") -> int:
+    """Stores a hashed OTP for `email`. `channel` (schema v12) is metadata
+    only — recorded so a later admin/support view can tell how a code was
+    requested; the actual lookup in verify_otp() below is still by the
+    `email` column, since email is the only channel with a real send path
+    right now (see customer_auth_service's module note)."""
     code_hash, code_salt = hash_password(code)
     expires_at = (datetime.now(timezone.utc) + timedelta(minutes=OTP_TTL_MINUTES)).isoformat(timespec="seconds")
     with get_connection() as conn:
@@ -42,8 +46,8 @@ def create_otp(email: str, code: str) -> int:
         # user can never accidentally succeed with a stale code.
         conn.execute("UPDATE customer_otp SET status='expired' WHERE email=? AND status='pending'", (email,))
         cur = conn.execute(
-            "INSERT INTO customer_otp(phone, email, code_hash, code_salt, expires_at) VALUES ('', ?, ?, ?, ?)",
-            (email, code_hash, code_salt, expires_at),
+            "INSERT INTO customer_otp(phone, email, channel, code_hash, code_salt, expires_at) VALUES ('', ?, ?, ?, ?, ?)",
+            (email, channel, code_hash, code_salt, expires_at),
         )
         return cur.lastrowid
 

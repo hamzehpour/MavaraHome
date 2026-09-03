@@ -488,6 +488,12 @@ class Handler(BaseHTTPRequestHandler):
                 # rather than needing a separate admin-only read endpoint.
                 return self._send_json(200, {"data": settings_service.get_ticket_template()})
 
+            if path == "/api/v1/otp-channels":
+                # Public — the login page needs this to know whether to
+                # show a channel picker or just go straight to email (see
+                # settings_service.get_otp_channels_enabled()).
+                return self._send_json(200, {"data": {"channels": settings_service.get_otp_channels_enabled()}})
+
             if path == "/api/v1/payment-info":
                 # Public, read-only: what the website's payment step needs to
                 # show the buyer — same active card the bot itself uses, so
@@ -846,30 +852,39 @@ class Handler(BaseHTTPRequestHandler):
             # ---------------- Phase 4: customer OTP login ----------------
             if path == "/api/v1/auth/customer/request-otp":
                 body = self._read_json_body()
-                email = str(body.get("email", "")).strip().lower()
+                # "identifier"/"channel" is the schema-v12 shape (multi-
+                # channel login, see customer_auth_service); "email" alone
+                # still works and implies channel=email, so nothing that
+                # called this endpoint before phase 2 breaks.
+                channel = str(body.get("channel", "email")).strip().lower()
+                identifier = str(body.get("identifier") or body.get("email", "")).strip().lower()
                 client_ip = self.client_address[0] if self.client_address else "unknown"
-                rate_key = f"otp:{client_ip}:{email}"
+                rate_key = f"otp:{client_ip}:{channel}:{identifier}"
                 if _rate_limited(rate_key):
                     return self._send_json(429, {"error": "too_many_attempts", "details": "try again later"})
                 _record_login_attempt(rate_key)
-                if not email or not is_valid_email(email):
+                if not identifier:
+                    return self._send_json(400, {"error": "validation", "details": "identifier is required"})
+                if channel == "email" and not is_valid_email(identifier):
                     return self._send_json(400, {"error": "validation", "details": "valid email is required"})
-                result = customer_auth_service.request_otp(email)
+                result = customer_auth_service.request_otp(identifier, channel=channel)
                 if result.get("error"):
-                    return self._send_json(400, {"error": result["error"]})
+                    status = 403 if result["error"] in ("channel_disabled", "channel_not_supported") else 400
+                    return self._send_json(status, {"error": result["error"]})
                 return self._send_json(200, {"data": result})
 
             if path == "/api/v1/auth/customer/verify-otp":
                 body = self._read_json_body()
-                email = str(body.get("email", "")).strip().lower()
+                channel = str(body.get("channel", "email")).strip().lower()
+                identifier = str(body.get("identifier") or body.get("email", "")).strip().lower()
                 code = str(body.get("code", ""))
                 client_ip = self.client_address[0] if self.client_address else "unknown"
-                rate_key = f"otp-verify:{client_ip}:{email}"
+                rate_key = f"otp-verify:{client_ip}:{channel}:{identifier}"
                 if _rate_limited(rate_key):
                     return self._send_json(429, {"error": "too_many_attempts", "details": "try again later"})
-                if not email or not code:
-                    return self._send_json(400, {"error": "validation", "details": "email and code are required"})
-                user = customer_auth_service.verify_otp(email, code)
+                if not identifier or not code:
+                    return self._send_json(400, {"error": "validation", "details": "identifier and code are required"})
+                user = customer_auth_service.verify_otp(identifier, code, channel=channel)
                 if not user:
                     _record_login_attempt(rate_key)
                     return self._send_json(401, {"error": "invalid_code"})

@@ -9,6 +9,12 @@ def get_by_telegram_id(telegram_id: int) -> dict | None:
         return dict(row) if row else None
 
 
+def get_by_id(user_id: int) -> dict | None:
+    with get_connection() as conn:
+        row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+        return dict(row) if row else None
+
+
 def get_or_create_customer(email: str | None = None, phone: str | None = None,
                             full_name: str | None = None) -> dict:
     """Schema v10: THE single identity function for a non-Telegram customer
