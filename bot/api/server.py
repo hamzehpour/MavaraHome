@@ -450,6 +450,17 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header("Content-Type", _MIME.get(ext, "application/octet-stream"))
                 self.send_header("Content-Length", str(len(body)))
+                # Missing here originally (reservation-migration phase 4
+                # finding, caught by a real cross-port browser test, not
+                # inspection) — every OTHER JSON response gets this from
+                # _send_json() automatically; a raw byte response like
+                # this one has to set it itself, same as ticket.pdf below
+                # already does. Without it, the admin panel's fetch() for
+                # this endpoint fails with a CORS error in any setup
+                # where the site and API aren't already same-origin (any
+                # local dev, and a production host that hasn't proxied
+                # them under one domain).
+                self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 self.wfile.write(body)
                 return
@@ -725,13 +736,18 @@ class Handler(BaseHTTPRequestHandler):
 
             m = re.match(r"^/api/v1/admin/reservations/(\d+)/approve$", path)
             if m:
-                if not self._is_admin():
+                admin_payload = self._get_admin_payload()
+                if not admin_payload:
                     return self._send_json(401, {"error": "unauthorized"})
                 reservation_id = int(m.group(1))
                 # Same approve_reservation() the Telegram admin-approve
                 # button calls — issues the ticket/QR the exact same way,
                 # regardless of which channel the booking came from.
-                result = reservation_service.approve_reservation(reservation_id, reviewed_by=0)
+                # reviewed_by is this admin's real id now (reservation-
+                # migration finding #8) — every website approval used to
+                # record 0, so payments.reviewed_by couldn't tell which
+                # admin approved what once more than one had access.
+                result = reservation_service.approve_reservation(reservation_id, reviewed_by=admin_payload["admin_id"])
                 if result is None:
                     return self._send_json(409, {"error": "already_processed"})
                 reservation = reservations_repo.get_reservation(reservation_id)
@@ -739,17 +755,19 @@ class Handler(BaseHTTPRequestHandler):
 
             m = re.match(r"^/api/v1/admin/reservations/(\d+)/reject$", path)
             if m:
-                if not self._is_admin():
+                admin_payload = self._get_admin_payload()
+                if not admin_payload:
                     return self._send_json(401, {"error": "unauthorized"})
                 reservation_id = int(m.group(1))
                 body = self._read_json_body()
                 reason = body.get("reason", "")
-                reservation_service.reject_reservation(reservation_id, reviewed_by=0, reason=reason)
+                reservation_service.reject_reservation(reservation_id, reviewed_by=admin_payload["admin_id"], reason=reason)
                 reservation = reservations_repo.get_reservation(reservation_id)
                 return self._send_json(200, {"data": _reservation_public(reservation)})
 
             if path == "/api/v1/admin/reservations/bulk-approve":
-                if not self._is_admin():
+                admin_payload = self._get_admin_payload()
+                if not admin_payload:
                     return self._send_json(401, {"error": "unauthorized"})
                 body = self._read_json_body()
                 ids = body.get("ids", [])
@@ -762,7 +780,7 @@ class Handler(BaseHTTPRequestHandler):
                     # operation, not a separate bulk-only code path that
                     # could skip the capacity/idempotency checks.
                     try:
-                        outcome = reservation_service.approve_reservation(int(rid), reviewed_by=0)
+                        outcome = reservation_service.approve_reservation(int(rid), reviewed_by=admin_payload["admin_id"])
                         results.append({"id": rid, "success": outcome is not None})
                     except Exception as exc:
                         results.append({"id": rid, "success": False, "error": str(exc)})

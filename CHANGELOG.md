@@ -5,6 +5,65 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Reservation migration — phase 4 (admin reservation panel, on the website)
+
+**Why:** the last piece — an admin no longer needs Telegram to run the
+reservation side of the business. Session management, the approval
+queue (with receipt viewing), and door check-in all live on the website
+now, next to the content admin they already use.
+
+- **Finding #8, actually fixed**: `POST /admin/reservations/<id>/approve`
+  `/reject` and `/bulk-approve` recorded `reviewed_by=0` for every
+  website-side decision — with one admin that's invisible, but it means
+  `payments.reviewed_by` can never say which admin approved what once a
+  second admin has access, which is exactly the moment it matters. All
+  three now pull the real `admin_id` from the JWT payload. Verified two
+  different admin accounts approving/rejecting different reservations
+  and reading `payments.reviewed_by` back from the database — 1 and 2,
+  not 0 and 0.
+- **New `website/pages/admin/reservations.html`**: the approval queue —
+  search/filter, bulk-approve, CSV export, and (new) an actual receipt
+  viewer. Restored from before the split with the receipt viewer added,
+  since the old page never had one — it just printed "ارسال شده" as
+  plain text, with no way to see what was actually submitted.
+- **Session management folded into `admin/events.html`**'s own edit
+  form** (add/close/delete a session, right where an admin is already
+  looking at the event) rather than a separate calendar page — matches
+  how the reservation-migration plan scoped this phase.
+- **New `website/pages/admin/checkin.html`**: door ticket verification/
+  check-in, restored from before the split. **Found and fixed a real bug
+  in the restored code while testing it with a genuine signed payload**
+  (not just an invalid one): the confirm button was wired via
+  `onclick="doCheckin(${JSON.stringify(payload)})"` — `JSON.stringify`
+  wraps a string in double quotes, which prematurely closed the
+  `onclick="..."` HTML attribute (also double-quoted) the moment a real
+  signed payload was clicked, throwing "Unexpected end of input" and
+  silently doing nothing. Never caught before because nothing had
+  exercised it with a real payload through the actual UI. Fixed by
+  binding the handler with `addEventListener` and a closure instead of
+  an inline attribute — the shape every other action on this page (and
+  the reservation queue) already used, which is why only this one spot
+  had the bug.
+- **A second real bug, also only caught by testing across two real
+  browser ports**: `GET /admin/reservations/<id>/receipt` (the private
+  receipt endpoint from phase 0) never set `Access-Control-Allow-Origin`
+  — every JSON response gets it for free from `_send_json()`, but this
+  is a raw byte response that has to set headers itself, same as
+  `ticket.pdf` already did. Fixed to match.
+- `API.sessions` gained admin methods (`refreshAdmin`/`create`/
+  `setStatus`/`delete`), `API.reservations` gained `bulkApprove`/
+  `viewReceipt`, `API.tickets` (verify/checkin) is back — all restored
+  from before the split, receipts additionally routed through an
+  authenticated `fetch()` → blob (same reasoning as phase 3's ticket
+  download — a plain link can't carry a Bearer token).
+- Verified end to end with a live server + Playwright working the actual
+  UI: added a session from the events admin form and watched it appear
+  correctly Jalali-formatted; two reservations approved/rejected by two
+  different logged-in admins with receipts viewed in between; a real
+  signed ticket looked up and checked in, confirmed both by the UI
+  message and a re-lookup showing "قبلاً وارد شده". Zero console errors
+  once both bugs above were fixed.
+
 ## Reservation migration — phase 3 (booking, live on the website)
 
 **Why:** the whole point of this migration — a customer can now book an

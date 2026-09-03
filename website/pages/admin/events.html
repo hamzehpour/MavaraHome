@@ -3,11 +3,11 @@
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>مدیریت رویدادها</title><meta name="robots" content="noindex,nofollow"><link rel="icon" type="image/webp" href="../../assets/images/logo/favicon.webp"><link rel="stylesheet" href="../../assets/css/styles.css"></head>
 <body>
 <div class="admin-layout">
-    <aside class="admin-sidebar"><div style="font-weight:700;font-size:15px;padding:8px 14px;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.1)">خانه ماورا</div><a href="dashboard.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>داشبورد</a><a href="events.html" class="active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M4 5h16"/><path d="M4 5 3 21M20 5l1 16"/><path d="M8 5v16M12 5v16M16 5v16"/></svg>رویدادها</a><a href="portfolio.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.5"/><path d="M7 2v20M17 2v20M2 12h20"/></svg>رزومه</a><a href="team.html">اعضای خانه ماورا</a><button onclick="MavaraTheme.toggle(); this.textContent = MavaraTheme.get()==='dark' ? '☀️ حالت روشن' : '🌙 حالت تیره'" id="themeToggleBtn" style="margin-top:auto">🌓 تغییر پوسته</button>
+    <aside class="admin-sidebar"><div style="font-weight:700;font-size:15px;padding:8px 14px;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.1)">خانه ماورا</div><a href="dashboard.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>داشبورد</a><a href="events.html" class="active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M4 5h16"/><path d="M4 5 3 21M20 5l1 16"/><path d="M8 5v16M12 5v16M16 5v16"/></svg>رویدادها</a><a href="reservations.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4Z"/></svg>رزروها</a><a href="checkin.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>پذیرش بلیت</a><a href="portfolio.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.5"/><path d="M7 2v20M17 2v20M2 12h20"/></svg>رزومه</a><a href="team.html">اعضای خانه ماورا</a><button onclick="MavaraTheme.toggle(); this.textContent = MavaraTheme.get()==='dark' ? '☀️ حالت روشن' : '🌙 حالت تیره'" id="themeToggleBtn" style="margin-top:auto">🌓 تغییر پوسته</button>
         <button onclick="logout()" style="margin-top:auto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>خروج</button></aside>
     <main class="admin-main">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:12px"><h2>مدیریت رویدادها</h2><button class="btn btn--primary" onclick="openForm()" style="font-size:13px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>رویداد جدید</button></div>
-        <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">این‌جا فقط محتوایی که در سایت نمایش داده می‌شود (متن، تصویر، شماره تماس) تعریف می‌شود. رزرو، ظرفیت و سانس‌ها کاملاً از طریق ربات تلگرام مدیریت می‌شوند.</p>
+        <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">محتوای رویداد را اینجا تعریف کنید؛ برای هر رویداد سانس‌ها را هم از همین‌جا (داخل فرم ویرایش) اضافه/مدیریت کنید. تایید/رد رزروها در صفحه‌ی <a href="reservations.html">رزروها</a> است — از طریق ربات تلگرام هم قابل مدیریت است، هر دو یک دیتابیس مشترک دارند.</p>
         <table class="admin-table"><thead><tr><th>عنوان</th><th>مکان</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody id="tBody"></tbody></table>
     </main>
 </div>
@@ -37,6 +37,17 @@
         <input id="evVideoUrl" placeholder="یا آدرس ویدیو (اختیاری)" style="margin-top:6px">
         <div style="display:flex;gap:8px;margin-top:16px"><button type="submit" class="btn btn--primary">💾 ذخیره</button><button type="button" class="btn btn--outline" onclick="closeForm()">انصراف</button></div>
     </form>
+    <div id="sessionsBox" style="display:none;margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
+        <h4 style="margin-bottom:4px">سانس‌ها</h4>
+        <p style="font-size:11.5px;color:var(--text-muted);margin-bottom:12px">هر سانس یک تاریخ/ساعت/ظرفیت مستقل دارد — همینا روی سایت برای رزرو نشان داده می‌شوند.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">
+            <div><label style="font-size:11px">تاریخ</label><input type="date" id="sesDate" style="padding:8px"></div>
+            <div><label style="font-size:11px">ساعت</label><input type="time" id="sesTime" style="padding:8px"></div>
+            <div><label style="font-size:11px">ظرفیت</label><input type="number" id="sesCapacity" min="1" value="10" style="width:80px;padding:8px"></div>
+            <button type="button" class="btn btn--outline" style="font-size:12px;padding:8px 14px" onclick="addSession()">+ افزودن سانس</button>
+        </div>
+        <table class="admin-table"><thead><tr><th>تاریخ</th><th>ساعت</th><th>ظرفیت</th><th>باقی‌مانده</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody id="sessionsBody"></tbody></table>
+    </div>
 </div></div></div>
 
 <script src="../../assets/js/app.js"></script>
@@ -81,7 +92,7 @@ async function load() {
     document.getElementById('tBody').innerHTML = rows.map(e => `<tr><td><strong>${e.title}</strong></td><td>${e.location || '—'}</td><td><span class="badge ${e.status === 'archived' ? 'badge--ended' : 'badge--active'}">${STATUS_LABEL[e.status] || e.status}</span></td><td style="display:flex;gap:6px"><button class="btn btn--outline btn--sm" onclick="editEv(${e.id})" style="font-size:11px;padding:4px 10px">✏️</button><button class="btn btn--outline btn--sm" onclick="del(${e.id})" style="font-size:11px;padding:4px 10px;color:#c44">🗑️</button></td></tr>`).join('') || '<tr><td colspan="4">رویدادی ثبت نشده.</td></tr>';
 }
 
-function openForm() { editingId = null; evPoster = null; evGallery = []; evVideo = null; document.getElementById('modalTitle').textContent = 'رویداد جدید'; document.getElementById('evForm').reset(); document.getElementById('evPosterPreview').innerHTML = ''; document.getElementById('evGalleryPreview').innerHTML = ''; document.getElementById('evModal').style.display = 'flex'; }
+function openForm() { editingId = null; evPoster = null; evGallery = []; evVideo = null; document.getElementById('modalTitle').textContent = 'رویداد جدید'; document.getElementById('evForm').reset(); document.getElementById('evPosterPreview').innerHTML = ''; document.getElementById('evGalleryPreview').innerHTML = ''; document.getElementById('sessionsBox').style.display = 'none'; document.getElementById('evModal').style.display = 'flex'; }
 
 function editEv(id) {
     const e = API.events.get(id); if (!e) return; editingId = id;
@@ -105,7 +116,58 @@ function editEv(id) {
     document.getElementById('evGalleryPreview').innerHTML = evGallery.map(p => `<img src="/${p}" style="width:70px;height:70px;object-fit:cover;border-radius:8px">`).join('');
     document.getElementById('evVideoUrl').value = evVideo || '';
     document.getElementById('evModal').style.display = 'flex';
+    document.getElementById('sessionsBox').style.display = 'block';
+    loadSessions();
 }
+
+// Session management (reservation-migration phase 4) — sessions belong
+// to an already-saved event, so this box only shows while editing one
+// (see editEv() above; openForm() for a brand-new event hides it).
+async function loadSessions() {
+    const rows = await API.sessions.refreshAdmin(editingId);
+    document.getElementById('sessionsBody').innerHTML = rows.map(s => `<tr>
+        <td>${esc(s.date_display || s.date)}</td>
+        <td dir="ltr">${esc(s.time)}</td>
+        <td>${s.capacity}</td>
+        <td>${s.available}</td>
+        <td><span class="badge ${s.status === 'active' ? 'badge--active' : 'badge--ended'}">${s.status === 'active' ? 'باز' : (s.status === 'sold_out' ? 'تکمیل' : s.status)}</span></td>
+        <td style="display:flex;gap:6px">
+            <button class="btn btn--outline btn--sm" style="font-size:11px;padding:4px 10px" onclick="toggleSession(${s.id}, '${s.status}')">${s.status === 'active' ? 'بستن' : 'باز کردن'}</button>
+            <button class="btn btn--outline btn--sm" style="font-size:11px;padding:4px 10px;color:#c44" onclick="deleteSession(${s.id})">🗑️</button>
+        </td></tr>`).join('') || '<tr><td colspan="6">سانسی ثبت نشده.</td></tr>';
+}
+async function addSession() {
+    const dateIso = document.getElementById('sesDate').value;
+    const time = document.getElementById('sesTime').value;
+    const capacity = document.getElementById('sesCapacity').value;
+    if (!dateIso || !time || !capacity) return alert('تاریخ، ساعت و ظرفیت را کامل کنید.');
+    try {
+        await API.sessions.create(editingId, { dateIso, time, capacity });
+        await loadSessions();
+        toast('سانس اضافه شد');
+    } catch (err) {
+        alert('خطا — ' + (err.details || err.message || 'ممکن است این تاریخ/ساعت قبلاً برای این رویداد ثبت شده باشد.'));
+    }
+}
+async function toggleSession(id, currentStatus) {
+    try {
+        await API.sessions.setStatus(editingId, id, currentStatus === 'active' ? 'sold_out' : 'active');
+        await loadSessions();
+    } catch (err) {
+        alert('خطا — ' + (err.details || err.message));
+    }
+}
+async function deleteSession(id) {
+    if (!confirm('این سانس حذف شود؟')) return;
+    try {
+        await API.sessions.delete(editingId, id);
+        await loadSessions();
+        toast('سانس حذف شد');
+    } catch (err) {
+        alert('خطا — ' + (err.details || err.message));
+    }
+}
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
 async function save(e) { e.preventDefault();
     const videoField = document.getElementById('evVideoUrl').value.trim();

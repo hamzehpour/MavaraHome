@@ -178,6 +178,21 @@ const API = {
     async reject(id, reason) {
       return apiFetchAdmin(`/admin/reservations/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason: reason || '' }) });
     },
+    async bulkApprove(ids) {
+      return apiFetchAdmin('/admin/reservations/bulk-approve', { method: 'POST', body: JSON.stringify({ ids }) });
+    },
+    // The receipt endpoint requires a Bearer token (admin JWT) — a plain
+    // <a href> can't set that header (same reasoning as
+    // account.html's downloadTicket), so this is an authenticated
+    // fetch -> blob -> opened in a new tab, not a direct link.
+    async viewReceipt(reservationId) {
+      const res = await fetch(`${MAVARA_API_BASE}/api/${API_VERSION}/admin/reservations/${reservationId}/receipt`, {
+        headers: { 'Authorization': `Bearer ${API.auth.getAccessToken() || ''}` },
+      });
+      if (!res.ok) throw new Error('receipt_unavailable');
+      const blob = await res.blob();
+      window.open(URL.createObjectURL(blob), '_blank');
+    },
   },
   paymentInfo: {
     async get() { return apiFetch('/payment-info'); },
@@ -188,6 +203,12 @@ const API = {
         method: 'POST', body: JSON.stringify({ data: dataUrl }),
       });
     },
+  },
+  // Phase 6 (door check-in), restored in the reservation-migration's
+  // phase 4 — ticket verification/check-in, admin only.
+  tickets: {
+    async verify(payload) { return apiFetchAdmin('/admin/tickets/verify', { method: 'POST', body: JSON.stringify({ payload }) }); },
+    async checkin(payload) { return apiFetchAdmin('/admin/tickets/checkin', { method: 'POST', body: JSON.stringify({ payload }) }); },
   },
   // Sessions come straight from the backend — flat rows (event_id, date,
   // time, capacity, available, date_display). `dates` below is a
@@ -203,10 +224,38 @@ const API = {
       cache.sessionsByKey[this._key(eventId)] = rows;
       return rows;
     },
+    // Admin variant (reservation-migration phase 4) — same endpoint, but
+    // WITH the admin Bearer token, which is what makes the backend
+    // return every session (including inactive/sold-out ones) instead of
+    // only the public, bookable ones the widget above needs. Writes into
+    // the same cache key as refresh() — the booking widget and the admin
+    // session manager are never on screen in the same page load, so
+    // there's no real risk of one clobbering data the other needed.
+    async refreshAdmin(eventId) {
+      const rows = await apiFetchAdmin(`/sessions?event_id=${encodeURIComponent(eventId)}`);
+      cache.sessionsByKey[this._key(eventId)] = rows;
+      return rows;
+    },
     get(eventId, sessionId) { return this.all(eventId).find(s => String(s.id) === String(sessionId)); },
     forDate(eventId, dateIso) { return this.all(eventId).filter(s => s.date === dateIso).sort((a, b) => a.time.localeCompare(b.time)); },
     remaining(s) { return Math.max(0, Number(s.available)); },
     isFull(s) { return this.remaining(s) <= 0 || s.status === 'sold_out'; },
+    async create(eventId, { dateIso, time, capacity }) {
+      const created = await apiFetchAdmin('/admin/sessions', {
+        method: 'POST', body: JSON.stringify({ event_id: Number(eventId), date: dateIso, time, capacity: Number(capacity) }),
+      });
+      await this.refreshAdmin(eventId);
+      return created;
+    },
+    async setStatus(eventId, sessionId, status) {
+      const updated = await apiFetchAdmin(`/admin/sessions/${sessionId}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+      await this.refreshAdmin(eventId);
+      return updated;
+    },
+    async delete(eventId, sessionId) {
+      await apiFetchAdmin(`/admin/sessions/${sessionId}`, { method: 'DELETE' });
+      await this.refreshAdmin(eventId);
+    },
   },
   dates: {
     /** Groups the (already-fetched, via sessions.refresh) session list for

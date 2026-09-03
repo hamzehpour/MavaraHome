@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>پذیرش بلیت</title><meta name="robots" content="noindex,nofollow"><link rel="icon" type="image/webp" href="../../assets/images/logo/favicon.webp"><link rel="stylesheet" href="../../assets/css/styles.css"></head>
+<body>
+<div class="admin-layout">
+    <aside class="admin-sidebar"><div style="font-weight:700;font-size:15px;padding:8px 14px;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.1)">خانه ماورا</div><a href="dashboard.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>داشبورد</a><a href="events.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M4 5h16"/><path d="M4 5 3 21M20 5l1 16"/><path d="M8 5v16M12 5v16M16 5v16"/></svg>رویدادها</a><a href="reservations.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4Z"/></svg>رزروها</a><a href="checkin.html" class="active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>پذیرش بلیت</a><a href="portfolio.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.5"/><path d="M7 2v20M17 2v20M2 12h20"/></svg>رزومه</a><a href="team.html">اعضای خانه ماورا</a><button onclick="MavaraTheme.toggle(); this.textContent = MavaraTheme.get()==='dark' ? '☀️ حالت روشن' : '🌙 حالت تیره'" id="themeToggleBtn" style="margin-top:auto">🌓 تغییر پوسته</button>
+        <button onclick="logout()" style="margin-top:auto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>خروج</button></aside>
+    <main class="admin-main" style="max-width:520px">
+        <h2 style="margin-bottom:8px">پذیرش بلیت درِ ورودی</h2>
+        <p style="color:var(--text-muted);font-size:13px;margin-bottom:18px">
+            کد امضا‌شده‌ی روی بلیت (زیر QR، یا خوانده‌شده با هر اسکنر QR روی گوشی) را اینجا وارد کنید.
+            نسخه‌ی فعلی دستی است — اسکن مستقیم با دوربین نیاز به تست روی مرورگر واقعی دارد.
+        </p>
+        <form id="ciForm" style="display:flex;gap:8px;margin-bottom:18px">
+            <input id="ciPayload" placeholder="مثلاً MV-9XP9RF.a1b2c3d4e5f6" style="flex:1;font-family:monospace" required>
+            <button class="btn btn--primary" type="submit">بررسی</button>
+        </form>
+        <div id="ciResult"></div>
+    </main>
+</div>
+<script src="../../assets/js/app.js"></script>
+<script>
+if (!API.auth.check()) window.location.href = 'login.html';
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+document.getElementById('ciForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const payload = document.getElementById('ciPayload').value.trim();
+  const box = document.getElementById('ciResult');
+  box.innerHTML = 'در حال بررسی...';
+  try {
+    const info = await API.tickets.verify(payload);
+    const r = info.reservation;
+    const alreadyIn = !!info.checked_in_at;
+    box.innerHTML = `
+      <div style="border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;background:var(--bg-card)">
+        <p><strong>کد:</strong> <span dir="ltr">${esc(r.reservation_code)}</span></p>
+        <p><strong>تعداد نفرات:</strong> ${r.people}</p>
+        <p><strong>مبلغ:</strong> ${Number(r.total_price).toLocaleString('fa-IR')} تومان</p>
+        <p><strong>وضعیت:</strong> ${r.status === 'approved' ? '✅ تأییدشده' : '⛔️ تأیید نشده — ' + esc(r.status)}</p>
+        ${alreadyIn ? '<p style="color:#c44;font-weight:700">⚠️ این بلیت قبلاً وارد شده است.</p>' : ''}
+      </div>
+      ${r.status === 'approved' ? `<button class="btn btn--gold" id="ciCheckinBtn">${alreadyIn ? 'ثبت ورود مجدد (احتیاط)' : '✅ تأیید ورود'}</button>` : ''}
+    `;
+    // Bound via addEventListener + closure, not an inline onclick="" —
+    // a signed payload is CODE.SIGNATURE (contains a dot next to other
+    // characters an inline handler mishandles); embedding
+    // JSON.stringify(payload)'s own double quotes inside the outer
+    // onclick="..." attribute's double quotes prematurely closed that
+    // attribute and threw "Unexpected end of input" the moment a real
+    // signed payload (not a short test string) was actually clicked —
+    // caught by testing with a genuine signed code, not just an invalid
+    // one, which never exercised this path.
+    const btn = document.getElementById('ciCheckinBtn');
+    if (btn) btn.addEventListener('click', () => doCheckin(payload));
+  } catch (err) {
+    box.innerHTML = `<div style="color:#c44;padding:12px;border:1px solid #c44;border-radius:10px">کد نامعتبر است یا بلیت واقعی نیست. ${esc(err.details || '')}</div>`;
+  }
+});
+
+async function doCheckin(payload) {
+  const box = document.getElementById('ciResult');
+  try {
+    const result = await API.tickets.checkin(payload);
+    if (result.already_checked_in) {
+      box.insertAdjacentHTML('beforeend', '<p style="color:#c44;margin-top:10px">این بلیت پیش‌تر ثبت ورود شده بود.</p>');
+    } else {
+      box.insertAdjacentHTML('beforeend', '<p style="color:#2a7a2a;margin-top:10px;font-weight:700">✅ ورود ثبت شد.</p>');
+    }
+  } catch (err) {
+    alert('خطا — ' + (err.details || err.message));
+  }
+}
+function logout() { API.auth.logout(); window.location.href = 'login.html'; }
+</script>
+</body>
+</html>
