@@ -49,18 +49,21 @@
             <p class="marquee-quote" id="quoteText"></p>
         </div>
 
-        <!-- ── Bio (small, one) ── -->
-        <section class="section" style="padding-bottom:20px">
-            <div class="bio-card" data-reveal>
-                <img class="bio-photo" src="assets/images/mansour/m1.jpg" alt="منصور نصیری" loading="lazy">
-                <div class="bio-text" id="bioText">
-                    <p class="eyebrow" data-i18n="bio_eyebrow">بنیان‌گذار خانه ماورا</p>
-                    <h3 data-i18n="bio_name">منصور نصیری</h3>
-                    <p class="bio-role" data-i18n="bio_role">بازیگر، کارگردان و نویسنده</p>
-                    <p><span data-i18n="bio_short">منصور نصیری، بازیگر و کارگردان سینما و تئاتر، خانه ماورا را برای پیوند هنر و آگاهی پایه گذاشته است؛ جایی که هنر دست‌مایه‌ی نگاهی دوباره به خویشتن می‌شود.</span><span class="bio-full" data-i18n="bio_full"> او با بیش از دو دهه تجربه در تئاتر، سینما و تلویزیون، مسیرش را از صحنه آغاز کرد و در آثارش، بازیگری را راهی برای شناخت عمیق‌تر انسان می‌داند. پادکست «ما ورای بازیگری»، کارگاه‌ها و جلسات همراهی، ادامه‌ی همین راه‌اند.</span></p>
-                    <button class="bio-more" id="bioMore" type="button" aria-expanded="false"><span id="bioMoreLabel" data-i18n="bio_more">بیشتر</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
-                </div>
+        <!-- ── Now showing (active events) — moved up from below the paths
+             grid to right after the hero/quote, replacing the founder bio
+             card that used to sit here: the goal is a visitor seeing
+             what's actually on right now with no scrolling past the
+             founder section first. The founder bio still lives on its
+             own page (about-mansour.html), reachable from "درباره ماورا"/
+             the paths grid — nothing about it was deleted, just moved off
+             the homepage's first screen. ── -->
+        <section id="sliderSection" class="section">
+            <div class="section-head" data-reveal>
+                <p class="eyebrow" data-i18n="live_eyebrow">زنده</p>
+                <h2 class="section-title" data-i18n="live_title">همین حالا در خانه ماورا</h2>
             </div>
+            <div class="slider-track" id="sliderTrack"></div>
+            <div class="slider-dots" id="sliderDots"></div>
         </section>
 
         <div class="divider"></div>
@@ -100,16 +103,6 @@
         </section>
 
         <div class="divider"></div>
-
-        <!-- ── Now showing ── -->
-        <section id="sliderSection" class="section">
-            <div class="section-head" data-reveal>
-                <p class="eyebrow" data-i18n="live_eyebrow">زنده</p>
-                <h2 class="section-title" data-i18n="live_title">همین حالا در خانه ماورا</h2>
-            </div>
-            <div class="slider-track" id="sliderTrack"></div>
-            <div class="slider-dots" id="sliderDots"></div>
-        </section>
 
         <!-- ── Upcoming ── -->
         <section class="section">

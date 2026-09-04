@@ -834,17 +834,6 @@ function loadFeedbacks(eventId) {
   el.innerHTML = items.length ? items.map(f => `<div class="feedback-item"><div class="author">${esc(f.author)}</div><div class="text">${esc(f.text)}</div></div>`).join('') : '<p style="font-size:13px;color:var(--text-muted)">' + T('empty_comment') + '</p>';
 }
 
-// ── Bio (read-more) ──
-function initBio() {
-  const btn = document.getElementById('bioMore');
-  const box = document.getElementById('bioText');
-  if (!btn || !box) return;
-  const render = () => { btn.textContent = box.classList.contains('expanded') ? T('bio_less') : T('bio_more'); };
-  btn.onclick = () => { box.classList.toggle('expanded'); render(); };
-  window.addEventListener('mv-lang', render);
-  render();
-}
-
 /* ── Gallery (flip cards) ──
    عکسهای جدید خودت را اینجا اضافه کن:
    { img: 'assets/images/mansour/photo.jpg',
@@ -950,7 +939,7 @@ function initGlobal() {
 // ── Init dispatch ──
 function dispatchPage() {
   const page = document.body.dataset.page;
-  if (page === 'home') { initQuotes(); initSlider(); initEventsPreview(); initGallery(); initBio(); }
+  if (page === 'home') { initQuotes(); initSlider(); initEventsPreview(); initGallery(); }
   if (page === 'events') initEventsPage();
   if (page === 'event-detail') initEventDetail();
 }

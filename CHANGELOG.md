@@ -5,6 +5,27 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Homepage: active events moved up, founder bio card removed
+
+**Why:** get a visitor to what's actually on right now faster, without
+scrolling past the founder bio card first.
+
+- Removed the founder bio card section from the homepage entirely (it
+  still lives on its own page, `about-mansour.html`, reachable from nav/
+  the paths grid — nothing about it was deleted, just moved off the
+  homepage).
+- The "همین حالا در خانه ماورا" (active events) slider — previously
+  below the paths grid — now sits in that exact spot instead: right
+  after the hero and quote ribbon, before anything else.
+- `initBio()` (the homepage bio card's read-more toggle) removed as dead
+  code along with it — confirmed `about-mansour.html`'s own bio
+  read-more (different ids, its own inline script) is entirely
+  independent and unaffected.
+- Verified with Playwright: bio card gone from the DOM, section order is
+  hero → quote → active-events slider → paths → upcoming events →
+  gallery, and the slider still renders real event cards correctly in
+  its new position.
+
 ## Waiting-list approval: two real bugs from live use, fixed
 
 **Why:** using the page just shipped, both surfaced immediately —
