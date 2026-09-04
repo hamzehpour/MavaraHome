@@ -233,18 +233,11 @@ def approve_reservation(
 
     reservation = reservations_repo.get_reservation(reservation_id)
     ctx = _email_context_for_reservation(reservation)
-    _notify_customer_by_email(
-        reservation,
-        subject=f"رزرو شما برای {ctx['event_title']} تایید شد",
-        body=(
-            f"رزرو شما تایید شد ✅\n\n"
-            f"رویداد: {ctx['event_title']}\n"
-            f"تاریخ: {ctx['session_date']}\n"
-            f"ساعت: {ctx['session_time']}\n"
-            f"کد رزرو: {code}\n\n"
-            "برای دیدن/دانلود بلیت، از همین ایمیل وارد سایت خانه ماورا بشوید."
-        ),
+    subject, body = settings_service.render_email(
+        "approved", event_title=ctx["event_title"], session_date=ctx["session_date"],
+        session_time=ctx["session_time"], reservation_code=code,
     )
+    _notify_customer_by_email(reservation, subject=subject, body=body)
     return code, qr_image
 
 
@@ -270,17 +263,10 @@ def _notify_rejection_email(reservation_id: int, reason: str) -> None:
         return
     ctx = _email_context_for_reservation(reservation)
     reason_block = f"\n\nدلیل: {reason}" if reason else ""
-    _notify_customer_by_email(
-        reservation,
-        subject=f"رزرو شما برای {ctx['event_title']} تایید نشد",
-        body=(
-            f"متاسفانه رزرو شما تایید نشد.\n\n"
-            f"رویداد: {ctx['event_title']}\n"
-            f"تاریخ: {ctx['session_date']}"
-            f"{reason_block}\n\n"
-            "در صورت وجود سوال با پشتیبانی تماس بگیرید."
-        ),
+    subject, body = settings_service.render_email(
+        "rejected", event_title=ctx["event_title"], session_date=ctx["session_date"], reason_block=reason_block,
     )
+    _notify_customer_by_email(reservation, subject=subject, body=body)
 
 
 def finalize_rejection_if(reservation_id: int, expected_status: str, reviewed_by: int, reason: str) -> bool:
@@ -427,18 +413,11 @@ def approve_waitlist_entry(waitlist_id: int, reviewed_by: int, unit_price: int) 
 
     reservation = reservations_repo.get_reservation(result["reservation_id"])
     ctx = _email_context_for_reservation(reservation)
-    _notify_customer_by_email(
-        reservation,
-        subject=f"رزرو شما برای {ctx['event_title']} تایید شد",
-        body=(
-            f"رزرو شما تایید شد ✅\n\n"
-            f"رویداد: {ctx['event_title']}\n"
-            f"تاریخ: {ctx['session_date']}\n"
-            f"ساعت: {ctx['session_time']}\n"
-            f"کد رزرو: {code}\n\n"
-            "برای دیدن/دانلود بلیت، از همین ایمیل وارد سایت خانه ماورا بشوید."
-        ),
+    subject, body = settings_service.render_email(
+        "approved", event_title=ctx["event_title"], session_date=ctx["session_date"],
+        session_time=ctx["session_time"], reservation_code=code,
     )
+    _notify_customer_by_email(reservation, subject=subject, body=body)
     if entry.get("telegram_id"):
         from database.repositories import bot_outbox as outbox_repo
         outbox_repo.enqueue(
@@ -463,14 +442,8 @@ def reject_waitlist_entry(waitlist_id: int, reviewed_by: int) -> dict:
     user = users_repo.get_by_id(entry["user_id"])
     if user and user.get("email"):
         from utils.email_sender import send_email
-        send_email(
-            to=user["email"],
-            subject="لیست انتظار رزرو",
-            body=(
-                "متاسفانه برای این سانس ظرفیتی آزاد نشد.\n\n"
-                "می‌تونی سانس دیگری از همین رویداد را رزرو کنی، یا از طریق تلگرام خانه ماورا با ما در تماس باشی."
-            ),
-        )
+        subject, body = settings_service.render_email("waitlist_rejected")
+        send_email(to=user["email"], subject=subject, body=body)
     if entry.get("telegram_id"):
         from database.repositories import bot_outbox as outbox_repo
         from texts import fa

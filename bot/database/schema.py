@@ -492,6 +492,44 @@ DEFAULT_SETTINGS = {
         "در صورت وجود سوال با پشتیبانی تماس بگیرید."
     ),
 
+    # ---- admin-editable EMAIL templates (reservation-migration follow-up:
+    # these were hardcoded Python f-strings before — subject+body per email
+    # kind, read/rendered via services/settings_service.render_email()).
+    # {brand_name} is always available without a caller having to pass it —
+    # see render_email()'s docstring.
+    "tmpl_email_otp_subject": "کد ورود شما به {brand_name}",
+    "tmpl_email_otp_body": (
+        "کد ورود شما به سایت {brand_name}:\n\n{code}\n\n"
+        "این کد تا {ttl_minutes} دقیقه معتبر است. "
+        "اگر این درخواست را نداده‌اید، این ایمیل را نادیده بگیرید."
+    ),
+    # Shared by both a normal reservation's payment approval AND a
+    # waiting-list entry's admin approval — both are "your reservation is
+    # confirmed, here's the code" with the exact same shape, so one
+    # template serves both instead of two copies that could drift apart.
+    "tmpl_email_approved_subject": "رزرو شما برای {event_title} تایید شد",
+    "tmpl_email_approved_body": (
+        "رزرو شما تایید شد ✅\n\n"
+        "رویداد: {event_title}\n"
+        "تاریخ: {session_date}\n"
+        "ساعت: {session_time}\n"
+        "کد رزرو: {reservation_code}\n\n"
+        "برای دیدن/دانلود بلیت، از همین ایمیل وارد سایت {brand_name} بشوید."
+    ),
+    "tmpl_email_rejected_subject": "رزرو شما برای {event_title} تایید نشد",
+    "tmpl_email_rejected_body": (
+        "متاسفانه رزرو شما تایید نشد.\n\n"
+        "رویداد: {event_title}\n"
+        "تاریخ: {session_date}"
+        "{reason_block}\n\n"
+        "در صورت وجود سوال با پشتیبانی تماس بگیرید."
+    ),
+    "tmpl_email_waitlist_rejected_subject": "لیست انتظار رزرو",
+    "tmpl_email_waitlist_rejected_body": (
+        "متاسفانه برای این سانس ظرفیتی آزاد نشد.\n\n"
+        "می‌تونی سانس دیگری از همین رویداد را رزرو کنی، یا از طریق تلگرام {brand_name} با ما در تماس باشی."
+    ),
+
     # ---- PDF ticket template (admin-editable from the website's
     # admin panel — pages/admin/ticket-template.html — and, for parity,
     # from the Telegram bot's settings menu too since it's the same

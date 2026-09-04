@@ -27,6 +27,20 @@ EDITABLE_SETTINGS = {
         "{session_time} {people} {full_name} {reservation_code} {total_price} {event_address}"
     ),
     "tmpl_reservation_rejected": "متن «رد شدن پرداخت» — متغیر: {admin_note_block}",
+    # ---- email templates (reservation-migration follow-up: these were
+    # hardcoded Python strings before — see render_email() below) ----
+    "tmpl_email_otp_subject": "موضوع ایمیل کد ورود — متغیرها: {brand_name}",
+    "tmpl_email_otp_body": "متن ایمیل کد ورود — متغیرها: {code} {ttl_minutes} {brand_name}",
+    "tmpl_email_approved_subject": (
+        "موضوع ایمیل تایید رزرو (رزرو عادی و تایید ظرفیت لیست انتظار، هر دو همین یکی) — متغیرها: {event_title} {brand_name}"
+    ),
+    "tmpl_email_approved_body": (
+        "متن ایمیل تایید رزرو — متغیرها: {event_title} {session_date} {session_time} {reservation_code} {brand_name}"
+    ),
+    "tmpl_email_rejected_subject": "موضوع ایمیل رد رزرو — متغیرها: {event_title} {brand_name}",
+    "tmpl_email_rejected_body": "متن ایمیل رد رزرو — متغیرها: {event_title} {session_date} {reason_block} {brand_name}",
+    "tmpl_email_waitlist_rejected_subject": "موضوع ایمیل «ظرفیتی آزاد نشد» (لیست انتظار) — متغیرها: {brand_name}",
+    "tmpl_email_waitlist_rejected_body": "متن ایمیل «ظرفیتی آزاد نشد» (لیست انتظار) — متغیرها: {brand_name}",
     "ticket_template_title": "عنوان بالای بلیت PDF (مثلاً نام مجموعه)",
     "ticket_template_subtitle": "زیرعنوان بالای بلیت PDF (مثلاً «بلیت الکترونیک»)",
     "ticket_template_footer": "متن پایین بلیت PDF (زیر QR)",
@@ -94,6 +108,24 @@ def update_setting(key: str, value: str) -> None:
     settings_repo.set(key, value)
 
 
+def render_email(template_key: str, **values) -> tuple[str, str]:
+    """Renders an admin-editable email's subject+body from settings —
+    `template_key` is the shared name: e.g. 'otp' reads
+    tmpl_email_otp_subject / tmpl_email_otp_body. Was three hardcoded
+    Python f-strings (OTP, reservation approved, reservation rejected)
+    plus a fourth ad-hoc one (waitlist rejected) before this — now every
+    email an admin can see the content of, they can also edit, same as
+    the Telegram message templates already were.
+
+    `brand_name` is always available to every email template without
+    the caller having to pass it — every one of these reasonably wants
+    to say who they're from."""
+    values.setdefault("brand_name", get_brand_name())
+    subject = render_template(settings_repo.get(f"tmpl_email_{template_key}_subject", ""), **values)
+    body = render_template(settings_repo.get(f"tmpl_email_{template_key}_body", ""), **values)
+    return subject, body
+
+
 # ── Website settings page: type + range/length guardrails ──
 # The Telegram menu above (update_setting) stays exactly as free-text as
 # it always was — deliberately unchanged, so nothing about the existing
@@ -122,6 +154,14 @@ SETTINGS_FIELD_TYPES: dict[str, str] = {
     "ticket_template_subtitle": "text",
     "ticket_template_footer": "text",
     "otp_channels_enabled": "text",
+    "tmpl_email_otp_subject": "text",
+    "tmpl_email_otp_body": "textarea",
+    "tmpl_email_approved_subject": "text",
+    "tmpl_email_approved_body": "textarea",
+    "tmpl_email_rejected_subject": "text",
+    "tmpl_email_rejected_body": "textarea",
+    "tmpl_email_waitlist_rejected_subject": "text",
+    "tmpl_email_waitlist_rejected_body": "textarea",
 }
 SETTINGS_INT_RANGE: dict[str, tuple[int, int]] = {
     "ticket_price": (0, 1_000_000_000),

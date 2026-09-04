@@ -52,15 +52,10 @@ def request_otp(raw_identifier: str, channel: str = "email") -> dict:
     users_repo.get_or_create_customer(email=email)
     code = f"{secrets.randbelow(1_000_000):06d}"
     customer_auth_repo.create_otp(email, code, channel="email")
-    send_email(
-        to=email,
-        subject="کد ورود شما به خانه ماورا",
-        body=(
-            f"کد ورود شما به سایت خانه ماورا:\n\n{code}\n\n"
-            f"این کد تا {customer_auth_repo.OTP_TTL_MINUTES} دقیقه معتبر است. "
-            "اگر این درخواست را نداده‌اید، این ایمیل را نادیده بگیرید."
-        ),
+    subject, body = settings_service.render_email(
+        "otp", code=code, ttl_minutes=str(customer_auth_repo.OTP_TTL_MINUTES),
     )
+    send_email(to=email, subject=subject, body=body)
     return {"delivered": True}
 
 

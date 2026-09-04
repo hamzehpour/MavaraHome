@@ -5,6 +5,55 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## "Maximal admin independence," phase 2 — email templates now admin-editable
+
+**Why:** direct continuation of phase 1. The website settings page (and
+the underlying `EDITABLE_SETTINGS`/`settings` table mechanism already
+built for Telegram message templates) covered the bot's Telegram
+messages, but the 4 emails the system sends — OTP login code, reservation
+approved, reservation rejected, waiting-list "no capacity opened up" —
+were still hardcoded Python f-strings the admin could not see or change
+at all. Migrated all 4 onto the same mechanism, no new infrastructure
+needed.
+
+- New `render_email(template_key, **values)` helper in
+  `settings_service.py`: reads `tmpl_email_{key}_subject` /
+  `tmpl_email_{key}_body` from `settings`, auto-injects `brand_name` into
+  every template so nothing has to pass it explicitly, and renders both
+  through the same safe `{placeholder}` substitution already used for
+  Telegram templates (never crashes on a stray or unknown brace).
+- 8 new `tmpl_email_*` keys added to `DEFAULT_SETTINGS` (seeded via the
+  existing unconditional `INSERT OR IGNORE` loop in `init_db()` — no
+  schema version bump needed, since no table or column changed, just new
+  default rows) and to `EDITABLE_SETTINGS`/`SETTINGS_FIELD_TYPES` (subject
+  = short text, body = textarea), each label naming exactly which
+  placeholders that template supports.
+- `reservation_service.py` (`approve_reservation`, `_notify_rejection_email`,
+  `approve_waitlist_entry`, `reject_waitlist_entry`) and
+  `customer_auth_service.py` (`request_otp`) now call `render_email(...)`
+  instead of building the email text inline.
+- Website: `settings.html` gets a new "قالب پیام‌های ایمیل" section listing
+  the 8 keys — no new code needed beyond that, since the page already
+  renders/saves any section generically from the shared `SECTIONS` list.
+
+**Deploy note:** even though `SCHEMA_VERSION` did not change, `migrate.py`
+still needs to run in production — the 8 new default rows only get
+inserted by `init_db()`'s seeding loop, which only `migrate.py` and
+`bot.py` call; `api/server.py` never calls it on its own, so skipping
+this step would leave the new settings-page section showing empty fields
+until an admin fills every one in by hand.
+
+Verified locally: `render_email()` output checked directly for all 4
+template keys with realistic values (Persian text, correct interpolation
+of every documented placeholder); confirmed editing a template via
+`update_setting_validated` changes the next call's rendered output
+immediately; confirmed the new default rows seed via a local `migrate.py`
+run; confirmed via the running API (real login, real JWT) that all 8 new
+keys appear in `GET /admin/settings` and a `PATCH` persists correctly;
+confirmed via Playwright that the new settings-page section renders, the
+existing generic save button works with no console/page errors, and the
+saved value survives a reload.
+
 ## New admin settings page — "maximal admin independence," phase 1
 
 **Why:** requested — the admin should be able to change anything
