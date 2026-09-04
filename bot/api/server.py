@@ -480,6 +480,35 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send_json(401, {"error": "unauthorized"})
                 return self._send_json(200, {"data": broadcast_service.list_email_broadcasts()})
 
+            if path == "/api/v1/admin/settings":
+                # Every EDITABLE_SETTINGS key, with its current value and
+                # enough shape info (type, and int range where relevant)
+                # for the website page to render the right input and the
+                # same guardrails settings_service.validate_setting_value
+                # will enforce on save — so the UI can show "بین ۱ تا
+                # ۱۰۰۸۰" right next to the field instead of the admin
+                # only finding out after a rejected save.
+                if not self._is_admin():
+                    return self._send_json(401, {"error": "unauthorized"})
+                data = []
+                for key, label in settings_service.EDITABLE_SETTINGS.items():
+                    field_type = settings_service.SETTINGS_FIELD_TYPES.get(key, "text")
+                    entry = {"key": key, "label": label, "type": field_type, "value": settings_repo.get(key, "")}
+                    if field_type == "int":
+                        lo, hi = settings_service.SETTINGS_INT_RANGE.get(key, (0, 10**9))
+                        entry["min"], entry["max"] = lo, hi
+                    data.append(entry)
+                return self._send_json(200, {"data": data})
+
+            if path == "/api/v1/admin/bank-cards":
+                if not self._is_admin():
+                    return self._send_json(401, {"error": "unauthorized"})
+                from database.repositories import bank_cards as bank_cards_repo
+                return self._send_json(200, {"data": {
+                    "cards": bank_cards_repo.list_cards(),
+                    "auto_rotate": settings_repo.get("auto_rotate_cards", "0") == "1",
+                }})
+
             m = re.match(r"^/api/v1/admin/reservations/(\d+)/receipt$", path)
             if m:
                 # Admin-only counterpart to the now-private receipt upload
@@ -855,6 +884,39 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send_json(status, {"error": result.get("error", "failed")})
                 return self._send_json(200, {"data": {"success": True}})
 
+            if path == "/api/v1/admin/bank-cards":
+                if not self._is_admin():
+                    return self._send_json(401, {"error": "unauthorized"})
+                from database.repositories import bank_cards as bank_cards_repo
+                from validators.validators import normalize_card_number, is_valid_card_number
+                body = self._read_json_body()
+                card_number = normalize_card_number(str(body.get("card_number", "")))
+                card_holder = str(body.get("card_holder", "")).strip()
+                bank_name = str(body.get("bank_name", "")).strip()
+                if not is_valid_card_number(card_number):
+                    return self._send_json(400, {"error": "validation", "details": "card_number must be 16 digits"})
+                if not card_holder:
+                    return self._send_json(400, {"error": "validation", "details": "card_holder is required"})
+                if bank_cards_repo.count_cards() >= bank_cards_repo.MAX_CARDS:
+                    return self._send_json(400, {"error": "validation", "details": f"حداکثر {bank_cards_repo.MAX_CARDS} کارت مجاز است"})
+                card_id = bank_cards_repo.add_card(card_number, card_holder, bank_name)
+                return self._send_json(201, {"data": {"cards": bank_cards_repo.list_cards()}})
+
+            m = re.match(r"^/api/v1/admin/bank-cards/(\d+)/activate$", path)
+            if m:
+                if not self._is_admin():
+                    return self._send_json(401, {"error": "unauthorized"})
+                from database.repositories import bank_cards as bank_cards_repo
+                bank_cards_repo.set_active(int(m.group(1)))
+                return self._send_json(200, {"data": {"cards": bank_cards_repo.list_cards()}})
+
+            if path == "/api/v1/admin/bank-cards/auto-rotate":
+                if not self._is_admin():
+                    return self._send_json(401, {"error": "unauthorized"})
+                body = self._read_json_body()
+                settings_repo.set("auto_rotate_cards", "1" if body.get("enabled") else "0")
+                return self._send_json(200, {"data": {"auto_rotate": bool(body.get("enabled"))}})
+
             if path == "/api/v1/admin/broadcasts":
                 admin_payload = self._get_admin_payload()
                 if not admin_payload:
@@ -972,19 +1034,47 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send_json(400, {"error": "validation", "details": "data must be a base64 data URL"})
                 match = re.match(r"^data:([^;]+);base64,(.*)$", data_url, re.S)
                 if not match:
-                    return self._send_json(400, {"error": "validation", "details": "malformed data URL"})
+                    return self._send_json(400, {"error": "malformed data URL"})
                 mime, b64 = match.group(1), match.group(2)
                 ext_map = {
                     "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif",
                     "video/mp4": ".mp4", "video/webm": ".webm",
                 }
-                ext = ext_map.get(mime, ".bin")
-                import base64, time, random
+                # Guardrail (previously: none at all — any size, any
+                # content, saved as-is, ".bin" for anything with an
+                # unrecognized mime). Unknown mime is now rejected
+                # outright rather than silently saved as ".bin"; images
+                # go through Pillow to confirm the bytes are actually a
+                # decodable image of the claimed kind (not, say, a
+                # renamed script) — cheap, and Pillow is already a
+                # dependency (utils/ticket_pdf.py's QR codes).
+                if mime not in ext_map:
+                    return self._send_json(400, {"error": "validation", "details": f"unsupported file type: {mime}"})
+                ext = ext_map[mime]
+                is_video = mime.startswith("video/")
+                max_bytes = 25 * 1024 * 1024 if is_video else 3 * 1024 * 1024
+                import base64
+                try:
+                    raw_bytes = base64.b64decode(b64, validate=True)
+                except Exception:
+                    return self._send_json(400, {"error": "validation", "details": "malformed base64 data"})
+                if len(raw_bytes) > max_bytes:
+                    limit_label = f"{max_bytes // (1024 * 1024)}MB"
+                    return self._send_json(400, {"error": "validation", "details": f"file too large — max {limit_label}"})
+                if not is_video:
+                    try:
+                        from PIL import Image
+                        import io
+                        with Image.open(io.BytesIO(raw_bytes)) as img:
+                            img.verify()
+                    except Exception:
+                        return self._send_json(400, {"error": "validation", "details": "file is not a valid image"})
+                import time, random
                 safe_name = f"{int(time.time() * 1000)}-{random.randint(1000, 9999)}{ext}"
                 upload_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "media", kind)
                 os.makedirs(upload_dir, exist_ok=True)
                 with open(os.path.join(upload_dir, safe_name), "wb") as f:
-                    f.write(base64.b64decode(b64))
+                    f.write(raw_bytes)
                 return self._send_json(201, {"data": {"path": f"media/{kind}/{safe_name}", "kind": kind}})
 
             if path == "/api/v1/admin/sessions":
@@ -1205,6 +1295,29 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send_json(404, {"error": "not_found"})
                 return self._send_json(200, {"data": updated})
 
+            if path == "/api/v1/admin/settings":
+                # Batch update: {key: value, ...}. Validated all-or-
+                # nothing — if any key fails, nothing is written, so a
+                # multi-field form save can't leave the settings table
+                # half-updated with the admin unsure which fields
+                # actually took. See settings_service.validate_setting_value
+                # for what "valid" means per field.
+                if not self._is_admin():
+                    return self._send_json(401, {"error": "unauthorized"})
+                body = self._read_json_body()
+                if not isinstance(body, dict) or not body:
+                    return self._send_json(400, {"error": "validation", "details": "body must be a non-empty object of {key: value}"})
+                errors = {}
+                for key, value in body.items():
+                    error = settings_service.validate_setting_value(key, str(value))
+                    if error:
+                        errors[key] = error
+                if errors:
+                    return self._send_json(400, {"error": "validation", "details": errors})
+                for key, value in body.items():
+                    settings_repo.set(key, str(value))
+                return self._send_json(200, {"data": {"updated": list(body.keys())}})
+
             if path == "/api/v1/admin/ticket-template":
                 # Admin-only write side of GET /api/v1/ticket-template.
                 # `logo` is a media/... path already produced by
@@ -1252,6 +1365,13 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send_json(401, {"error": "unauthorized"})
                 team_repo.delete(int(m.group(1)))
                 return self._send_json(200, {"data": {"deleted": True}})
+            m = re.match(r"^/api/v1/admin/bank-cards/(\d+)$", path)
+            if m:
+                if not self._is_admin():
+                    return self._send_json(401, {"error": "unauthorized"})
+                from database.repositories import bank_cards as bank_cards_repo
+                bank_cards_repo.delete_card(int(m.group(1)))
+                return self._send_json(200, {"data": {"cards": bank_cards_repo.list_cards()}})
             return self._send_json(404, {"error": "not_found"})
         except Exception as exc:
             logger.exception("API DELETE error on %s", path)

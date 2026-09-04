@@ -51,3 +51,19 @@ def is_valid_time_hhmm(raw: str) -> bool:
 
 def is_positive_int(raw: str) -> bool:
     return raw.strip().isdigit() and int(raw.strip()) > 0
+
+
+def normalize_card_number(raw: str) -> str:
+    """Strips spaces/dashes and converts Persian/Arabic digits — an admin
+    typing a card number can reasonably type any of `1234-5678-9012-3456`,
+    `1234 5678 9012 3456`, or Persian digits, and all of those should
+    normalize to the same stored value."""
+    digits = normalize_digits(raw)
+    return digits.replace(" ", "").replace("-", "")
+
+
+def is_valid_card_number(raw: str) -> bool:
+    """Iranian bank cards are 16 digits. Not a Luhn/issuer check — just
+    enough to catch an obvious typo (wrong length, stray letters) before
+    it goes out in a payment-instructions message."""
+    return raw.isdigit() and len(raw) == 16

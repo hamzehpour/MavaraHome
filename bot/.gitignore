@@ -11,6 +11,14 @@ logs/*.log
 # api/server.py). Never commit these, test data or not.
 private_media/
 
+# Public uploads (posters/gallery/team/portfolio/ticket_logo photos) —
+# runtime content written by /api/v1/admin/upload, never source. An
+# earlier commit accidentally included real uploaded test files here
+# before this line existed (see the Phase 0 security-fix commit that had
+# to remove them); this is the actual fix, not just cleanup after the
+# fact.
+media/
+
 # python
 __pycache__/
 *.pyc

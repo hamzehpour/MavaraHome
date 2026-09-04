@@ -1,16 +1,22 @@
 from database.connection import get_connection
 
-_CACHE: dict[str, str] = {}
-
 
 def get(key: str, default: str = "") -> str:
-    if key in _CACHE:
-        return _CACHE[key]
+    # No process-local cache: api/server.py and bot.py are two separate
+    # OS processes that only share the database (same reasoning as
+    # bot_outbox — see its module comment in schema.py). A cache here
+    # would mean a setting changed from one process (e.g. the ticket
+    # price, edited on the website) silently keeps its stale value in
+    # the OTHER process (the Telegram bot, still quoting the old price)
+    # until that process happens to restart — exactly the kind of gap
+    # that undermines "admin changes something and it takes effect,"
+    # which is the entire point of exposing these as admin-editable at
+    # all. Settings reads are not hot-path/high-frequency enough (a few
+    # per reservation, not per request) for a bare SQLite SELECT to
+    # matter for performance.
     with get_connection() as conn:
         row = conn.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
-        value = row["value"] if row else default
-        _CACHE[key] = value
-        return value
+        return row["value"] if row else default
 
 
 def get_int(key: str, default: int = 0) -> int:
@@ -29,7 +35,6 @@ def set(key: str, value: str) -> None:
             """,
             (key, value),
         )
-    _CACHE[key] = value
 
 
 def all_settings() -> dict:

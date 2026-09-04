@@ -5,6 +5,87 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## New admin settings page — "maximal admin independence," phase 1
+
+**Why:** requested — the admin should be able to change anything
+editable (messages/notices, fixed site info, images) without needing a
+developer, within safe guardrails (size/format limits on images,
+length/range limits on text). Investigated the whole surface first (see
+the plan posted before this work) and started with what already had
+working backend infrastructure but no website UI at all: settings,
+message templates, bank cards, ticket PDF template, and upload safety.
+
+- **New `website/pages/admin/settings.html`** (+ sidebar link on all
+  eight admin pages): general site text (brand name, welcome message,
+  rules, support contact), booking/payment numbers (ticket price, max
+  tickets per person, payment/review-reminder timers), customer-login
+  channel note, the four Telegram message templates (with their
+  placeholder hints shown inline), bank card management (add/activate/
+  delete, 16-digit validation, Persian-digit and dash/space
+  normalization), auto-rotate-cards toggle, and the ticket PDF template
+  (title/subtitle/footer + logo upload) — the last of these already had
+  a backend endpoint from an earlier phase with no page ever built for
+  it.
+- **Reused, not duplicated**: this is the *same* `EDITABLE_SETTINGS`
+  key/value table the Telegram bot's own settings menu already reads
+  and writes — one source of truth, editable from either place.
+- **New validation layer** (website-only; the Telegram menu is
+  deliberately left exactly as free-text as it always was): numeric
+  fields get a real range check, text fields a length cap — see
+  `settings_service.validate_setting_value`. A multi-field save is
+  all-or-nothing: if one field fails, nothing is written, so a form
+  can't end up half-saved with the admin unsure which fields actually
+  took.
+- **Real correctness bug fixed while building this**: `settings_repo.get()`
+  cached values in a process-local dict. Since `api/server.py` (website)
+  and `bot.py` (Telegram) are separate OS processes, a setting changed
+  in one process (e.g. the ticket price, from the website) kept its
+  stale cached value in the *other* process until that process happened
+  to restart — directly undermining "admin changes something and it
+  takes effect," the entire point of this feature. Removed the cache;
+  settings reads aren't hot-path enough for a bare SQLite SELECT to
+  matter.
+- **Real gap fixed**: `review_reminder_repeat_minutes` was a working
+  setting (`utils/scheduler.py` already read it) that was editable
+  *nowhere* — not the website, not even the Telegram menu — because it
+  had simply never been added to `EDITABLE_SETTINGS`. Now listed, so
+  both channels get it.
+- **Upload guardrail, previously entirely absent**: `/api/v1/admin/upload`
+  used to accept any size, and silently saved anything with an
+  unrecognized mime type as `.bin`. Now: unknown mime types are rejected
+  outright; a size cap applies (3MB images, 25MB video); and every image
+  is opened and verified with Pillow (already a dependency) before being
+  saved, so a renamed non-image file can't be uploaded as one.
+- **Caught mid-build**: a first pass wired a save button's handler via
+  `onclick="saveSection(${JSON.stringify(section.keys)})"` — the
+  array's own double quotes closed the outer double-quoted `onclick`
+  attribute early, corrupting the handler (the same bug class already
+  fixed once this project in `checkin.html`'s `doCheckin` binding).
+  Caught by the very Playwright test written to verify the save flow
+  (it showed no success/error message at all, plus a page error).
+  Fixed the same way as last time: bind via `addEventListener` +
+  closure instead of serializing data into an HTML attribute.
+- **Verified**: every endpoint exercised directly (curl) and through
+  the real admin UI — a non-numeric or out-of-range setting value is
+  rejected with the specific field named, a valid save persists and
+  survives reload; a 16-digit card (including one typed with Persian
+  digits and dashes) is accepted, a too-short one rejected; activating
+  a second card correctly deactivates the first; auto-rotate persists;
+  a fake "image" (plain text with a claimed `image/png` mime), an
+  oversized real PNG, and a genuine small PNG were each handled
+  correctly by the upload guardrail (reject, reject, accept); the
+  ticket-template logo upload + save round-trips correctly.
+- **Deliberately out of scope for this pass** (next follow-ups, not
+  dropped silently): migrating the hardcoded Python email subject/body
+  strings (OTP, approve/reject) into editable templates; free-text site
+  content (footer, nav, page copy) and the image registry (logo/
+  favicon/hero swap) from the original plan's phases 3–5; and an
+  owner-vs-admin permission split for sensitive fields (card number,
+  price) — every current website admin account has the same `role`
+  value in practice today, so gating behind a role nobody has yet would
+  risk locking out the very account testing this right after deploy;
+  the `web_admins.role` column already exists for this when wanted.
+
 ## New: admin email broadcasts, segmented by event/tag
 
 **Why:** requested — admin wants to build a segment from customers who

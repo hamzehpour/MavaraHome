@@ -230,6 +230,50 @@ const API = {
     },
     async list() { return apiFetchAdmin('/admin/broadcasts'); },
   },
+  // Admin-editable site settings (EDITABLE_SETTINGS on the backend) —
+  // the same key/value table the Telegram bot's own settings menu reads
+  // and writes, now with real validation on the website's write path
+  // (see services/settings_service.validate_setting_value) that the
+  // Telegram menu never had and still doesn't — deliberately unchanged
+  // there.
+  settings: {
+    async list() { return apiFetchAdmin('/admin/settings'); },
+    // values: {key: value, ...} — one call can save several fields from
+    // one form at once; the backend validates all of them before writing
+    // any, so a bad field can't leave the rest half-saved.
+    async update(values) {
+      return apiFetchAdmin('/admin/settings', { method: 'PATCH', body: JSON.stringify(values) });
+    },
+    async uploadMedia(file, kind) {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const result = await apiFetchAdmin('/admin/upload', {
+        method: 'POST', body: JSON.stringify({ data: dataUrl, filename: file.name, kind }),
+      });
+      return result.path;
+    },
+    async getTicketTemplate() { return apiFetch('/ticket-template'); },
+    async updateTicketTemplate(fields) {
+      return apiFetchAdmin('/admin/ticket-template', { method: 'PATCH', body: JSON.stringify(fields) });
+    },
+  },
+  bankCards: {
+    async list() { return apiFetchAdmin('/admin/bank-cards'); },
+    async add({ cardNumber, cardHolder, bankName }) {
+      return apiFetchAdmin('/admin/bank-cards', {
+        method: 'POST', body: JSON.stringify({ card_number: cardNumber, card_holder: cardHolder, bank_name: bankName || '' }),
+      });
+    },
+    async activate(id) { return apiFetchAdmin(`/admin/bank-cards/${id}/activate`, { method: 'POST' }); },
+    async remove(id) { return apiFetchAdmin(`/admin/bank-cards/${id}`, { method: 'DELETE' }); },
+    async setAutoRotate(enabled) {
+      return apiFetchAdmin('/admin/bank-cards/auto-rotate', { method: 'POST', body: JSON.stringify({ enabled }) });
+    },
+  },
   paymentInfo: {
     async get() { return apiFetch('/payment-info'); },
   },

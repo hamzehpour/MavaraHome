@@ -13,6 +13,11 @@ EDITABLE_SETTINGS = {
     "support_contact": "شماره/آیدی پشتیبانی",
     "payment_expiry_minutes": "مهلت ارسال رسید توسط خریدار (دقیقه)",
     "review_reminder_minutes": "یادآوری به ادمین اگر رزرو دیرتر از این مدت بررسی نشد (دقیقه)",
+    # Was already a real, working setting (utils/scheduler.py reads it) —
+    # just never listed here, so it was editable nowhere at all, not even
+    # from the Telegram menu that every other setting in this dict already
+    # gets for free just by being listed.
+    "review_reminder_repeat_minutes": "تکرار یادآوری بررسی رزرو دیرمانده، تا وقتی بررسی شود (دقیقه)",
     "tmpl_payment_instructions": (
         "متن راهنمای پرداخت — متغیرها: {people} {unit_price} {total_price} {card_number} {card_holder}"
     ),
@@ -87,6 +92,76 @@ def update_setting(key: str, value: str) -> None:
     if key not in EDITABLE_SETTINGS:
         raise ValueError(f"Unknown setting key: {key}")
     settings_repo.set(key, value)
+
+
+# ── Website settings page: type + range/length guardrails ──
+# The Telegram menu above (update_setting) stays exactly as free-text as
+# it always was — deliberately unchanged, so nothing about the existing
+# in-bot flow is affected. The website editor is new, so it gets real
+# validation from day one: a numeric field can't be saved as "abc" or a
+# negative payment-expiry time, and a text field can't be pasted with an
+# unbounded wall of text that would blow out a Telegram message or an
+# email. Keys not listed in these two maps default to a generic
+# short-text field, max 300 characters — safe for anything added to
+# EDITABLE_SETTINGS later without updating this file too.
+SETTINGS_FIELD_TYPES: dict[str, str] = {
+    "brand_name": "text",
+    "welcome_message": "textarea",
+    "ticket_price": "int",
+    "max_tickets_per_person": "int",
+    "rules_text": "textarea",
+    "support_contact": "text",
+    "payment_expiry_minutes": "int",
+    "review_reminder_minutes": "int",
+    "review_reminder_repeat_minutes": "int",
+    "tmpl_payment_instructions": "textarea",
+    "tmpl_receipt_received": "textarea",
+    "tmpl_ticket_confirmed": "textarea",
+    "tmpl_reservation_rejected": "textarea",
+    "ticket_template_title": "text",
+    "ticket_template_subtitle": "text",
+    "ticket_template_footer": "text",
+    "otp_channels_enabled": "text",
+}
+SETTINGS_INT_RANGE: dict[str, tuple[int, int]] = {
+    "ticket_price": (0, 1_000_000_000),
+    "max_tickets_per_person": (1, 100),
+    "payment_expiry_minutes": (1, 60 * 24 * 7),
+    "review_reminder_minutes": (1, 60 * 24 * 7),
+    "review_reminder_repeat_minutes": (1, 60 * 24),
+}
+_MAX_LEN_BY_TYPE = {"text": 300, "textarea": 4000}
+
+
+def validate_setting_value(key: str, value: str) -> str | None:
+    """Returns an error message (Persian, shown as-is to the admin) if
+    `value` isn't acceptable for `key`, or None if it's fine to save."""
+    if key not in EDITABLE_SETTINGS:
+        return "کلید تنظیمات ناشناخته است."
+    field_type = SETTINGS_FIELD_TYPES.get(key, "text")
+    if field_type == "int":
+        try:
+            n = int(str(value).strip())
+        except ValueError:
+            return "این مقدار باید یک عدد صحیح باشد."
+        lo, hi = SETTINGS_INT_RANGE.get(key, (0, 10**9))
+        if not (lo <= n <= hi):
+            return f"مقدار باید بین {lo:,} تا {hi:,} باشد."
+        return None
+    max_len = _MAX_LEN_BY_TYPE.get(field_type, 300)
+    if len(value) > max_len:
+        return f"متن نباید بیشتر از {max_len:,} نویسه باشد (الان {len(value):,} نویسه است)."
+    return None
+
+
+def update_setting_validated(key: str, value: str) -> str | None:
+    """Website settings page's write path. Returns an error message (and
+    does NOT write) if invalid; returns None on success."""
+    error = validate_setting_value(key, value)
+    if error:
+        return error
+    settings_repo.set(key, value)
+    return None
 
 
 def get_ticket_template() -> dict:

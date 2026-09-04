@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>تنظیمات</title><meta name="robots" content="noindex,nofollow"><link rel="icon" type="image/webp" href="../../assets/images/logo/favicon.webp"><link rel="stylesheet" href="../../assets/css/styles.css"></head>
+<body>
+<div class="admin-layout">
+    <aside class="admin-sidebar"><div style="font-weight:700;font-size:15px;padding:8px 14px;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.1)">خانه ماورا</div><a href="dashboard.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>داشبورد</a><a href="events.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M4 5h16"/><path d="M4 5 3 21M20 5l1 16"/><path d="M8 5v16M12 5v16M16 5v16"/></svg>رویدادها</a><a href="reservations.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4Z"/></svg>رزروها</a><a href="waitlist.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>لیست انتظار</a><a href="broadcast.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>اطلاع‌رسانی</a><a href="checkin.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>پذیرش بلیت</a><a href="portfolio.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.5"/><path d="M7 2v20M17 2v20M2 12h20"/></svg>رزومه</a><a href="team.html">اعضای خانه ماورا</a><a href="settings.html" class="active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>تنظیمات</a><button onclick="MavaraTheme.toggle(); this.textContent = MavaraTheme.get()==='dark' ? '☀️ حالت روشن' : '🌙 حالت تیره'" id="themeToggleBtn" style="margin-top:auto">🌓 تغییر پوسته</button>
+        <button onclick="logout()" style="margin-top:auto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>خروج</button></aside>
+    <main class="admin-main" style="max-width:760px">
+        <h2 style="margin-bottom:6px">تنظیمات</h2>
+        <p style="color:var(--text-muted);font-size:13px;margin-bottom:24px">همان تنظیماتی که از داخل ربات تلگرام هم قابل تغییرند — این‌جا و آن‌جا یک منبع مشترک است، هرکدام را عوض کنی همه‌جا اثر می‌کند.</p>
+
+        <div id="sections"></div>
+
+        <div class="feedback-box" style="margin-top:28px">
+            <h4>کارت‌های بانکی</h4>
+            <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">شماره کارتی که به‌عنوان «فعال» علامت بخوری، همان‌که در راهنمای پرداخت (تلگرام و سایت) به خریدار نشان داده می‌شود.</p>
+            <table class="admin-table" style="margin-bottom:16px"><thead><tr><th>شماره کارت</th><th>صاحب حساب</th><th>بانک</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody id="cardsBody"></tbody></table>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:16px;cursor:pointer"><input type="checkbox" id="autoRotate" onchange="toggleAutoRotate()"> چرخش خودکار هفتگی بین کارت‌ها</label>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:end">
+                <div><label style="font-size:12px">شماره کارت (۱۶ رقم)</label><input id="newCardNumber" dir="ltr" maxlength="19" placeholder="6037xxxxxxxxxxxx" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font-family:inherit"></div>
+                <div><label style="font-size:12px">صاحب حساب</label><input id="newCardHolder" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font-family:inherit"></div>
+                <div><label style="font-size:12px">بانک (اختیاری)</label><input id="newCardBank" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font-family:inherit"></div>
+                <button class="btn btn--gold" style="padding:10px 18px" onclick="addCard()">افزودن کارت</button>
+            </div>
+            <p id="cardMsg" style="display:none;font-size:12.5px;margin-top:8px"></p>
+        </div>
+
+        <div class="feedback-box" style="margin-top:20px">
+            <h4>قالب بلیت PDF</h4>
+            <label style="font-size:12px">عنوان بالای بلیت</label>
+            <input id="ttTitle" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font-family:inherit;margin-bottom:10px">
+            <label style="font-size:12px">زیرعنوان</label>
+            <input id="ttSubtitle" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font-family:inherit;margin-bottom:10px">
+            <label style="font-size:12px">متن پایین بلیت (زیر QR)</label>
+            <input id="ttFooter" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font-family:inherit;margin-bottom:10px">
+            <label style="font-size:12px">لوگوی بلیت</label>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                <img id="ttLogoPreview" style="width:48px;height:48px;object-fit:contain;border:1px solid var(--border);border-radius:8px;background:var(--bg-soft);display:none">
+                <input type="file" id="ttLogoFile" accept="image/*">
+            </div>
+            <button class="btn btn--gold" onclick="saveTicketTemplate()">ذخیره قالب بلیت</button>
+            <p id="ttMsg" style="display:none;font-size:12.5px;margin-top:8px"></p>
+        </div>
+    </main>
+</div>
+<script src="../../assets/js/app.js"></script>
+<script>
+if (!API.auth.check()) window.location.href = 'login.html';
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+// Groups the flat settings list into sections. ticket_template_* keys
+// are deliberately excluded here — they're edited in the dedicated
+// "قالب بلیت PDF" box below via /admin/ticket-template (which also
+// handles the logo upload, something the generic key/value settings
+// endpoint has no concept of).
+const SECTIONS = [
+  { title: 'تنظیمات کلی', keys: ['brand_name', 'welcome_message', 'rules_text', 'support_contact'] },
+  { title: 'رزرو و پرداخت', keys: ['ticket_price', 'max_tickets_per_person', 'payment_expiry_minutes', 'review_reminder_minutes', 'review_reminder_repeat_minutes'] },
+  { title: 'ورود مشتری', keys: ['otp_channels_enabled'] },
+  { title: 'قالب پیام‌های تلگرام', keys: ['tmpl_payment_instructions', 'tmpl_receipt_received', 'tmpl_ticket_confirmed', 'tmpl_reservation_rejected'] },
+];
+let settingsByKey = {};
+
+async function init() {
+  await Promise.all([loadSettings(), loadCards(), loadTicketTemplate()]);
+}
+
+async function loadSettings() {
+  const list = await API.settings.list();
+  settingsByKey = Object.fromEntries(list.map(s => [s.key, s]));
+  document.getElementById('sections').innerHTML = SECTIONS.map((section, idx) => `
+    <div class="feedback-box" style="margin-bottom:20px">
+      <h4>${esc(section.title)}</h4>
+      ${section.keys.filter(k => settingsByKey[k]).map(k => fieldHTML(settingsByKey[k])).join('')}
+      <button class="btn btn--gold" data-section-idx="${idx}">ذخیره</button>
+      <p id="msg-${cssId(section.title)}" style="display:none;font-size:12.5px;margin-top:8px"></p>
+    </div>`).join('');
+  // Bound via addEventListener + closure, not an inline onclick="" —
+  // embedding JSON.stringify(section.keys) directly in an onclick="..."
+  // attribute put that array's own double quotes inside the outer
+  // double-quoted attribute, closing it early and corrupting the
+  // handler (same bug class as checkin.html's doCheckin binding).
+  document.querySelectorAll('#sections button[data-section-idx]').forEach(btn => {
+    const section = SECTIONS[Number(btn.dataset.sectionIdx)];
+    btn.onclick = () => saveSection(section);
+  });
+}
+
+function cssId(s) { return s.replace(/[^a-zA-Z0-9]/g, ''); }
+
+function fieldHTML(s) {
+  const hint = s.type === 'int' ? `<span style="color:var(--text-muted);font-size:11px"> (بین ${s.min.toLocaleString('fa-IR')} تا ${s.max.toLocaleString('fa-IR')})</span>` : '';
+  const input = s.type === 'textarea'
+    ? `<textarea id="f_${s.key}" rows="4" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font-family:inherit;resize:vertical">${esc(s.value)}</textarea>`
+    : `<input id="f_${s.key}" type="${s.type === 'int' ? 'number' : 'text'}" value="${esc(s.value)}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font-family:inherit">`;
+  return `<label style="font-size:12px">${esc(s.label)}${hint}</label>${input}<div style="margin-bottom:12px"></div>`;
+}
+
+async function saveSection(section) {
+  const keys = section.keys;
+  const values = {};
+  keys.forEach(k => { if (settingsByKey[k]) values[k] = document.getElementById('f_' + k).value; });
+  const title = section.title;
+  const msg = document.getElementById('msg-' + cssId(title));
+  msg.style.display = 'none';
+  try {
+    await API.settings.update(values);
+    await loadSettings();
+    const newMsg = document.getElementById('msg-' + cssId(title));
+    newMsg.style.display = 'block';
+    newMsg.style.color = '#2a7a2a';
+    newMsg.textContent = 'ذخیره شد.';
+  } catch (err) {
+    msg.style.display = 'block';
+    msg.style.color = '#c44';
+    // err.details is either a plain string or, on a validation error,
+    // an object of {key: message} — show whichever field failed instead
+    // of just "خطا رخ داد" so the admin knows exactly what to fix.
+    if (err.details && typeof err.details === 'object') {
+      msg.textContent = Object.entries(err.details).map(([k, m]) => `${(settingsByKey[k] || {}).label || k}: ${m}`).join(' — ');
+    } else {
+      msg.textContent = 'خطا — ' + (err.details || err.message);
+    }
+  }
+}
+
+// ── Bank cards ──
+async function loadCards() {
+  const { cards, auto_rotate } = await API.bankCards.list();
+  document.getElementById('autoRotate').checked = auto_rotate;
+  document.getElementById('cardsBody').innerHTML = cards.length ? cards.map(c => `<tr>
+      <td dir="ltr">${esc(c.card_number)}</td>
+      <td>${esc(c.card_holder)}</td>
+      <td>${esc(c.bank_name || '—')}</td>
+      <td>${c.is_active ? '<span class="badge" style="background:rgba(30,158,90,.15);color:#1e9e5a">فعال</span>' : '<span style="font-size:11px;color:var(--text-muted)">—</span>'}</td>
+      <td style="white-space:nowrap">
+        ${!c.is_active ? `<button class="btn btn--outline" style="font-size:10.5px;padding:4px 10px" onclick="activateCard(${c.id})">فعال‌سازی</button>` : ''}
+        <button class="btn btn--outline" style="font-size:10.5px;padding:4px 10px;color:#c44" onclick="removeCard(${c.id})">حذف</button>
+      </td></tr>`).join('') : '<tr><td colspan="5">کارتی ثبت نشده.</td></tr>';
+}
+async function addCard() {
+  const cardNumber = document.getElementById('newCardNumber').value.trim();
+  const cardHolder = document.getElementById('newCardHolder').value.trim();
+  const bankName = document.getElementById('newCardBank').value.trim();
+  const msg = document.getElementById('cardMsg');
+  msg.style.display = 'none';
+  try {
+    await API.bankCards.add({ cardNumber, cardHolder, bankName });
+    document.getElementById('newCardNumber').value = '';
+    document.getElementById('newCardHolder').value = '';
+    document.getElementById('newCardBank').value = '';
+    await loadCards();
+    msg.style.display = 'block'; msg.style.color = '#2a7a2a'; msg.textContent = 'کارت اضافه شد.';
+  } catch (err) {
+    msg.style.display = 'block'; msg.style.color = '#c44'; msg.textContent = 'خطا — ' + (err.details || err.message);
+  }
+}
+async function activateCard(id) { await API.bankCards.activate(id); await loadCards(); }
+async function removeCard(id) {
+  if (!confirm('این کارت حذف شود؟')) return;
+  await API.bankCards.remove(id);
+  await loadCards();
+}
+async function toggleAutoRotate() {
+  await API.bankCards.setAutoRotate(document.getElementById('autoRotate').checked);
+}
+
+// ── Ticket PDF template ──
+async function loadTicketTemplate() {
+  const t = await API.settings.getTicketTemplate();
+  document.getElementById('ttTitle').value = t.title || '';
+  document.getElementById('ttSubtitle').value = t.subtitle || '';
+  document.getElementById('ttFooter').value = t.footer || '';
+  if (t.logo) {
+    const img = document.getElementById('ttLogoPreview');
+    img.src = '/' + t.logo;
+    img.style.display = 'block';
+  }
+}
+async function saveTicketTemplate() {
+  const msg = document.getElementById('ttMsg');
+  msg.style.display = 'none';
+  try {
+    const file = document.getElementById('ttLogoFile').files[0];
+    const fields = { title: document.getElementById('ttTitle').value.trim(), subtitle: document.getElementById('ttSubtitle').value.trim(), footer: document.getElementById('ttFooter').value.trim() };
+    if (file) fields.logo = await API.settings.uploadMedia(file, 'ticket_logo');
+    await API.settings.updateTicketTemplate(fields);
+    await loadTicketTemplate();
+    msg.style.display = 'block'; msg.style.color = '#2a7a2a'; msg.textContent = 'ذخیره شد.';
+  } catch (err) {
+    msg.style.display = 'block'; msg.style.color = '#c44'; msg.textContent = 'خطا — ' + (err.details || err.message);
+  }
+}
+
+function logout() { API.auth.logout(); location.href = 'login.html'; }
+addEventListener('DOMContentLoaded', init);
+</script>
+</body></html>
