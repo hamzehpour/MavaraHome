@@ -4,9 +4,9 @@ After=network.target
 
 [Service]
 Type=simple
+User=mavara
 WorkingDirectory=/opt/MavaraHome/bot
 EnvironmentFile=/opt/MavaraHome/bot/.env
-Environment=API_PORT=8788
 ExecStart=/opt/MavaraHome/bot/venv/bin/python -m api.server
 Restart=on-failure
 RestartSec=5
