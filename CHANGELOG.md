@@ -5,6 +5,37 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Waiting-list signup moved into the booking modal
+
+**Why:** joining the waiting list for a sold-out session was three
+stacked native `prompt()` dialogs, entirely outside the booking modal —
+a different, lower-quality flow for what's functionally a very similar
+action.
+
+- `joinWaitlist()` (three `prompt()` calls) replaced by
+  `selectWaitlistSession()`, which reuses the exact same modal and the
+  same picker → form → confirm → loading → result steps as a normal
+  booking — a new `__bk.mode` ('book' | 'waitlist') flag is the only
+  branch point. In waitlist mode: no quantity stepper, no payment/receipt
+  section (there's no confirmed seat to pay for), the summary card
+  explains what's happening ("این سانس تکمیل ظرفیت است؛ با ثبت‌نام در
+  لیست انتظار...") instead of showing a price breakdown, and the confirm
+  screen's title and button read "ثبت‌نام در لیست انتظار" instead of
+  "ثبت رزرو". The full-session check in the form step is skipped for
+  this mode specifically, since a full session is the very reason this
+  flow exists.
+- `confirmAndSubmit()` needed no branching at all beyond that — it already
+  called the one endpoint that lets the backend itself decide
+  waiting-vs-booked from real capacity, so the same submit path serves
+  both modes unchanged.
+- Verified with Playwright: no native `prompt()` fires anymore, the
+  waitlist button switches straight into the modal's form step with
+  quantity/payment correctly hidden, the confirm screen shows the right
+  title/button text and no receipt line, and the final result is the
+  waiting-list success message. A full normal-booking run (multi-date,
+  back navigation, edit, receipt upload) confirmed nothing regressed on
+  the shared code paths.
+
 ## Event page: Telegram/phone demoted to a support line, not a booking CTA
 
 **Why:** with real in-page booking live, showing "Book on Telegram" and

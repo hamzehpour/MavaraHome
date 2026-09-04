@@ -74,7 +74,9 @@ const I18N = {
     bk_no_receipt_note: 'برای نهایی‌شدن رزرو، رسید پرداخت را هر وقت آماده بود از طریق تلگرام برایمان بفرست.',
     bk_receipt_failed_note: 'رزروت ثبت شد، ولی ارسال رسید با خطا مواجه شد — لطفاً آن را از طریق تلگرام برایمان بفرست.',
     bk_back: 'بازگشت', bk_continue: 'ادامه', bk_edit: 'ویرایش',
-    bk_review_title: 'بازبینی اطلاعات رزرو', bk_no_receipt: 'بدون رسید پرداخت', bk_loading: 'در حال ثبت رزرو…',
+    bk_review_title: 'بازبینی اطلاعات رزرو', bk_review_title_waitlist: 'بازبینی ثبت‌نام در لیست انتظار',
+    bk_no_receipt: 'بدون رسید پرداخت', bk_loading: 'در حال ثبت رزرو…',
+    bk_waitlist_note: 'این سانس تکمیل ظرفیت است؛ با ثبت‌نام در لیست انتظار، در صورت آزاد شدن جا با شما تماس می‌گیریم.',
     support_prefix: 'در صورتی که سوال یا نیاز به پشتیبانی دارید، از طریق',
     support_tg_label: 'اکانت تلگرام خانه ماورا', support_phone_label: 'شماره موبایل ', support_and: ' یا ',
     support_suffix: ' با ما در ارتباط باشید.',
@@ -149,7 +151,9 @@ const I18N = {
     bk_no_receipt_note: "To finalize your reservation, send us the payment receipt on Telegram whenever it's ready.",
     bk_receipt_failed_note: "Your reservation is booked, but the receipt failed to upload — please send it to us on Telegram.",
     bk_back: 'Back', bk_continue: 'Continue', bk_edit: 'Edit',
-    bk_review_title: 'Review your reservation', bk_no_receipt: 'No receipt attached', bk_loading: 'Booking your reservation…',
+    bk_review_title: 'Review your reservation', bk_review_title_waitlist: 'Review your waiting list request',
+    bk_no_receipt: 'No receipt attached', bk_loading: 'Booking your reservation…',
+    bk_waitlist_note: "This session is full — join the waiting list and we'll reach out if a seat opens up.",
     support_prefix: 'If you have a question or need support, reach us via',
     support_tg_label: 'Mavara Home on Telegram', support_phone_label: 'the number ', support_and: ' or ',
     support_suffix: '.',
@@ -462,12 +466,19 @@ async function initEventDetail() {
    once. The reservation and the receipt upload still happen as two API
    calls under the hood (the backend has always kept them separate), but
    the buyer only sees one step and one button. */
-const __bk = { eventId: null, dateId: null, sessionId: null, qty: 1, eventObj: null, submitted: false };
+// __bk.mode: 'book' (normal reservation) or 'waitlist' (a full session's
+// "ثبت‌نام در لیست انتظار" button) — same form/confirm/loading/result
+// steps either way (see goToForm()/renderConfirm() below for the few
+// places they differ: no quantity/payment for a waitlist entry, and the
+// full-session check in handleFormContinue() doesn't apply to it). The
+// actual API call in confirmAndSubmit() is identical either way — the
+// backend already decides waiting-vs-booked from real capacity.
+const __bk = { eventId: null, dateId: null, sessionId: null, qty: 1, eventObj: null, submitted: false, mode: 'book' };
 
 function openBookingModal() {
   const e = __bk.eventObj;
   if (!e) return;
-  __bk.eventId = e.id; __bk.dateId = null; __bk.sessionId = null; __bk.qty = 1; __bk.submitted = false;
+  __bk.eventId = e.id; __bk.dateId = null; __bk.sessionId = null; __bk.qty = 1; __bk.submitted = false; __bk.mode = 'book';
   let overlay = document.getElementById('bkModalOverlay');
   if (!overlay) {
     overlay = document.createElement('div');
@@ -564,7 +575,7 @@ async function buildBooking(e) {
       </div>
     </form>
     <div id="bkConfirmBlock" style="display:none">
-      <div class="bk-label">${T('bk_review_title')}</div>
+      <div class="bk-label" id="bkConfirmTitle">${T('bk_review_title')}</div>
       <div id="bkConfirmBody" style="background:var(--bg-soft);border-radius:12px;padding:14px;font-size:13.5px;line-height:2;margin-bottom:18px"></div>
       <div style="display:flex;gap:10px">
         <button type="button" class="btn btn--outline" id="bkEditBtn">${T('bk_edit')}</button>
@@ -594,6 +605,11 @@ function goToForm() {
   document.getElementById('bkForm').style.display = 'block';
   document.getElementById('bkConfirmBlock').style.display = 'none';
   document.getElementById('bkFormError').style.display = 'none';
+  // A waiting-list entry has no quantity to pick and nothing to pay yet
+  // (there's no confirmed seat) — just name/phone/email.
+  const isWaitlist = __bk.mode === 'waitlist';
+  document.getElementById('bkQtyBlock').style.display = isWaitlist ? 'none' : 'block';
+  document.getElementById('bkPayment').style.display = isWaitlist ? 'none' : 'block';
 }
 function selectDate(dateIso, chip) {
   __bk.dateId = dateIso; __bk.sessionId = null; __bk.qty = 1;
@@ -623,12 +639,22 @@ function selectDate(dateIso, chip) {
     b.onclick = pick;
     b.onkeydown = (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); pick(); } };
   });
-  wrap.querySelectorAll('.bk-waitlist').forEach(b => b.onclick = (ev) => { ev.stopPropagation(); joinWaitlist(b.dataset.sid); });
+  wrap.querySelectorAll('.bk-waitlist').forEach(b => b.onclick = (ev) => { ev.stopPropagation(); selectWaitlistSession(b.dataset.sid); });
 }
 function selectSession(sessionId, btn) {
-  __bk.sessionId = sessionId; __bk.qty = 1;
+  __bk.sessionId = sessionId; __bk.qty = 1; __bk.mode = 'book';
   document.querySelectorAll('#bkSessions .bk-session').forEach(b => b.classList.toggle('active', b === btn));
   document.getElementById('bkQtyVal').textContent = '1';
+  renderSummary();
+  goToForm();
+}
+// Waiting-list signup for a full session — same modal, same form/confirm/
+// loading/result steps as a normal booking (see goToForm()/renderConfirm()
+// for the couple of things that differ in this mode), instead of the
+// three stacked prompt() dialogs this used to be.
+function selectWaitlistSession(sessionId) {
+  __bk.sessionId = sessionId; __bk.qty = 1; __bk.mode = 'waitlist';
+  document.querySelectorAll('#bkSessions .bk-session').forEach(b => b.classList.toggle('active', b.dataset.sid === String(sessionId)));
   renderSummary();
   goToForm();
 }
@@ -645,12 +671,17 @@ function renderSummary() {
   const s = API.sessions.get(__bk.eventId, __bk.sessionId); if (!s) return;
   const d = API.dates.forEvent(__bk.eventId).find(x => x.id === __bk.dateId);
   const event = API.events.get(__bk.eventId);
+  const el = document.getElementById('bkSummary');
+  el.style.display = 'block';
+  const head = `${esc(evTitle(event))} · ${esc(d ? d.jalali_date : '')} · <span dir="ltr">${esc(s.time)}</span>`;
+  if (__bk.mode === 'waitlist') {
+    el.innerHTML = `${head}<br><span style="color:var(--gold-deep);font-weight:600">${T('bk_waitlist_note')}</span>`;
+    return;
+  }
   const unitPrice = Number(event.price || 0);
   const total = __bk.qty * unitPrice;
   const currencyLabel = lang() === 'en' ? 'T' : (event.currency || 'تومان');
-  const el = document.getElementById('bkSummary');
-  el.style.display = 'block';
-  el.innerHTML = `${esc(evTitle(event))} · ${esc(d ? d.jalali_date : '')} · <span dir="ltr">${esc(s.time)}</span><br>${T('bk_qty')}: ${__bk.qty} · ${T('bk_each')}: ${unitPrice.toLocaleString(lang() === 'en' ? 'en-US' : 'fa-IR')}<br><strong style="color:var(--gold-deep)">${T('bk_total')}: ${total.toLocaleString(lang() === 'en' ? 'en-US' : 'fa-IR')} ${currencyLabel}</strong>`;
+  el.innerHTML = `${head}<br>${T('bk_qty')}: ${__bk.qty} · ${T('bk_each')}: ${unitPrice.toLocaleString(lang() === 'en' ? 'en-US' : 'fa-IR')}<br><strong style="color:var(--gold-deep)">${T('bk_total')}: ${total.toLocaleString(lang() === 'en' ? 'en-US' : 'fa-IR')} ${currencyLabel}</strong>`;
 }
 // Form submit ("ادامه") only validates and moves to the read-only recap —
 // it never calls the API itself. That happens once, in confirmAndSubmit(),
@@ -663,43 +694,58 @@ function handleFormContinue(ev) {
   // own validation UI stops the submit before this handler runs on an
   // empty or malformed value — nothing to duplicate here.
   const s = API.sessions.get(__bk.eventId, __bk.sessionId);
-  if (!s || API.sessions.isFull(s)) {
+  if (!s) { errBox.style.display = 'block'; errBox.textContent = T('bk_submit_error'); goToPicker(); return; }
+  // A full session is exactly the point of the waitlist flow — only a
+  // normal booking needs this check.
+  if (__bk.mode !== 'waitlist' && API.sessions.isFull(s)) {
     errBox.style.display = 'block'; errBox.textContent = T('bk_full_alert');
     goToPicker();
     return;
   }
-  const fileInput = document.getElementById('bkReceipt');
-  const file = fileInput && fileInput.files[0];
-  if (file) {
-    if (!file.type.startsWith('image/')) { errBox.style.display = 'block'; errBox.textContent = T('bk_file_type_error'); return; }
-    if (file.size > 1_500_000) { errBox.style.display = 'block'; errBox.textContent = T('bk_file_size_error'); return; }
+  if (__bk.mode !== 'waitlist') {
+    const fileInput = document.getElementById('bkReceipt');
+    const file = fileInput && fileInput.files[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) { errBox.style.display = 'block'; errBox.textContent = T('bk_file_type_error'); return; }
+      if (file.size > 1_500_000) { errBox.style.display = 'block'; errBox.textContent = T('bk_file_size_error'); return; }
+    }
   }
   goToConfirm();
 }
 function goToConfirm() {
   document.getElementById('bkForm').style.display = 'none';
   document.getElementById('bkConfirmBlock').style.display = 'block';
+  const isWaitlist = __bk.mode === 'waitlist';
+  document.getElementById('bkConfirmTitle').textContent = isWaitlist ? T('bk_review_title_waitlist') : T('bk_review_title');
+  document.getElementById('bkConfirmSubmit').textContent = isWaitlist ? T('bk_waitlist') : T('bk_confirm');
   renderConfirm();
 }
 function renderConfirm() {
   const s = API.sessions.get(__bk.eventId, __bk.sessionId);
   const d = API.dates.forEvent(__bk.eventId).find(x => x.id === __bk.dateId);
   const event = API.events.get(__bk.eventId);
-  const unitPrice = Number(event.price || 0);
-  const total = __bk.qty * unitPrice;
-  const currencyLabel = lang() === 'en' ? 'T' : (event.currency || 'تومان');
+  const isWaitlist = __bk.mode === 'waitlist';
   const name = document.getElementById('bkName').value.trim();
   const phone = document.getElementById('bkPhone').value.trim();
   const email = document.getElementById('bkEmail').value.trim();
-  const file = document.getElementById('bkReceipt').files[0];
+  let head;
+  if (isWaitlist) {
+    head = `${esc(evTitle(event))} · ${esc(d ? d.jalali_date : '')} · <span dir="ltr">${esc(s.time)}</span><br><span style="color:var(--gold-deep);font-weight:600">${T('bk_waitlist_note')}</span>`;
+  } else {
+    const unitPrice = Number(event.price || 0);
+    const total = __bk.qty * unitPrice;
+    const currencyLabel = lang() === 'en' ? 'T' : (event.currency || 'تومان');
+    head = `${esc(evTitle(event))} · ${esc(d ? d.jalali_date : '')} · <span dir="ltr">${esc(s.time)}</span><br>
+    ${T('bk_qty')}: ${__bk.qty} · <strong style="color:var(--gold-deep)">${T('bk_total')}: ${total.toLocaleString(lang() === 'en' ? 'en-US' : 'fa-IR')} ${currencyLabel}</strong>`;
+  }
+  const file = isWaitlist ? null : document.getElementById('bkReceipt').files[0];
   document.getElementById('bkConfirmBody').innerHTML = `
-    ${esc(evTitle(event))} · ${esc(d ? d.jalali_date : '')} · <span dir="ltr">${esc(s.time)}</span><br>
-    ${T('bk_qty')}: ${__bk.qty} · <strong style="color:var(--gold-deep)">${T('bk_total')}: ${total.toLocaleString(lang() === 'en' ? 'en-US' : 'fa-IR')} ${currencyLabel}</strong>
+    ${head}
     <hr style="border:none;border-top:1px solid var(--border);margin:10px 0">
     ${T('reserve_name')}: ${esc(name)}<br>
     ${T('reserve_phone')}: <span dir="ltr">${esc(phone)}</span><br>
-    ${T('reserve_email')}: <span dir="ltr">${esc(email)}</span><br>
-    ${T('pay_upload_label')}: ${file ? esc(file.name) : T('bk_no_receipt')}`;
+    ${T('reserve_email')}: <span dir="ltr">${esc(email)}</span>
+    ${isWaitlist ? '' : `<br>${T('pay_upload_label')}: ${file ? esc(file.name) : T('bk_no_receipt')}`}`;
 }
 async function confirmAndSubmit() {
   // Guards a double-fire (e.g. a fast double-click before the screen
@@ -711,8 +757,9 @@ async function confirmAndSubmit() {
   const name = document.getElementById('bkName').value.trim();
   const phone = document.getElementById('bkPhone').value.trim();
   const email = document.getElementById('bkEmail').value.trim();
+  // No receipt in waitlist mode — there's no confirmed seat to pay for yet.
   const fileInput = document.getElementById('bkReceipt');
-  const file = fileInput && fileInput.files[0];
+  const file = __bk.mode === 'waitlist' ? null : (fileInput && fileInput.files[0]);
 
   document.getElementById('bkConfirmBlock').style.display = 'none';
   document.getElementById('bkLoading').style.display = 'block';
@@ -771,25 +818,6 @@ function showResult(html) {
   const box = document.getElementById('bookingWidget');
   if (box) box.innerHTML = `<div class="bk-form-msg bk-form-msg--success">${html}</div>`;
 }
-async function joinWaitlist(sid) {
-  const name = prompt(T('reserve_name')) || '';
-  const phone = prompt(T('reserve_phone')) || '';
-  const email = prompt(T('reserve_email')) || '';
-  if (!name || !phone || !email) return;
-  let record;
-  try {
-    // The backend automatically routes to the waiting list when the
-    // session is full — same atomic check as a normal booking, no
-    // separate "waiting" status invented on the frontend.
-    record = await API.reservations.create({ session_id: sid, phone, full_name: name, email, people: 1 });
-  } catch {
-    const errBox = document.getElementById('bkFormError');
-    if (errBox) { errBox.style.display = 'block'; errBox.textContent = T('bk_submit_error'); }
-    return;
-  }
-  showResult(record.waiting ? T('bk_waitlist_done') : (T('bk_done') + ' #' + record.id));
-}
-
 function submitFeedback(eventId) {
   const name = document.getElementById('fbName').value.trim() || '—';
   const text = document.getElementById('fbText').value.trim();
