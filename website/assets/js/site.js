@@ -7,11 +7,11 @@
 function pp(p) {
   const inPages = location.pathname.includes('/pages/');
   if (p.startsWith('http')) return p;
-  // Pre-existing gap (not introduced here): pp('index.html') was returned
-  // unprefixed even when called from a page inside /pages/, so the site
-  // logo / "home" link 404'd from every non-home page. One targeted line,
-  // not a pp() rewrite — everything else below is unchanged.
-  if (p === 'index.html') return inPages ? '../index.html' : p;
+  // The logo/"home" link should land on the bare domain (mavarahome.com/),
+  // not an explicit .../index.html — a relative path can't do that from
+  // every page depth at once, but the site root is always just "/",
+  // regardless of how deep the current page is.
+  if (p === 'index.html') return '/';
   if (inPages && p.startsWith('assets/')) return '../' + p;
   if (inPages && p.startsWith('pages/')) return p.replace('pages/', '');
   // Uploaded media (poster/gallery/video/team photos) comes back from the
