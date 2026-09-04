@@ -7,7 +7,7 @@ from utils.template_renderer import render_template
 EDITABLE_SETTINGS = {
     "brand_name": "نام مجموعه",
     "welcome_message": "پیام خوش‌آمدگویی",
-    "ticket_price": "قیمت هر بلیت (تومان)",
+    "ticket_price": "قیمت پیش‌فرض بلیت (تومان) — فقط برای رویدادهایی که قیمت اختصاصی ندارند (قیمت هر رویداد را از صفحه «رویدادها» تنظیم کن)",
     "max_tickets_per_person": "حداکثر بلیت هر نفر",
     "rules_text": "متن قوانین",
     "support_contact": "شماره/آیدی پشتیبانی",

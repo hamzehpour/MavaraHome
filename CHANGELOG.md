@@ -5,6 +5,48 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Per-event ticket price now editable from the events admin page
+
+**Why:** reported — the settings page's "قیمت هر بلیت" (ticket price)
+lived under general settings, implying one global price, but pricing is
+really per-event (`event_service.get_effective_price()` already checked
+each event's own `ticket_price` column before falling back to the
+settings default — the backend always supported this) and the events
+admin page had no field to actually set it. So every event was silently
+using the global default; there was no way to give one event its own
+price without editing the database directly.
+
+- `website/pages/admin/events.html`: new "قیمت اختصاصی بلیط این رویداد"
+  field on the event form. Empty = no override, falls back to the
+  settings-page default; a number = this event's own price. Round-trips
+  correctly through create, edit, and clearing back to empty.
+- `_event_public()` (api/server.py) now also returns the raw, nullable
+  `ticket_price` column alongside the existing resolved `price` — the
+  admin editor needs to tell "no override" apart from "this event's
+  price happens to equal today's default", which the resolved value
+  alone can't distinguish.
+- The create endpoint's wire field for this was inconsistently named
+  `price`; PATCH (which forwards raw field names to the DB column
+  whitelist) already expected `ticket_price`. Create now accepts
+  `ticket_price` primarily (matching PATCH and the DB column), keeping
+  `price` only as a fallback so nothing that already sent it breaks.
+- Relabeled the settings-page field to "قیمت پیش‌فرض بلیت... فقط برای
+  رویدادهایی که قیمت اختصاصی ندارند" so it reads as a fallback default,
+  not "the" price.
+
+Found in passing, not fixed (out of scope of this request, flagging for
+later): `DELETE /api/v1/admin/events/<id>` has no backend route at all —
+the events page's 🗑️ delete button calls it and gets a 404. Pre-existing,
+unrelated to this change.
+
+Verified locally: created an event with a custom price (both `price` and
+`ticket_price` correctly 777000 in the response) and one without (falls
+back to the global default, `ticket_price` correctly null); cleared a
+previously-set price via PATCH and confirmed it reverts to the default;
+full Playwright pass through the actual admin UI — create with a price,
+reopen and see it prefilled, clear it, reopen and see it empty — zero
+console errors.
+
 ## "Maximal admin independence," phase 3 — site content + brand images
 
 **Why:** the last two pieces of the original story — "اطلاعات فیکس روی

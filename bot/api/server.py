@@ -153,7 +153,15 @@ def _event_public(e: dict) -> dict:
         "id": e["id"], "title": e["title"], "title_en": e.get("title_en"),
         "description": e.get("description"), "description_en": e.get("description_en"),
         "icon": e.get("icon"), "is_active": bool(e["is_active"]), "calendar_type": e.get("calendar_type"),
-        "price": price, "currency": currency,
+        # "price"/"currency" are the RESOLVED price shown to customers —
+        # this event's own price if it has one, else the settings-page
+        # default (see event_service.get_effective_price()). "ticket_price"
+        # is the raw, nullable column underneath — None means "no custom
+        # price, using the default" — which the admin events editor needs
+        # to tell apart from "this event's real price happens to equal
+        # today's default", so it can show an empty field instead of a
+        # number that looks like a deliberate override.
+        "price": price, "currency": currency, "ticket_price": e.get("ticket_price"),
         "address": e.get("address"), "location": e.get("location"), "location_en": e.get("location_en"),
         "poster": e.get("poster"), "gallery": gallery, "video": e.get("video"),
         "contact_phone": e.get("contact_phone"), "contact_telegram": e.get("contact_telegram"),
@@ -1011,7 +1019,13 @@ class Handler(BaseHTTPRequestHandler):
                 create_kwargs = dict(
                     title=title, description=body.get("description", ""),
                     icon=body.get("icon", "🎭"), calendar_type=body.get("calendar_type", "jalali"),
-                    address=body.get("address", ""), ticket_price=body.get("price"),
+                    address=body.get("address", ""),
+                    # "ticket_price" is the primary wire name (matches the
+                    # PATCH endpoint below, which forwards raw field names
+                    # straight to update_event_fields()'s column whitelist)
+                    # — "price" is kept as a fallback only because it used
+                    # to be the only name accepted here.
+                    ticket_price=body.get("ticket_price", body.get("price")),
                     currency=body.get("currency", "تومان"),
                     date=body.get("date"), status=body.get("status"),
                     tags=json.dumps(body["tags"], ensure_ascii=False) if isinstance(body.get("tags"), list) else None,

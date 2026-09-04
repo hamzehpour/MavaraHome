@@ -19,6 +19,9 @@
         <div class="form-row"><div><label>وضعیت</label><select id="evStatus"><option value="ongoing">در حال اجرا</option><option value="upcoming">به‌زودی</option><option value="archived">آرشیو</option></select></div><div><label>تاریخ/زمان (متن آزاد)</label><input id="evDate" placeholder="مثلاً: پنجشنبه‌ها، ساعت ۲۰"></div></div>
         <label>توضیح فارسی</label><textarea id="evDesc"></textarea><label>توضیح انگلیسی</label><textarea id="evDescEn"></textarea>
         <div class="form-row"><div><label>مکان فارسی</label><input id="evLoc"></div><div><label>مکان انگلیسی</label><input id="evLocEn"></div></div>
+        <label>قیمت اختصاصی بلیط این رویداد (تومان)</label>
+        <input type="number" id="evPrice" min="0" placeholder="خالی بگذار تا قیمت پیش‌فرض تنظیمات استفاده شود">
+        <p style="font-size:11.5px;color:var(--text-muted);margin:2px 0 10px">هر رویداد می‌تواند قیمت خودش را داشته باشد؛ اگر خالی بماند، قیمت پیش‌فرض از تنظیمات کلی گرفته می‌شود.</p>
         <label>برچسب‌ها (با کاما جدا کنید)</label>
         <input id="evTags" placeholder="مثلاً: تئاتر, گفتگو">
         <label style="margin-top:14px">تلفن رزرو</label>
@@ -106,6 +109,11 @@ function editEv(id) {
     document.getElementById('evDescEn').value = e.description_en||'';
     document.getElementById('evLoc').value = e.location||'';
     document.getElementById('evLocEn').value = e.location_en||'';
+    // e.ticket_price is the raw per-event column (null = no override) —
+    // NOT e.price, which is always a resolved number (this event's price
+    // if set, else today's global default) and would make an event with
+    // no override look like it deliberately has today's default baked in.
+    document.getElementById('evPrice').value = e.ticket_price != null ? e.ticket_price : '';
     document.getElementById('evTags').value = Array.isArray(e.tags) ? e.tags.join(', ') : '';
     document.getElementById('evPhone').value = e.contact_phone||'';
     document.getElementById('evTel').value = e.contact_telegram||'';
@@ -178,6 +186,9 @@ async function save(e) { e.preventDefault();
         description: document.getElementById('evDesc').value, description_en: document.getElementById('evDescEn').value,
         location: document.getElementById('evLoc').value, location_en: document.getElementById('evLocEn').value,
         tags: tags,
+        // Empty field -> null -> event falls back to the global default
+        // price (see event_service.get_effective_price()), not 0.
+        ticket_price: document.getElementById('evPrice').value ? Number(document.getElementById('evPrice').value) : null,
         contact_phone: document.getElementById('evPhone').value, contact_telegram: document.getElementById('evTel').value,
         poster: evPoster, gallery: evGallery, video: videoField || evVideo || null,
     };
