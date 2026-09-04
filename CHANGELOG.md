@@ -5,6 +5,17 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Fixed: deploy/mavara-bot.service and mavara-api.service pointed at a stale path
+
+Both templates still said `/opt/mavara-bot` / `User=mavara` — the
+production server actually runs everything under `/opt/MavaraHome/bot`
+as root (confirmed via `systemctl show mavara-api` on the real deploy).
+mavara-api.service's installed copy on the server was already correct
+(someone fixed it there without updating this repo's copy); this brings
+both templates in line with reality so `mavara-bot.service` can actually
+be installed from this repo directly, and future reference to either
+file isn't misleading.
+
 ## Instant Telegram channel alert for new reservations + waitlist entries
 
 **Why:** requested — admins wanted to know about a new reservation

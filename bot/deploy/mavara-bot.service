@@ -4,10 +4,9 @@ After=network.target
 
 [Service]
 Type=simple
-User=mavara
-WorkingDirectory=/opt/mavara-bot
-EnvironmentFile=/opt/mavara-bot/.env
-ExecStart=/opt/mavara-bot/venv/bin/python bot.py
+WorkingDirectory=/opt/MavaraHome/bot
+EnvironmentFile=/opt/MavaraHome/bot/.env
+ExecStart=/opt/MavaraHome/bot/venv/bin/python bot.py
 Restart=on-failure
 RestartSec=5
 
