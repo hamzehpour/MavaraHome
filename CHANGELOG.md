@@ -5,6 +5,39 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Fixed: mobile nav menu collapsed into a sliver, bled over the page
+
+**Why:** reported with a real phone screenshot on `account.html` —
+opening the mobile hamburger menu showed nav links scattered over the
+page content with no solid background behind them, overlapping the
+page's own text, instead of a normal full-screen menu.
+
+- **Root cause, confirmed by direct measurement (not guessed)**: the
+  mobile nav overlay is `.nav-links{position:fixed;inset:0}` — meant to
+  cover the whole viewport. Its ancestor `.site-header` has
+  `backdrop-filter:blur(22px)`, and `backdrop-filter` (like `filter` and
+  `transform`) makes an element a *containing block* for any
+  `position:fixed` descendant. So `inset:0` was resolving against
+  `.site-header`'s own ~52px-tall box, not the viewport — squeezing the
+  full-screen menu into that sliver; its flex children then visually
+  overflowed that box (no `overflow:hidden` on it) and rendered on top
+  of the page underneath, with no real backdrop behind them, exactly
+  matching the screenshot.
+- **Fix**: `.site-header:has(.nav-links.open){backdrop-filter:none}` —
+  drops the header's backdrop-filter only while the mobile menu is open,
+  removing the containing block so `.nav-links` covers the actual
+  viewport again. CSS-only; `.nav-links.open` was already the existing
+  toggle's single source of truth for "menu is open," so no JS change
+  needed.
+- **Verified** with Playwright: measured `.nav-links`' rendered height
+  go from 52px (bug) to the full 844px viewport height (fixed) the
+  moment the CSS rule was added; confirmed the header's backdrop-filter
+  correctly restores on close; reproduced the exact scenario from the
+  report (account.html, scrolled, menu open) and confirmed a clean
+  full-screen menu; confirmed desktop's `.nav-links` (`position:static`,
+  inline flex row) is completely untouched — the rule only ever applies
+  inside the same 768px mobile media query the broken behavior lived in.
+
 ## Homepage: active events moved up, founder bio card removed
 
 **Why:** get a visitor to what's actually on right now faster, without

@@ -111,6 +111,21 @@ body::before{
   transition:background .4s var(--ease),box-shadow .4s var(--ease);
 }
 .site-header.scrolled{background:rgba(245,238,223,0.94);box-shadow:0 10px 34px rgba(14,25,43,0.10)}
+/* Bug fix: `backdrop-filter` on this element makes it a containing block
+   for any `position:fixed` descendant (same rule as `filter`/`transform`)
+   — so the mobile nav overlay's `.nav-links{position:fixed;inset:0}`
+   (below, in the 768px media query) was resolving `inset:0` against
+   *this header's own ~52px-tall box*, not the viewport, squeezing the
+   whole full-screen menu into that sliver and letting it bleed over the
+   page underneath with no real backdrop. Dropping backdrop-filter here
+   only while the mobile menu is open removes that containing block, so
+   `.nav-links` covers the actual viewport again. Confirmed by measuring
+   .nav-links' rendered height drop from the viewport height to exactly
+   the header's own height the moment `backdrop-filter` was present.
+   `:has()` keeps this CSS-only — no JS state duplication needed since
+   `.nav-links.open` is already the single source of truth for "menu is
+   open" that the existing hamburger-toggle script maintains. */
+.site-header:has(.nav-links.open){backdrop-filter:none;-webkit-backdrop-filter:none}
 .header-inner{
   display:flex;align-items:center;justify-content:space-between;
   padding:11px 0;max-width:1100px;margin:0 auto;padding-inline:20px;
