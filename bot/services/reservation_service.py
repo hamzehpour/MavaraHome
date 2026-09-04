@@ -343,15 +343,124 @@ def admin_move_reservation(reservation_id: int, new_session_id: int) -> dict:
 
 def approve_overflow_atomic(session_id: int, user_id: int, people: int) -> dict:
     """Grows capacity and creates the reservation in one transaction (see
-    reservations_repo.increase_capacity_and_reserve_locked)."""
-    unit_price = settings_service.get_ticket_price()
+    reservations_repo.increase_capacity_and_reserve_locked).
+
+    Prices at the session's own event's effective price (event_service.
+    get_effective_price — per-event override, falling back to the global
+    default), not unconditionally the global default price as before:
+    an overflow-approved seat for an event with its own custom
+    ticket_price was being charged the wrong amount, since this path
+    predates per-event pricing and was never updated for it."""
+    from database.repositories import events as events_repo
+    from services import event_service
+
+    session = sessions_repo.get_session(session_id)
+    event = events_repo.get_event(session["event_id"]) if session else None
+    unit_price, currency = (
+        event_service.get_effective_price(event) if event else (settings_service.get_ticket_price(), "تومان")
+    )
     result = reservations_repo.increase_capacity_and_reserve_locked(
         session_id=session_id, user_id=user_id, people=people,
         unit_price=unit_price, capacity_increase=people,
         expires_at=_expiry_timestamp(),
     )
     result["unit_price"] = unit_price
+    result["currency"] = currency
     return result
+
+
+def list_pending_waitlist() -> list[dict]:
+    """Every waiting-list entry across every event/session, for the
+    website admin panel — see waitlist_repo.list_all()'s docstring for
+    why this differs from the Telegram bot's per-session "overflow
+    request" prompt (which only ever surfaces one entry as it happens,
+    and only to admins in a Telegram chat)."""
+    return waitlist_repo.list_all("waiting")
+
+
+def approve_waitlist_entry(waitlist_id: int, reviewed_by: int) -> dict:
+    """Admin approves a waiting-list entry from the website: grows the
+    session's capacity and creates a real pending_payment reservation for
+    that buyer (approve_overflow_atomic — the exact same atomic operation
+    the Telegram "overflow approve" button already used), then tells the
+    buyer a seat is theirs.
+
+    Notification is email-first, unlike the Telegram-only flow this
+    reuses: a website waiting-list signup may well have no Telegram
+    account at all (get_or_create_customer resolves by email), so email
+    is the one channel guaranteed to reach them. If they DO have a
+    linked Telegram account, a message is also queued via bot_outbox —
+    best-effort, and NOT equivalent to the Telegram-native flow's FSM
+    trick (that requires the bot process's own in-memory dispatcher
+    state, unreachable from here): the buyer is simply told what to do
+    next, not auto-armed to have their next photo picked up as a receipt.
+    """
+    entry = waitlist_repo.get_entry_with_context(waitlist_id)
+    if not entry or entry["status"] != "waiting":
+        return {"success": False, "error": "not_found"}
+    if not waitlist_repo.set_status_if(waitlist_id, "waiting", "converted"):
+        return {"success": False, "error": "already_processed"}
+
+    result = approve_overflow_atomic(session_id=entry["session_id"], user_id=entry["user_id"], people=entry["people"])
+    if not result.get("success"):
+        # Nothing was actually created — don't leave the waitlist entry
+        # stuck as "converted" with no reservation behind it.
+        waitlist_repo.set_status(waitlist_id, "waiting")
+        return {"success": False, "error": "reservation_failed"}
+
+    reservation = reservations_repo.get_reservation(result["reservation_id"])
+    ctx = _email_context_for_reservation(reservation)
+    card_number = settings_service.get_active_card_number()
+    card_holder = settings_service.get_active_card_holder()
+    payment_line = f"شماره کارت: {card_number}" + (f" — به نام {card_holder}" if card_holder else "") if card_number else "برای دریافت شماره کارت با ما در تلگرام تماس بگیرید."
+    _notify_customer_by_email(
+        reservation,
+        subject=f"ظرفیت رزرو {ctx['event_title']} برایت باز شد",
+        body=(
+            f"خبر خوب! یک جا برای «{ctx['event_title']}» ({ctx['session_date']} - {ctx['session_time']}) "
+            "کنار گذاشتیم.\n\n"
+            f"{payment_line}\n\n"
+            "برای نهایی‌شدن رزرو، رسید پرداخت را از طریق تلگرام خانه ماورا برایمان بفرست."
+        ),
+    )
+    if entry.get("telegram_id"):
+        from database.repositories import bot_outbox as outbox_repo
+        from texts import fa
+        outbox_repo.enqueue(entry["telegram_id"], fa.OVERFLOW_APPROVED_BUYER_MSG)
+        outbox_repo.enqueue(entry["telegram_id"], payment_line)
+        outbox_repo.enqueue(entry["telegram_id"], fa.ASK_RECEIPT_PHOTO)
+
+    result["waitlist_id"] = waitlist_id
+    return result
+
+
+def reject_waitlist_entry(waitlist_id: int, reviewed_by: int) -> dict:
+    """Admin declines a waiting-list entry — no seat opened up. Same
+    email-first / best-effort-Telegram notification shape as
+    approve_waitlist_entry()."""
+    entry = waitlist_repo.get_entry_with_context(waitlist_id)
+    if not entry or entry["status"] != "waiting":
+        return {"success": False, "error": "not_found"}
+    if not waitlist_repo.set_status_if(waitlist_id, "waiting", "rejected"):
+        return {"success": False, "error": "already_processed"}
+
+    user = users_repo.get_by_id(entry["user_id"])
+    if user and user.get("email"):
+        from utils.email_sender import send_email
+        send_email(
+            to=user["email"],
+            subject="لیست انتظار رزرو",
+            body=(
+                "متاسفانه برای این سانس ظرفیتی آزاد نشد.\n\n"
+                "می‌تونی سانس دیگری از همین رویداد را رزرو کنی، یا از طریق تلگرام خانه ماورا با ما در تماس باشی."
+            ),
+        )
+    if entry.get("telegram_id"):
+        from database.repositories import bot_outbox as outbox_repo
+        from texts import fa
+        outbox_repo.enqueue(entry["telegram_id"], fa.OVERFLOW_REJECTED_BUYER_MSG)
+
+    return {"success": True}
 
 
 def admin_cancel_reservation(reservation_id: int) -> None:

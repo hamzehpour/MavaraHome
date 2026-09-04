@@ -37,6 +37,7 @@ from services import event_service, reservation_service, settings_service, custo
 from database.repositories import events as events_repo
 from database.repositories import sessions as sessions_repo
 from database.repositories import reservations as reservations_repo
+from database.repositories import waitlist as waitlist_repo
 from database.repositories import users as users_repo
 from database.repositories import portfolio as portfolio_repo
 from database.repositories import logs as logs_repo
@@ -203,6 +204,20 @@ def _reservation_public(r: dict) -> dict:
         "buyer_name": r.get("buyer_name"), "buyer_phone": r.get("buyer_phone"),
         "event_id": r.get("event_id"), "event_title": r.get("event_title"),
         "session_date": r.get("session_date"), "session_time": r.get("session_time"),
+    }
+
+
+def _waitlist_public(w: dict) -> dict:
+    from utils.jalali import display_date_for_event
+    return {
+        "id": w["id"], "people": w["people"], "status": w.get("status"),
+        "created_at": w.get("created_at"),
+        "buyer_name": w.get("buyer_name"), "buyer_phone": w.get("buyer_phone"),
+        "buyer_email": w.get("buyer_email"),
+        "session_id": w.get("session_id"),
+        "session_date": display_date_for_event(w["session_date"], w.get("calendar_type", "jalali")),
+        "session_time": w.get("session_time"), "capacity": w.get("capacity"),
+        "event_id": w.get("event_id"), "event_title": w.get("event_title"),
     }
 
 
@@ -423,6 +438,18 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send_json(401, {"error": "unauthorized"})
                 rows = reservations_repo.list_recent(limit=200)
                 return self._send_json(200, {"data": [_reservation_public(r) for r in rows]})
+
+            if path == "/api/v1/admin/waitlist":
+                # Waiting-list entries never made it into `reservations` at
+                # all (see waitlist_repo — a full session doesn't insert a
+                # row there), so they were invisible to the admin website
+                # entirely until this endpoint existed, with no
+                # notification either. See reservation_service.
+                # list_pending_waitlist()'s docstring for the fuller story.
+                if not self._is_admin():
+                    return self._send_json(401, {"error": "unauthorized"})
+                rows = reservation_service.list_pending_waitlist()
+                return self._send_json(200, {"data": [_waitlist_public(r) for r in rows]})
 
             m = re.match(r"^/api/v1/admin/reservations/(\d+)/receipt$", path)
             if m:
@@ -764,6 +791,31 @@ class Handler(BaseHTTPRequestHandler):
                 reservation_service.reject_reservation(reservation_id, reviewed_by=admin_payload["admin_id"], reason=reason)
                 reservation = reservations_repo.get_reservation(reservation_id)
                 return self._send_json(200, {"data": _reservation_public(reservation)})
+
+            m = re.match(r"^/api/v1/admin/waitlist/(\d+)/approve$", path)
+            if m:
+                admin_payload = self._get_admin_payload()
+                if not admin_payload:
+                    return self._send_json(401, {"error": "unauthorized"})
+                waitlist_id = int(m.group(1))
+                result = reservation_service.approve_waitlist_entry(waitlist_id, reviewed_by=admin_payload["admin_id"])
+                if not result.get("success"):
+                    status = 409 if result.get("error") == "already_processed" else 400
+                    return self._send_json(status, {"error": result.get("error", "failed")})
+                reservation = reservations_repo.get_reservation(result["reservation_id"])
+                return self._send_json(200, {"data": _reservation_public(reservation)})
+
+            m = re.match(r"^/api/v1/admin/waitlist/(\d+)/reject$", path)
+            if m:
+                admin_payload = self._get_admin_payload()
+                if not admin_payload:
+                    return self._send_json(401, {"error": "unauthorized"})
+                waitlist_id = int(m.group(1))
+                result = reservation_service.reject_waitlist_entry(waitlist_id, reviewed_by=admin_payload["admin_id"])
+                if not result.get("success"):
+                    status = 409 if result.get("error") == "already_processed" else 400
+                    return self._send_json(status, {"error": result.get("error", "failed")})
+                return self._send_json(200, {"data": {"success": True}})
 
             if path == "/api/v1/admin/reservations/bulk-approve":
                 admin_payload = self._get_admin_payload()

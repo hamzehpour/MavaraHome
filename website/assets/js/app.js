@@ -194,6 +194,15 @@ const API = {
       window.open(URL.createObjectURL(blob), '_blank');
     },
   },
+  // Waiting-list entries never made it into `reservations` at all (a
+  // full session doesn't insert a row there — see database/repositories/
+  // waitlist.py on the backend), so they're a separate list with their
+  // own approve/reject actions, not just another filter on reservations.
+  waitlist: {
+    async allAdmin() { return apiFetchAdmin('/admin/waitlist'); },
+    async approve(id) { return apiFetchAdmin(`/admin/waitlist/${id}/approve`, { method: 'POST' }); },
+    async reject(id) { return apiFetchAdmin(`/admin/waitlist/${id}/reject`, { method: 'POST' }); },
+  },
   paymentInfo: {
     async get() { return apiFetch('/payment-info'); },
   },

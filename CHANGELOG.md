@@ -5,6 +5,57 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Waiting-list admin: a new website admin page, and a real gap it closes
+
+**Why:** asked "where can I see waiting-list reservations in admin?" —
+the honest answer was nowhere. A full session's waiting-list entry has
+never gone into the `reservations` table at all (a separate
+`waiting_list` table always held it), so the website admin's
+reservations page — which only ever reads `reservations` — could never
+show them. The only existing management path was Telegram-only: an
+inline "approve/reject" prompt sent to admins with the right permission,
+which messages the buyer back over Telegram. A website-originated
+waiting-list signup (this session's own earlier feature) triggered none
+of that — no Telegram prompt, no email, nothing — the request was
+created and then effectively invisible to every admin.
+
+- **New `website/pages/admin/waitlist.html`** (+ sidebar link on all six
+  existing admin pages): every pending waiting-list entry, across every
+  event/session, with buyer name/phone/email, event/session, and
+  Approve/Reject actions. Approve grows that session's capacity by one
+  and creates a real `pending_payment` reservation for the buyer — same
+  atomic `approve_overflow_atomic()` operation the Telegram flow already
+  used.
+- **New backend**: `waitlist_repo.list_all()`, `reservation_service.
+  list_pending_waitlist()/approve_waitlist_entry()/reject_waitlist_entry()`,
+  and `GET/POST /api/v1/admin/waitlist...` endpoints (mirroring the
+  existing reservation admin endpoints' auth/response shape). No schema
+  change — `waiting_list` already had everything needed.
+- **Notification is email-first**, not Telegram-first like the existing
+  flow: a website waiting-list buyer may have no Telegram account at all
+  (identity resolves by email). They always get an email on approve/
+  reject; if they *do* have a linked Telegram account, a best-effort
+  message is also queued via `bot_outbox` — though unlike the Telegram-
+  native flow, this can't arm the buyer's bot FSM to auto-attach their
+  next photo as a receipt (that requires the bot process's own in-memory
+  state, unreachable from a separate API process) — the message just
+  tells them what to do next.
+- **Real pricing bug fixed in the same function this reuses**:
+  `approve_overflow_atomic()` always priced the new seat at the global
+  default ticket price, ignoring any per-event custom price — predates
+  per-event pricing and was never updated for it. Now uses the session's
+  own event's effective price, benefiting the existing Telegram overflow-
+  approval flow too, not just this new one.
+- **Verified** end-to-end: seeded real waiting-list entries (including
+  one behind a session actually at capacity), logged in as admin,
+  approved one (confirmed via direct DB read: waiting_list status
+  'converted', a real `pending_payment` reservation created at the
+  correct per-event price, session capacity incremented by the right
+  amount, and the plain-text approval email printed to the log with
+  correct content) and rejected another (status 'rejected', rejection
+  email printed) — all through the real admin UI, not by calling the
+  service functions directly.
+
 ## Waiting-list signup moved into the booking modal
 
 **Why:** joining the waiting list for a sold-out session was three

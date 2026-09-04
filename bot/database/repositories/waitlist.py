@@ -36,6 +36,32 @@ def list_for_session(session_id: int) -> list[dict]:
         return [dict(r) for r in rows]
 
 
+def list_all(status: str = "waiting") -> list[dict]:
+    """Across every event/session — the admin website's own waiting-list
+    view (unlike the Telegram bot's per-session "overflow request"
+    prompt, which only ever surfaces one entry at a time as it happens).
+    Joined with buyer + session + event details so the admin list has
+    everything it needs in one call, same reasoning as
+    reservations_repo.list_recent()."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT w.*, u.full_name AS buyer_name, u.phone AS buyer_phone,
+                   u.email AS buyer_email, u.telegram_id,
+                   s.session_date, s.session_time, s.capacity,
+                   e.id AS event_id, e.title AS event_title, e.calendar_type
+            FROM waiting_list w
+            JOIN users u ON u.id = w.user_id
+            JOIN sessions s ON s.id = w.session_id
+            JOIN events e ON e.id = s.event_id
+            WHERE w.status = ?
+            ORDER BY w.created_at
+            """,
+            (status,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
 def set_status(entry_id: int, status: str) -> None:
     with get_connection() as conn:
         conn.execute("UPDATE waiting_list SET status = ? WHERE id = ?", (status, entry_id))
