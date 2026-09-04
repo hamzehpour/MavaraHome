@@ -75,6 +75,9 @@ const I18N = {
     bk_receipt_failed_note: 'رزروت ثبت شد، ولی ارسال رسید با خطا مواجه شد — لطفاً آن را از طریق تلگرام برایمان بفرست.',
     bk_back: 'بازگشت', bk_continue: 'ادامه', bk_edit: 'ویرایش',
     bk_review_title: 'بازبینی اطلاعات رزرو', bk_no_receipt: 'بدون رسید پرداخت', bk_loading: 'در حال ثبت رزرو…',
+    support_prefix: 'در صورتی که سوال یا نیاز به پشتیبانی دارید، از طریق',
+    support_tg_label: 'اکانت تلگرام خانه ماورا', support_phone_label: 'شماره موبایل ', support_and: ' یا ',
+    support_suffix: ' با ما در ارتباط باشید.',
     pay_title: 'پرداخت (کارت به کارت)', pay_upload_label: 'رسید پرداخت (اختیاری)',
     pay_upload_hint: 'اگر رسید را همین حالا داری، آپلودش کن؛ در غیر این صورت می‌تونی بعداً از تلگرام برایمان بفرستی.',
     pay_ok: 'رسید پرداختت هم دریافت شد؛ پس از بررسی ادمین، تاییدیه‌ی نهایی به ایمیلت ارسال می‌شود.',
@@ -147,6 +150,9 @@ const I18N = {
     bk_receipt_failed_note: "Your reservation is booked, but the receipt failed to upload — please send it to us on Telegram.",
     bk_back: 'Back', bk_continue: 'Continue', bk_edit: 'Edit',
     bk_review_title: 'Review your reservation', bk_no_receipt: 'No receipt attached', bk_loading: 'Booking your reservation…',
+    support_prefix: 'If you have a question or need support, reach us via',
+    support_tg_label: 'Mavara Home on Telegram', support_phone_label: 'the number ', support_and: ' or ',
+    support_suffix: '.',
     pay_title: 'Payment (bank transfer)', pay_upload_label: 'Payment receipt (optional)',
     pay_upload_hint: 'Upload it now if you have it — or send it to us on Telegram later.',
     pay_ok: "Receipt received too — you'll get a confirmation email once it's reviewed.",
@@ -393,21 +399,31 @@ async function initEventDetail() {
 
   // Reservation-migration phase 3: booking happens right here now (same
   // backend, same database the Telegram bot itself uses — see
-  // buildBooking() below) instead of only handing off to Telegram/phone.
-  // The direct-contact buttons stay as a fallback underneath — an event
-  // with no sessions defined yet, or an admin who just prefers handling
-  // it personally for one event, both still work exactly as before.
-  const directContact = (e.contact_phone || e.contact_telegram)
-    ? `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:14px">
-        ${e.contact_telegram ? `<a class="btn btn--outline" href="https://t.me/${esc(e.contact_telegram)}" target="_blank">${T('book_tg')}</a>` : ''}
-        ${e.contact_phone ? `<a class="btn btn--outline" href="tel:${esc(e.contact_phone)}" dir="ltr">${ICON_PIN.replace('stroke-width="1.8"', 'stroke-width="2"')} ${esc(e.contact_phone)}</a>` : ''}
-      </div>`
-    : '';
+  // buildBooking() below), so Telegram/phone are no longer booking
+  // options sitting next to the real one at equal visual weight — they
+  // demoted to a low-key "support" line further down the page instead
+  // (see supportHTML below), for questions rather than as another way to
+  // book.
   const bookingCta = `<div>
       <h3 style="font-weight:700;margin-bottom:10px;color:var(--navy)">${T('reserve_title')}</h3>
       <button class="btn btn--gold" type="button" id="bkOpenBtn">${T('bk_book_now')}</button>
-      ${directContact}
     </div>`;
+
+  // Low-hierarchy support line — plain text, not a button, and only as
+  // far down as the feedback box, not next to the booking CTA where it'd
+  // compete with it. Omitted entirely when the event has neither contact
+  // set (nothing truthful to link to).
+  let supportHTML = '';
+  if (e.contact_telegram || e.contact_phone) {
+    const tgLink = e.contact_telegram
+      ? `<a href="https://t.me/${esc(e.contact_telegram)}" target="_blank" rel="noopener" style="color:var(--gold-deep);font-weight:600">${T('support_tg_label')}</a>`
+      : '';
+    const phoneLink = e.contact_phone
+      ? `${T('support_phone_label')}<a href="tel:${esc(e.contact_phone)}" dir="ltr" style="color:var(--gold-deep);font-weight:600">${esc(e.contact_phone)}</a>`
+      : '';
+    const via = [tgLink, phoneLink].filter(Boolean).join(T('support_and'));
+    supportHTML = `<p style="text-align:center;font-size:12.5px;color:var(--text-muted);max-width:640px;margin:24px auto 0;line-height:2">${T('support_prefix')} ${via}${T('support_suffix')}</p>`;
+  }
 
   el.innerHTML = `
     <h1 style="font-size:clamp(1.5rem,3vw,1.95rem);font-weight:700;margin-bottom:6px;color:var(--navy)">${esc(evTitle(e))}</h1>
@@ -425,6 +441,7 @@ async function initEventDetail() {
         ${bookingCta}
       </div>
     </div>
+    ${supportHTML}
     <div class="feedback-box" id="feedbackBox" style="max-width:640px;margin:24px auto 0"><h4>${T('fb_title')}</h4>
       <div id="feedbackForm"><input id="fbName" placeholder="${T('fb_name_ph')}" maxlength="60"><textarea id="fbText" placeholder="${T('fb_text_ph')}" required maxlength="1000"></textarea><button class="btn btn--gold" onclick="submitFeedback('${esc(e.id)}')" style="font-size:13px">${T('fb_submit')}</button></div>
       <div id="feedbackList" style="margin-top:16px"></div>

@@ -5,6 +5,26 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Event page: Telegram/phone demoted to a support line, not a booking CTA
+
+**Why:** with real in-page booking live, showing "Book on Telegram" and
+a phone-call button right next to the actual booking button suggested
+they were equally valid ways to book — they aren't anymore; they're for
+questions.
+
+- Removed the `directContact` buttons from next to the booking CTA.
+- Added a plain-text line further down the page (between the info/
+  booking grid and the feedback box), only when the event has a
+  Telegram and/or phone contact set: "در صورتی که سوال یا نیاز به
+  پشتیبانی دارید، از طریق اکانت تلگرام خانه ماورا یا شماره موبایل ...
+  با ما در ارتباط باشید." — small muted text, not a button, with the
+  Telegram account and phone number as inline links (Telegram opens in
+  a new tab). Omitted entirely when an event has neither set.
+- Verified with Playwright: no Telegram/phone links remain inside the
+  booking area, the support line reads exactly as specified with both
+  contacts wired to the right hrefs, and it's correctly absent for an
+  event with no contact info at all.
+
 ## Booking form: staged flow (picker → form → confirm → result)
 
 **Why:** direct feedback on the just-shipped modal — the date/session
