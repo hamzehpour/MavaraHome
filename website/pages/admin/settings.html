@@ -42,6 +42,12 @@
             <button class="btn btn--gold" onclick="saveTicketTemplate()">ذخیره قالب بلیت</button>
             <p id="ttMsg" style="display:none;font-size:12.5px;margin-top:8px"></p>
         </div>
+
+        <div class="feedback-box" style="margin-top:20px">
+            <h4>تصاویر برند</h4>
+            <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">هرکدام را عوض کنی، بلافاصله در همه‌جای سایت جایگزین می‌شود — نیاز به تغییر چیز دیگری نیست. فرمت و حداکثر ابعاد هر تصویر ثابت است (زیر هرکدام نوشته شده)، حجم هر فایل حداکثر ۳ مگابایت.</p>
+            <div id="brandImages" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px"></div>
+        </div>
     </main>
 </div>
 <script src="../../assets/js/app.js"></script>
@@ -60,11 +66,55 @@ const SECTIONS = [
   { title: 'ورود مشتری', keys: ['otp_channels_enabled'] },
   { title: 'قالب پیام‌های تلگرام', keys: ['tmpl_payment_instructions', 'tmpl_receipt_received', 'tmpl_ticket_confirmed', 'tmpl_reservation_rejected'] },
   { title: 'قالب پیام‌های ایمیل', keys: ['tmpl_email_otp_subject', 'tmpl_email_otp_body', 'tmpl_email_approved_subject', 'tmpl_email_approved_body', 'tmpl_email_rejected_subject', 'tmpl_email_rejected_body', 'tmpl_email_waitlist_rejected_subject', 'tmpl_email_waitlist_rejected_body'] },
+  { title: 'محتوای سایت (فوتر، درباره، همراهی، تماس)', keys: ['content_hero_tagline', 'content_quotes', 'content_mansour_bio', 'content_mansour_bio_full', 'content_about_p1', 'content_about_p2', 'content_companion_p1', 'content_companion_p2', 'content_footer_tagline', 'content_footer_copyright', 'content_contact_telegram', 'content_contact_instagram', 'content_location'] },
 ];
 let settingsByKey = {};
 
 async function init() {
   await Promise.all([loadSettings(), loadCards(), loadTicketTemplate()]);
+  loadBrandImages();
+}
+
+// ── Brand images (phase 3) — each slot overwrites a fixed static file
+// the whole website already hardcodes the path of (header logo, favicon,
+// social-share image), so unlike every other upload in this panel there's
+// no settings row or DB pointer to save — the upload IS the save.
+const BRAND_IMAGES = [
+  { kind: 'brand_logo', path: '../../assets/images/logo/mavara-home-logo.png', label: 'لوگوی سربرگ سایت', hint: 'فرمت PNG، حداکثر ۴۰۰۰×۴۰۰۰ پیکسل', accept: 'image/png' },
+  { kind: 'brand_favicon', path: '../../assets/images/logo/favicon.webp', label: 'فاویکون (آیکون تب مرورگر)', hint: 'فرمت WebP، حداکثر ۴۰۰۰×۴۰۰۰ پیکسل', accept: 'image/webp' },
+  { kind: 'brand_og_image', path: '../../assets/images/logo/mavara-emblem-640.webp', label: 'تصویر پیش‌نمایش اشتراک‌گذاری (شبکه‌های اجتماعی)', hint: 'فرمت WebP، حداکثر ۴۰۰۰×۴۰۰۰ پیکسل', accept: 'image/webp' },
+];
+function loadBrandImages() {
+  document.getElementById('brandImages').innerHTML = BRAND_IMAGES.map((b, i) => `
+    <div style="text-align:center">
+      <img id="brandPreview${i}" src="${b.path}?v=${Date.now()}" style="width:72px;height:72px;object-fit:contain;border:1px solid var(--border);border-radius:8px;background:var(--bg-soft);margin-bottom:8px">
+      <div style="font-size:12px;margin-bottom:2px">${esc(b.label)}</div>
+      <div style="font-size:10.5px;color:var(--text-muted);margin-bottom:8px">${esc(b.hint)}</div>
+      <input type="file" id="brandFile${i}" accept="${b.accept}" style="font-size:11px;width:100%">
+      <button class="btn btn--outline" style="font-size:11px;padding:6px 12px;margin-top:6px" data-brand-idx="${i}">آپلود</button>
+      <p id="brandMsg${i}" style="display:none;font-size:11px;margin-top:6px"></p>
+    </div>`).join('');
+  // addEventListener + closure, not inline onclick="" — same reasoning as
+  // the section save buttons above (checkin.html / settings.html's
+  // earlier JSON.stringify-in-attribute bug).
+  document.querySelectorAll('#brandImages button[data-brand-idx]').forEach(btn => {
+    const i = Number(btn.dataset.brandIdx);
+    btn.onclick = () => uploadBrandImage(i);
+  });
+}
+async function uploadBrandImage(i) {
+  const b = BRAND_IMAGES[i];
+  const file = document.getElementById(`brandFile${i}`).files[0];
+  const msg = document.getElementById(`brandMsg${i}`);
+  msg.style.display = 'none';
+  if (!file) { msg.style.display = 'block'; msg.style.color = '#c44'; msg.textContent = 'یک فایل انتخاب کن.'; return; }
+  try {
+    await API.settings.uploadMedia(file, b.kind);
+    document.getElementById(`brandPreview${i}`).src = `${b.path}?v=${Date.now()}`;
+    msg.style.display = 'block'; msg.style.color = '#2a7a2a'; msg.textContent = 'جایگزین شد.';
+  } catch (err) {
+    msg.style.display = 'block'; msg.style.color = '#c44'; msg.textContent = 'خطا — ' + (err.details || err.message);
+  }
 }
 
 async function loadSettings() {

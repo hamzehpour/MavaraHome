@@ -551,6 +551,60 @@ DEFAULT_SETTINGS = {
     # returns channel_not_supported for it until a real SMS provider is
     # wired in; don't enable it expecting it to work.
     "otp_channels_enabled": "email",
+
+    # ---- "maximal admin independence" phase 3: fixed public-site copy
+    # (footer, about/companion paragraphs, founder bio, contact info,
+    # rotating quotes) — previously hardcoded inside website/assets/js/
+    # site.js's I18N.fa table with no way for the admin to change a word
+    # of it without a developer. These defaults are exact copies of what
+    # was already hardcoded, so seeding them changes nothing visually
+    # until an admin actually edits one. Deliberately Persian-only — the
+    # site's English (I18N.en) copy stays hardcoded; translating every
+    # field into two admin-editable languages was out of scope for this
+    # phase. Served publicly (no auth) via GET /api/v1/site-content and
+    # merged into I18N.fa client-side — see site.js's loadSiteContent().
+    "content_hero_tagline": "سفری به سوی خویشتن، از مسیر آگاهی، به یاری هنر",
+    # One quote per line, up to 6 — the homepage's rotating quote strip.
+    # Fewer than 6 lines is fine (site.js pads with the originals); more
+    # than 6 is truncated.
+    "content_quotes": (
+        "«آنچه می‌جویید، شما را می‌جوید.»\n"
+        "«راه، با نخستین گام آغاز می‌شود.»\n"
+        "«آرامش از درون می‌آید؛ آن را بیرون نجویید.»\n"
+        "«بگذار هر چه هست، همان‌گونه که هست بماند.»\n"
+        "«هر روز، آغازی دوباره است.»\n"
+        "«شناختن خویش، آغاز همه‌ی شناخت‌هاست.»"
+    ),
+    "content_mansour_bio": (
+        "متولد ۱۳۶۶ در تهران. فعالیت هنری را از تئاتر آغاز کرد و پس از تحصیل در آکادمی سمندریان، "
+        "مسیرش را در سینما و سریال ادامه داد. برای او بازیگری راهی برای شناخت عمیق‌تر انسان است."
+    ),
+    "content_mansour_bio_full": (
+        " او در کنار بازیگری، به آموزش، پادکست و ساختن فضاهایی برای گفت‌وگوی صادقانه و خودشناسی می‌پردازد. "
+        "خانه ماورا ادامه‌ی همین مسیر است: پیوند هنر با دیدن دقیق‌تر زندگی."
+    ),
+    "content_about_p1": (
+        "خانه ماورا فضایی است برای پیوند هنر، آگاهی و زندگی. این مجموعه به همت منصور نصیری پایه‌گذاری شده و "
+        "در مسیرهای گوناگون — تئاتر، پادکست، خودشناسی، شعر، گفتگو، موسیقی و همراهی — میزبان مخاطبان است."
+    ),
+    "content_about_p2": (
+        "آنچه در خانه ماورا می‌گذرد، تلاشی است برای نگاهی دوباره به خویشتن؛ "
+        "جایی که هنر نه فقط برای دیده شدن، که برای دیدن خود به کار می‌آید."
+    ),
+    "content_companion_p1": (
+        "همه‌ی ما در مقاطعی با پرسش‌ها، تردیدها یا تصمیم‌هایی روبه‌رو می‌شویم که گفت‌وگو می‌تواند نگاه تازه‌ای "
+        "ایجاد کند. در جلسات همراهی، در فضایی امن و بدون قضاوت، موضوعاتی را بررسی می‌کنیم که برایت اهمیت دارند "
+        "— از مسائل شخصی و روابط تا مسیر شغلی، بازیگری و خلاقیت."
+    ),
+    "content_companion_p2": (
+        "این جلسات درمان یا روان‌درمانی نیستند؛ بلکه فرصتی برای گفت‌وگو، اندیشیدن و نگاه کردن به مسائل از زاویه‌ای تازه‌اند."
+    ),
+    "content_footer_tagline": "سفری به سوی خویشتن<br>از مسیر آگاهی، به یاری هنر",
+    "content_footer_copyright": "© ۱۴۰۴ خانه ماورا — Maavara Home",
+    "content_contact_telegram": "t.me/mavara_home",
+    "content_contact_instagram": "@mansournasirii",
+    # Shown on both the contact page and the footer.
+    "content_location": "تهران، ایران",
 }
 
 

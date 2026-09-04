@@ -602,6 +602,15 @@ class Handler(BaseHTTPRequestHandler):
                 # settings_service.get_otp_channels_enabled()).
                 return self._send_json(200, {"data": {"channels": settings_service.get_otp_channels_enabled()}})
 
+            if path == "/api/v1/site-content":
+                # Public, no auth — every visitor's page load needs this to
+                # render the footer/about/companion/contact copy an admin
+                # may have edited (see services/settings_service.
+                # CONTENT_KEYS and site.js's loadSiteContent()). Deliberately
+                # scoped to CONTENT_KEYS only, not the full settings table —
+                # ticket_price, templates, bank cards etc. stay admin-only.
+                return self._send_json(200, {"data": settings_service.get_public_site_content()})
+
             if path == "/api/v1/payment-info":
                 # Public, read-only: what the website's payment step needs to
                 # show the buyer — same active card the bot itself uses, so
@@ -1029,7 +1038,25 @@ class Handler(BaseHTTPRequestHandler):
                 # media/gallery/ instead of media/team/ (this whitelist's
                 # fallback), harmless functionally (the returned path was
                 # still correct and still served) but confusing on disk.
-                kind = body.get("kind") if body.get("kind") in ("poster", "gallery", "video", "portfolio", "team", "ticket_logo") else "gallery"
+                # The three brand_* kinds (phase 3: site images) are handled
+                # separately below — they don't get a random filename under
+                # media/, they overwrite a fixed static file the website's
+                # HTML already hardcodes (logo <img>, favicon <link>, og:
+                # image meta tag), so replacing the image needs no HTML/JS
+                # change at all.
+                BRAND_TARGETS = {
+                    # kind -> (path relative to website/, required mime — the
+                    # HTML that references these hardcodes both the path and
+                    # the format, e.g. <link type="image/webp">, so a format
+                    # swap would need an HTML edit too; simplest to just
+                    # require the admin's upload match what's already there).
+                    "brand_logo": ("assets/images/logo/mavara-home-logo.png", "image/png"),
+                    "brand_favicon": ("assets/images/logo/favicon.webp", "image/webp"),
+                    "brand_og_image": ("assets/images/logo/mavara-emblem-640.webp", "image/webp"),
+                }
+                kind = body.get("kind") if body.get("kind") in (
+                    "poster", "gallery", "video", "portfolio", "team", "ticket_logo", *BRAND_TARGETS
+                ) else "gallery"
                 if not data_url or not isinstance(data_url, str) or not data_url.startswith("data:"):
                     return self._send_json(400, {"error": "validation", "details": "data must be a base64 data URL"})
                 match = re.match(r"^data:([^;]+);base64,(.*)$", data_url, re.S)
@@ -1050,6 +1077,11 @@ class Handler(BaseHTTPRequestHandler):
                 # dependency (utils/ticket_pdf.py's QR codes).
                 if mime not in ext_map:
                     return self._send_json(400, {"error": "validation", "details": f"unsupported file type: {mime}"})
+                if kind in BRAND_TARGETS and mime != BRAND_TARGETS[kind][1]:
+                    return self._send_json(400, {
+                        "error": "validation",
+                        "details": f"این تصویر باید با فرمت {BRAND_TARGETS[kind][1]} باشد",
+                    })
                 ext = ext_map[mime]
                 is_video = mime.startswith("video/")
                 max_bytes = 25 * 1024 * 1024 if is_video else 3 * 1024 * 1024
@@ -1067,8 +1099,39 @@ class Handler(BaseHTTPRequestHandler):
                         import io
                         with Image.open(io.BytesIO(raw_bytes)) as img:
                             img.verify()
+                        # verify() leaves the image unusable for anything
+                        # else (Pillow's own docs say so) — reopen fresh
+                        # just to read dimensions. This is the "اندازه"
+                        # (dimensions) half of the guardrail the file-size
+                        # check above doesn't cover: a huge canvas can pass
+                        # under 3MB (e.g. a flat-color 10000x10000 PNG) and
+                        # still be an unreasonable image to serve as a
+                        # logo/favicon/poster.
+                        with Image.open(io.BytesIO(raw_bytes)) as img2:
+                            w, h = img2.size
+                        MAX_DIM = 4000
+                        if w > MAX_DIM or h > MAX_DIM:
+                            return self._send_json(400, {
+                                "error": "validation",
+                                "details": f"ابعاد تصویر خیلی بزرگ است (حداکثر {MAX_DIM}×{MAX_DIM} پیکسل)",
+                            })
                     except Exception:
                         return self._send_json(400, {"error": "validation", "details": "file is not a valid image"})
+                if kind in BRAND_TARGETS:
+                    import time
+                    rel_path, _ = BRAND_TARGETS[kind]
+                    website_root = os.path.join(
+                        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "website"
+                    )
+                    dest = os.path.join(website_root, *rel_path.split("/"))
+                    os.makedirs(os.path.dirname(dest), exist_ok=True)
+                    with open(dest, "wb") as f:
+                        f.write(raw_bytes)
+                    # Cache-busting query string — every page that references
+                    # this exact static path has it hardcoded, so nothing
+                    # needs to change except forcing browsers (and CDNs, if
+                    # any) to fetch the new bytes instead of a cached copy.
+                    return self._send_json(201, {"data": {"path": rel_path, "kind": kind, "version": int(time.time())}})
                 import time, random
                 safe_name = f"{int(time.time() * 1000)}-{random.randint(1000, 9999)}{ext}"
                 upload_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "media", kind)

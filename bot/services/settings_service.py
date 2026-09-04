@@ -48,7 +48,41 @@ EDITABLE_SETTINGS = {
         "روش‌های ورود مشتری (با کاما جدا کنید — فقط email فعلاً واقعاً کار می‌کند، "
         "phone فقط زیرساختش آماده است، تا سرویس پیامک وصل نشود کار نمی‌کند)"
     ),
+    # ---- website content (phase 3: fixed public-site copy) — Persian
+    # only, served publicly via GET /api/v1/site-content and merged into
+    # the site's I18N table client-side (see CONTENT_KEYS below and
+    # site.js's loadSiteContent()).
+    "content_hero_tagline": "شعار زیر عنوان اصلی صفحه اول",
+    "content_quotes": "نقل‌قول‌های چرخشی صفحه اول — هر نقل‌قول در یک خط (حداکثر ۶ خط)",
+    "content_mansour_bio": "متن معرفی منصور نصیری (صفحه «منصور نصیری») — بخش اول",
+    "content_mansour_bio_full": "متن معرفی منصور نصیری — ادامه (بعد از «بیشتر»)",
+    "content_about_p1": "متن «درباره خانه ماورا» — پاراگراف اول",
+    "content_about_p2": "متن «درباره خانه ماورا» — پاراگراف دوم",
+    "content_companion_p1": "متن «همراهی» — پاراگراف اول",
+    "content_companion_p2": "متن «همراهی» — پاراگراف دوم",
+    "content_footer_tagline": "شعار زیر لوگو در فوتر (می‌تواند شامل <br> برای شکست خط باشد)",
+    "content_footer_copyright": "متن کپی‌رایت پایین فوتر",
+    "content_contact_telegram": "آیدی تلگرام نمایش‌داده‌شده در صفحه تماس",
+    "content_contact_instagram": "آیدی اینستاگرام نمایش‌داده‌شده در صفحه تماس",
+    "content_location": "موقعیت مکانی (صفحه تماس و فوتر)",
 }
+
+# The subset of EDITABLE_SETTINGS meant for public consumption on the
+# website itself (footer, about/companion copy, contact info, quotes) —
+# GET /api/v1/site-content in api/server.py serves exactly this list,
+# unauthenticated, so every other setting (prices, templates, bank
+# cards...) never has to be reasoned about as "is this safe to expose
+# to anonymous visitors" key by key.
+CONTENT_KEYS = [
+    "content_hero_tagline", "content_quotes", "content_mansour_bio", "content_mansour_bio_full",
+    "content_about_p1", "content_about_p2", "content_companion_p1", "content_companion_p2",
+    "content_footer_tagline", "content_footer_copyright", "content_contact_telegram",
+    "content_contact_instagram", "content_location",
+]
+
+
+def get_public_site_content() -> dict:
+    return {key: settings_repo.get(key, "") for key in CONTENT_KEYS}
 
 
 def get_brand_name() -> str:
@@ -162,6 +196,19 @@ SETTINGS_FIELD_TYPES: dict[str, str] = {
     "tmpl_email_rejected_body": "textarea",
     "tmpl_email_waitlist_rejected_subject": "text",
     "tmpl_email_waitlist_rejected_body": "textarea",
+    "content_hero_tagline": "text",
+    "content_quotes": "textarea",
+    "content_mansour_bio": "textarea",
+    "content_mansour_bio_full": "textarea",
+    "content_about_p1": "textarea",
+    "content_about_p2": "textarea",
+    "content_companion_p1": "textarea",
+    "content_companion_p2": "textarea",
+    "content_footer_tagline": "text",
+    "content_footer_copyright": "text",
+    "content_contact_telegram": "text",
+    "content_contact_instagram": "text",
+    "content_location": "text",
 }
 SETTINGS_INT_RANGE: dict[str, tuple[int, int]] = {
     "ticket_price": (0, 1_000_000_000),

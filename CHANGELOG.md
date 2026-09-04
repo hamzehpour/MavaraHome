@@ -5,6 +5,60 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## "Maximal admin independence," phase 3 — site content + brand images
+
+**Why:** the last two pieces of the original story — "اطلاعات فیکس روی
+سایت مثلا توی فوتر و اینها" (fixed site info like the footer) and
+"تصاویر سایت مثل لوگو" (site images like the logo). Scoped down from
+the full ~150-key I18N table (button labels, error messages, UI
+microcopy — never really "fixed info", and editable wrong could break
+UX clarity) to what's actually informational content: footer tagline
+and copyright, the founder's bio (about-mansour page), the about/
+companion page paragraphs, contact info, and the homepage's rotating
+quotes. English copy stays hardcoded — out of scope for this phase.
+
+- 13 new `content_*` settings (same `EDITABLE_SETTINGS`/`settings` table
+  mechanism, Persian-only) seeded with the exact text that was already
+  hardcoded, so nothing changes until an admin edits something.
+- New public, unauthenticated `GET /api/v1/site-content` — deliberately
+  scoped to just these 13 keys (via `settings_service.CONTENT_KEYS`),
+  never the full settings table, so no other setting has to be reasoned
+  about as "safe for anonymous visitors" key by key.
+- `site.js`'s new `loadSiteContent()` fetches that endpoint on every
+  page load, merges the result into `I18N.fa`, then re-runs the existing
+  `applyLang()`/`loadFooter()` — no per-page HTML changes needed since
+  the affected text already used `data-i18n` attributes or (footer only)
+  a regenerable template function. Found and fixed a real bug while
+  testing this: it first called through `app.js`'s `API` object, which
+  doesn't exist on `contact.html`/`about-mavara.html`/`companionship.
+  html`/`podcast.html` (they don't load `app.js` at all) — those pages
+  silently kept stale default text. Switched to a raw `fetch()` with no
+  dependency on `app.js`, verified working on all four.
+- Brand images (header logo, favicon, social-share preview) turned out
+  to already be plain static files at fixed paths the HTML hardcodes —
+  no templating needed. `/api/v1/admin/upload` gained 3 new `kind`
+  values (`brand_logo`/`brand_favicon`/`brand_og_image`) that overwrite
+  those exact files in place instead of saving under a random name;
+  each requires the format the HTML already expects (PNG for the logo,
+  WebP for the other two) so a format swap can't silently break an
+  `<link type="...">`/`og:image` tag. Also added a dimension guardrail
+  (max 4000×4000px) to the upload endpoint generally — the existing
+  Phase-1 guardrail only capped file size, not pixel dimensions, so a
+  flat-color 10000×10000 image could still pass under the 3MB cap.
+- `settings.html`: new "محتوای سایت" section (generic, same mechanism as
+  every other settings section) and a new "تصاویر برند" box with 3
+  upload slots + live previews.
+
+Verified locally: seeded all 13 defaults via `migrate.py`; confirmed
+`GET /site-content` returns them; edited values via the authenticated
+API and confirmed the new text actually renders on the live pages
+(including the 4 pages without `app.js`, post-fix); Playwright pass on
+the settings page's new section (renders/saves/reverts, no console
+errors) and the brand image uploads (correct format accepted and
+written in place, wrong format rejected, oversized image rejected);
+restored the real logo/favicon files afterward (git checkout) since
+testing genuinely overwrote them locally.
+
 ## "Maximal admin independence," phase 2 — email templates now admin-editable
 
 **Why:** direct continuation of phase 1. The website settings page (and

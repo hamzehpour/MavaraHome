@@ -936,6 +936,61 @@ function initGlobal() {
   }
 }
 
+// ── Site content (phase 3: admin-editable footer/about/companion/contact
+// copy — see services/settings_service.CONTENT_KEYS on the backend) ──
+// Maps each admin-editable content_* key onto the I18N.fa key(s) it
+// overrides. content_location feeds two different spots (contact page +
+// footer) that happen to show the same "city, country" text.
+const SITE_CONTENT_MAP = {
+  content_hero_tagline: ['hero_tag'],
+  content_mansour_bio: ['mansour_bio'],
+  content_mansour_bio_full: ['mansour_bio_full'],
+  content_about_p1: ['about_m_p1'],
+  content_about_p2: ['about_m_p2'],
+  content_companion_p1: ['companion_p1'],
+  content_companion_p2: ['companion_p2'],
+  content_footer_tagline: ['f_tag'],
+  content_footer_copyright: ['f_copy'],
+  content_contact_telegram: ['c_tg_d'],
+  content_contact_instagram: ['c_ig_d'],
+  content_location: ['c_loc_d', 'f_city'],
+};
+async function loadSiteContent() {
+  // Best-effort, fire-and-forget from DOMContentLoaded below — on any
+  // failure (offline, API down) the page just keeps the hardcoded
+  // defaults already baked into I18N.fa, same text an admin hasn't
+  // touched yet would show anyway.
+  //
+  // Deliberately a raw fetch(), NOT API.siteContent.get() — several
+  // pages that render this exact content (contact.html, about-mavara.
+  // html, companionship.html, podcast.html) load site.js WITHOUT app.js
+  // (they don't need events/reservations), so the API object and
+  // MAVARA_API_BASE don't exist there. Found via testing: those pages
+  // silently kept their hardcoded default text because API.siteContent
+  // threw a ReferenceError caught by this same try/catch.
+  let data;
+  try {
+    const base = window.MAAVARA_API_BASE || '';
+    const res = await fetch(`${base}/api/v1/site-content`);
+    const body = await res.json();
+    if (!res.ok) return;
+    data = body.data;
+  } catch { return; }
+  if (!data) return;
+  for (const [contentKey, i18nKeys] of Object.entries(SITE_CONTENT_MAP)) {
+    const value = data[contentKey];
+    if (!value) continue;
+    i18nKeys.forEach(k => { I18N.fa[k] = value; });
+  }
+  if (typeof data.content_quotes === 'string' && data.content_quotes.trim()) {
+    const lines = data.content_quotes.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 6);
+    lines.forEach((q, i) => { I18N.fa['q' + (i + 1)] = q; });
+  }
+  // Only Persian content is admin-editable (see CONTENT_KEYS) — nothing
+  // to do here when the visitor is viewing the English version.
+  if (lang() !== 'en') { applyLang(); loadFooter(); }
+}
+
 // ── Init dispatch ──
 function dispatchPage() {
   const page = document.body.dataset.page;
@@ -953,4 +1008,5 @@ document.addEventListener('DOMContentLoaded', () => {
   applyLang();
   dispatchPage();
   initGlobal();
+  loadSiteContent();
 });
