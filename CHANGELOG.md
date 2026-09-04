@@ -5,6 +5,65 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Instant Telegram channel alert for new reservations + waitlist entries
+
+**Why:** requested — admins wanted to know about a new reservation
+needing review, or a new waiting-list signup, immediately (not by
+periodically checking the bot/website), to cut the lag between a
+request coming in and someone actually looking at it.
+
+Found existing, working infrastructure to build on rather than
+inventing a new "channel setup" flow: `handlers/channel_setup.py`
+already lets an admin configure `monitoring_channel_id` by forwarding
+any message from that channel (reliable ID resolution, no public
+username needed), for `services/channel_service.py`'s live per-day
+reservation board. That board only ever *edits* an existing message in
+place, though — Telegram doesn't push a notification for message edits
+— so it was never actually useful as an alert, only as a dashboard
+someone has to think to open. This reuses the same channel + setting,
+adding a brand-new message (which Telegram does notify for) at the two
+moments an admin actually needs to know something happened:
+
+- A reservation reaches `pending_review` (buyer submitted a payment
+  receipt) — `reservation_service.submit_receipt()`.
+- A new waiting-list entry is created (session was full) —
+  `reservation_service._create_reservation_for_user()`.
+
+Both call sites are the single shared functions already used by BOTH
+the Telegram bot and the website booking flow, so the alert fires
+regardless of where the request came from — no per-caller duplication,
+and no risk of the website path silently going unnotified the way
+`handlers/payment.py`'s existing photo+approve-buttons DM already does
+today (it's wired only into the Telegram receipt handler; a receipt
+uploaded from the website never reaches it, since `api/server.py` has
+no live aiogram `Bot` instance to send with). That existing DM stays
+untouched — it's still the actionable path for staff who can approve
+payments; the new channel message is a broader, read-only heads-up for
+everyone in the channel.
+
+New `settings_service.notify_admin_channel(text)`: reads
+`monitoring_channel_id`, no-ops if unset, otherwise enqueues through
+`bot_outbox` — not a direct `bot.send_message()` — because
+`reservation_service.py` runs inside both the bot process and the
+website API process, and only the bot process holds a live `Bot`
+instance (delivery happens via `utils/scheduler.py`'s existing
+`run_outbox_loop`, same as OTP codes and admin chat replies).
+
+**Operational note, not yet confirmed:** this only works if the bot
+process (`bot.py`) is actually running as its own long-lived process in
+production — nothing in this repo's CHANGELOG/README history shows it
+ever being deployed as a systemd service the way `mavara-api` is
+(every prior deploy in this project only ever restarted `mavara-api`).
+If `bot.py` isn't running, `bot_outbox` rows will queue forever and
+never actually send, silently. Needs checking before this is relied on.
+
+Verified locally: `notify_admin_channel()` enqueues correctly into
+`bot_outbox`; full reservation → receipt → alert flow and full
+waitlist-signup → alert flow, both via the website-originated call path
+and the Telegram-originated one, produce correctly formatted Persian
+alert text (event, date/time, buyer, count, source) and the right
+source label either way.
+
 ## Per-event ticket price now editable from the events admin page
 
 **Why:** reported — the settings page's "قیمت هر بلیت" (ticket price)

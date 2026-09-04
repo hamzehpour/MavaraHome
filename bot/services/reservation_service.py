@@ -80,7 +80,9 @@ def _create_reservation_for_user(user: dict, session_id: int, people: int, sourc
     )
 
     if not result["success"] and result["waiting"]:
-        result["waitlist_id"] = waitlist_repo.add(user_id=user["id"], session_id=session_id, people=people, source=source)
+        waitlist_id = waitlist_repo.add(user_id=user["id"], session_id=session_id, people=people, source=source)
+        result["waitlist_id"] = waitlist_id
+        _notify_admin_channel_new_waitlist(waitlist_id)
 
     result["user_id"] = user["id"]
     result["unit_price"] = unit_price
@@ -151,6 +153,7 @@ def submit_receipt(reservation_id: int, receipt_file_id: str, receipt_source: st
         amount=reservation["total_price"],
         receipt_source=receipt_source,
     )
+    _notify_admin_channel_new_request(reservation)
     return True
 
 
@@ -179,6 +182,53 @@ def _email_context_for_reservation(reservation: dict) -> dict:
         "session_date": display_date_for_event(row["session_date"], row["calendar_type"]),
         "session_time": row["session_time"],
     }
+
+
+def _notify_admin_channel_new_request(reservation: dict) -> None:
+    """Instant channel alert (see settings_service.notify_admin_channel)
+    the moment a reservation reaches pending_review — i.e. the buyer has
+    submitted a receipt and staff actually need to look at it. Called
+    from submit_receipt() itself so it fires the same way whether the
+    receipt came from the Telegram bot or the website, unlike the
+    existing photo+buttons DM in handlers/payment.py which is Telegram-
+    only and never reaches website-submitted receipts at all."""
+    ctx = _email_context_for_reservation(reservation)
+    buyer = users_repo.get_by_id(reservation["user_id"]) or {}
+    source_label = "تلگرام" if reservation.get("source") == "telegram" else "سایت"
+    text = (
+        "🔔 رزرو جدید نیاز به بررسی دارد\n\n"
+        f"رویداد: {ctx['event_title']}\n"
+        f"تاریخ: {ctx['session_date']} — {ctx['session_time']}\n"
+        f"خریدار: {buyer.get('full_name') or '—'} ({buyer.get('phone') or '—'})\n"
+        f"تعداد: {reservation.get('people')}\n"
+        f"منبع: {source_label}"
+    )
+    settings_service.notify_admin_channel(text)
+
+
+def _notify_admin_channel_new_waitlist(waitlist_id: int) -> None:
+    """Same idea as _notify_admin_channel_new_request() above, for a new
+    waiting-list entry (session was full) — called from
+    _create_reservation_for_user() so it fires for both Telegram and
+    website signups from the one shared function, not duplicated per
+    caller."""
+    entry = waitlist_repo.get_entry_with_context(waitlist_id)
+    if not entry:
+        return
+    from database.repositories import events as events_repo
+    from utils.jalali import display_date_for_event
+
+    event = events_repo.get_event(entry["event_id"])
+    source_label = "تلگرام" if entry.get("source") == "telegram" else "سایت"
+    text = (
+        "⏳ درخواست جدید در لیست انتظار\n\n"
+        f"رویداد: {event['title'] if event else ''}\n"
+        f"تاریخ: {display_date_for_event(entry['session_date'], event.get('calendar_type') if event else None)} — {entry['session_time']}\n"
+        f"خریدار: {entry.get('full_name') or '—'} ({entry.get('phone') or '—'})\n"
+        f"تعداد: {entry['people']}\n"
+        f"منبع: {source_label}"
+    )
+    settings_service.notify_admin_channel(text)
 
 
 def _notify_customer_by_email(reservation: dict, subject: str, body: str) -> None:

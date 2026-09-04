@@ -160,6 +160,34 @@ def render_email(template_key: str, **values) -> tuple[str, str]:
     return subject, body
 
 
+def notify_admin_channel(text: str) -> None:
+    """Best-effort push to the admin "sales monitoring" channel an admin
+    already configures by forwarding a message from it (see
+    handlers/channel_setup.py -> monitoring_channel_id). Reused here for
+    instant new-request alerts (a reservation reaching pending_review, a
+    new waiting-list entry) — channel_service.py's live board only ever
+    EDITS an existing message in place, which Telegram does not push a
+    notification for; a brand-new message here does, which is the whole
+    point of "minimize the lag between request and review".
+
+    Enqueued through bot_outbox rather than a direct bot.send_message()
+    because this is called from reservation_service.py, which runs
+    inside BOTH the Telegram bot process and the website API process —
+    only the bot process holds a live aiogram Bot instance (see
+    utils/scheduler.py's run_outbox_loop, which is what actually
+    delivers this). A no-op, not an error, if no channel is configured
+    yet — same "silently does nothing until set up" shape as every other
+    optional notification channel in this codebase (email, SMS)."""
+    channel_id = settings_repo.get("monitoring_channel_id", "")
+    if not channel_id:
+        return
+    try:
+        from database.repositories import bot_outbox as outbox_repo
+        outbox_repo.enqueue(int(channel_id), text)
+    except Exception:
+        pass
+
+
 # ── Website settings page: type + range/length guardrails ──
 # The Telegram menu above (update_setting) stays exactly as free-text as
 # it always was — deliberately unchanged, so nothing about the existing
