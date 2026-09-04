@@ -238,6 +238,42 @@ def run_expiry_loop_sync(interval_seconds: int = CHECK_INTERVAL_SECONDS) -> None
         time.sleep(interval_seconds)
 
 
+def run_broadcast_loop_sync(interval_seconds: int = 5) -> None:
+    """Blocking; call via threading.Thread(daemon=True). Drains
+    broadcast_recipients ('admin sends a segmented email' feature) a
+    small batch at a time, same shape as run_outbox_loop's Telegram
+    delivery but synchronous (this runs in api/server.py, which has no
+    asyncio event loop) and over SMTP instead of the Telegram API. Short
+    interval since an admin watching the broadcast's progress on the
+    admin page shouldn't wait long between refreshes to see it move."""
+    import time
+    from database.repositories import broadcasts as broadcasts_repo
+    from utils.email_sender import send_email
+
+    while True:
+        try:
+            for item in broadcasts_repo.list_pending_recipients(limit=20):
+                try:
+                    broadcast = broadcasts_repo.get(item["broadcast_id"])
+                    ok = send_email(
+                        to=item["email"],
+                        subject=(broadcast or {}).get("subject") or "خانه ماورا",
+                        body=(broadcast or {}).get("body") or "",
+                    )
+                    if ok:
+                        broadcasts_repo.mark_recipient_sent(item["id"], item["broadcast_id"])
+                    else:
+                        broadcasts_repo.mark_recipient_failed(item["id"], item["broadcast_id"], "send_email returned False")
+                except Exception as exc:
+                    logger.exception("Failed to send broadcast email, recipient id=%s", item["id"])
+                    broadcasts_repo.mark_recipient_failed(item["id"], item["broadcast_id"], str(exc))
+                broadcasts_repo.mark_done_if_finished(item["broadcast_id"])
+        except Exception:
+            logger.exception("Error while running the broadcast-send loop")
+
+        time.sleep(interval_seconds)
+
+
 def run_backup_loop_sync() -> None:
     """Blocking; call via threading.Thread(daemon=True). Same backup logic
     as run_backup_loop() above, just without asyncio — see the module note

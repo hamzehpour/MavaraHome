@@ -12,7 +12,7 @@ what's missing instead of guessing from column-already-exists errors.
 from database.connection import get_connection
 from config.settings import BOOTSTRAP_ADMIN_IDS
 
-SCHEMA_VERSION = 13
+SCHEMA_VERSION = 14
 
 SCHEMA_STATEMENTS = [
     # ---- users -------------------------------------------------
@@ -382,6 +382,54 @@ TEAM_MEMBERS_TABLE = """
 """
 SCHEMA_STATEMENTS.append(TEAM_MEMBERS_TABLE)
 SCHEMA_STATEMENTS.append("CREATE INDEX IF NOT EXISTS idx_team_status ON team_members(status)")
+
+# ---- Schema v14: admin broadcasts — segment customers by event/tag and
+# email them (SMS to follow later — see `channel`, added now specifically
+# so a second channel doesn't need its own parallel table). Sending is
+# async: this row is created immediately (status='pending'), one
+# broadcast_recipients row per resolved customer (also 'pending'), and a
+# background loop (utils/scheduler.run_broadcast_loop_sync, same pattern
+# as run_expiry_loop_sync) drains recipients a few at a time and updates
+# both tables — so creating a broadcast to a large audience doesn't block
+# the admin's HTTP request on a slow loop of individual SMTP round-trips
+# (send_email opens a fresh connection per email; no batching in this
+# version, deliberately kept simple for now).
+BROADCASTS_TABLE = """
+    CREATE TABLE IF NOT EXISTS broadcasts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        channel TEXT NOT NULL DEFAULT 'email',
+        subject TEXT,
+        body TEXT NOT NULL,
+        filters TEXT NOT NULL DEFAULT '{}',
+        recipient_count INTEGER NOT NULL DEFAULT 0,
+        sent_count INTEGER NOT NULL DEFAULT 0,
+        failed_count INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'pending',
+        created_by INTEGER,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        completed_at TEXT
+    )
+"""
+SCHEMA_STATEMENTS.append(BROADCASTS_TABLE)
+
+# Per-recipient row: lets the admin see exactly who got it/who failed and
+# why, instead of only an aggregate count — the same reasoning as keeping
+# individual `payments` rows instead of just a running total on
+# `reservations`.
+BROADCAST_RECIPIENTS_TABLE = """
+    CREATE TABLE IF NOT EXISTS broadcast_recipients (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        broadcast_id INTEGER NOT NULL REFERENCES broadcasts(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        email TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        error TEXT,
+        sent_at TEXT
+    )
+"""
+SCHEMA_STATEMENTS.append(BROADCAST_RECIPIENTS_TABLE)
+SCHEMA_STATEMENTS.append("CREATE INDEX IF NOT EXISTS idx_broadcast_recipients_broadcast ON broadcast_recipients(broadcast_id)")
+SCHEMA_STATEMENTS.append("CREATE INDEX IF NOT EXISTS idx_broadcast_recipients_status ON broadcast_recipients(status)")
 
 # Defaults an admin can later change from the panel — never hardcoded
 # in handlers/services again.

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>اطلاع‌رسانی</title><meta name="robots" content="noindex,nofollow"><link rel="icon" type="image/webp" href="../../assets/images/logo/favicon.webp"><link rel="stylesheet" href="../../assets/css/styles.css"></head>
+<body>
+<div class="admin-layout">
+    <aside class="admin-sidebar"><div style="font-weight:700;font-size:15px;padding:8px 14px;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.1)">خانه ماورا</div><a href="dashboard.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>داشبورد</a><a href="events.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M4 5h16"/><path d="M4 5 3 21M20 5l1 16"/><path d="M8 5v16M12 5v16M16 5v16"/></svg>رویدادها</a><a href="reservations.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4Z"/></svg>رزروها</a><a href="waitlist.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>لیست انتظار</a><a href="broadcast.html" class="active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>اطلاع‌رسانی</a><a href="checkin.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>پذیرش بلیت</a><a href="portfolio.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.5"/><path d="M7 2v20M17 2v20M2 12h20"/></svg>رزومه</a><a href="team.html">اعضای خانه ماورا</a><button onclick="MavaraTheme.toggle(); this.textContent = MavaraTheme.get()==='dark' ? '☀️ حالت روشن' : '🌙 حالت تیره'" id="themeToggleBtn" style="margin-top:auto">🌓 تغییر پوسته</button>
+        <button onclick="logout()" style="margin-top:auto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>خروج</button></aside>
+    <main class="admin-main">
+        <div><h2>اطلاع‌رسانی</h2><p style="color:var(--text-muted);font-size:13px;margin-top:4px;margin-bottom:20px">
+            بر اساس رویداد یا دسته‌ای که مشتری‌ها ازش بلیط خریدن (رزرو تأییدشده) یک گروه بساز و براشون ایمیل بفرست. فقط کسانی که ایمیل ثبت‌شده دارن پیام رو دریافت می‌کنن — پیامک به‌زودی اضافه می‌شود.
+        </p></div>
+
+        <div style="display:grid;grid-template-columns:340px 1fr;gap:24px;align-items:start">
+            <div>
+                <div class="bk-label" style="margin-bottom:8px">فیلتر بر اساس رویداد</div>
+                <div id="eventFilterList" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:10px;background:var(--bg-card);margin-bottom:16px;font-size:13px"></div>
+
+                <div class="bk-label" style="margin-bottom:8px">فیلتر بر اساس دسته</div>
+                <div id="tagFilterList" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px"></div>
+                <p id="noTagsNote" style="font-size:12px;color:var(--text-muted);display:none;margin-top:-10px;margin-bottom:16px">هنوز هیچ رویدادی دسته‌بندی (تگ) نداره.</p>
+
+                <div style="background:var(--bg-soft);border-radius:12px;padding:14px;font-size:13px;line-height:2">
+                    <div>مشتری‌های منطبق: <strong id="audMatched" style="color:var(--gold-deep)">—</strong></div>
+                    <div>دریافت‌کننده‌ی ایمیل: <strong id="audEmailable" style="color:var(--gold-deep)">—</strong></div>
+                    <div id="audSample" style="font-size:11.5px;color:var(--text-muted);margin-top:6px"></div>
+                </div>
+            </div>
+
+            <div>
+                <label>موضوع ایمیل</label>
+                <input id="bcSubject" placeholder="مثلاً: خبر خوش برای علاقه‌مندان تئاتر" maxlength="150" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;font-family:inherit;margin-bottom:14px">
+                <label>متن پیام</label>
+                <textarea id="bcBody" rows="10" placeholder="متن ایمیل را اینجا بنویس..." style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;font-family:inherit;resize:vertical;margin-bottom:14px"></textarea>
+                <div style="display:flex;gap:10px;align-items:center">
+                    <button class="btn btn--gold" id="sendBtn" onclick="send()">ارسال ایمیل</button>
+                    <span style="font-size:12px;color:var(--text-muted)">کانال: ایمیل — پیامک به‌زودی</span>
+                </div>
+                <p id="sendMsg" style="display:none;font-size:13px;margin-top:10px;line-height:1.9"></p>
+            </div>
+        </div>
+
+        <h3 style="margin-top:32px;margin-bottom:12px">تاریخچه‌ی ارسال‌ها</h3>
+        <table class="admin-table"><thead><tr><th>موضوع</th><th>فیلتر</th><th>دریافت‌کننده</th><th>ارسال‌شده</th><th>ناموفق</th><th>وضعیت</th><th>تاریخ</th></tr></thead><tbody id="historyBody"></tbody></table>
+    </main>
+</div>
+<script src="../../assets/js/app.js"></script>
+<script>
+if (!API.auth.check()) window.location.href = 'login.html';
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+const statusLabels = { pending: 'در حال ارسال', done: 'انجام‌شده' };
+let events = [];
+let allTags = [];
+
+async function init() {
+  await API.init();
+  events = API.events.all();
+  allTags = [...new Set(events.flatMap(e => e.tags || []))];
+
+  document.getElementById('eventFilterList').innerHTML = events.length
+    ? events.map(e => `<label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" class="evFilter" value="${e.id}" onchange="updateAudience()">${esc(e.title)}</label>`).join('')
+    : '<span style="color:var(--text-muted)">رویدادی ثبت نشده.</span>';
+
+  const tagBox = document.getElementById('tagFilterList');
+  if (allTags.length) {
+    tagBox.innerHTML = allTags.map(t => `<label class="badge" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px"><input type="checkbox" class="tagFilter" value="${esc(t)}" onchange="updateAudience()">${esc(t)}</label>`).join('');
+  } else {
+    document.getElementById('noTagsNote').style.display = 'block';
+  }
+
+  await updateAudience();
+  await loadHistory();
+}
+
+function selectedEventIds() {
+  return [...document.querySelectorAll('.evFilter:checked')].map(el => Number(el.value));
+}
+function selectedTags() {
+  return [...document.querySelectorAll('.tagFilter:checked')].map(el => el.value);
+}
+
+async function updateAudience() {
+  try {
+    const res = await API.broadcasts.audience(selectedEventIds(), selectedTags());
+    document.getElementById('audMatched').textContent = res.matched;
+    document.getElementById('audEmailable').textContent = res.emailable;
+    document.getElementById('audSample').textContent = res.sample.length ? ('مثال: ' + res.sample.join('، ')) : '';
+  } catch (err) {
+    document.getElementById('audMatched').textContent = '—';
+    document.getElementById('audEmailable').textContent = '—';
+  }
+}
+
+async function send() {
+  const subject = document.getElementById('bcSubject').value.trim();
+  const body = document.getElementById('bcBody').value.trim();
+  const msg = document.getElementById('sendMsg');
+  msg.style.display = 'none';
+  if (!body) { alert('متن پیام را بنویس.'); return; }
+  const emailableEl = document.getElementById('audEmailable');
+  const emailable = emailableEl.textContent;
+  if (!confirm(`این ایمیل برای ${emailable} نفر ارسال می‌شود. مطمئنی؟`)) return;
+
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true;
+  try {
+    const result = await API.broadcasts.create({ subject, body, eventIds: selectedEventIds(), tags: selectedTags() });
+    msg.style.display = 'block';
+    msg.style.color = '#2a7a2a';
+    msg.textContent = `صف ارسال ایجاد شد — ${result.queued} نفر در صف، ارسال در پس‌زمینه انجام می‌شود.`;
+    document.getElementById('bcSubject').value = '';
+    document.getElementById('bcBody').value = '';
+    await loadHistory();
+  } catch (err) {
+    msg.style.display = 'block';
+    msg.style.color = '#c44';
+    msg.textContent = 'خطا — ' + (err.details || err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function filterSummary(filters) {
+  const parts = [];
+  if (filters.event_ids && filters.event_ids.length) {
+    const names = filters.event_ids.map(id => { const e = events.find(x => x.id === id); return e ? e.title : ('#' + id); });
+    parts.push('رویداد: ' + names.join('، '));
+  }
+  if (filters.tags && filters.tags.length) parts.push('دسته: ' + filters.tags.join('، '));
+  return parts.length ? parts.join(' · ') : 'همه‌ی مشتری‌ها';
+}
+
+async function loadHistory() {
+  const rows = await API.broadcasts.list();
+  document.getElementById('historyBody').innerHTML = rows.length ? rows.map(b => `<tr>
+      <td>${esc(b.subject || '—')}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${esc(filterSummary(b.filters || {}))}</td>
+      <td>${b.recipient_count}</td>
+      <td style="color:#1e9e5a">${b.sent_count}</td>
+      <td style="color:${b.failed_count ? '#c44' : 'inherit'}">${b.failed_count}</td>
+      <td><span class="badge">${statusLabels[b.status] || b.status}</span></td>
+      <td style="font-size:11px;color:var(--text-muted)" dir="ltr">${esc((b.created_at || '').replace('T', ' ').slice(0, 16))}</td>
+    </tr>`).join('') : '<tr><td colspan="7">هنوز ایمیلی ارسال نشده.</td></tr>';
+}
+
+function logout() { API.auth.logout(); location.href = 'login.html'; }
+addEventListener('DOMContentLoaded', init);
+</script>
+</body></html>

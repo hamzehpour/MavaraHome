@@ -5,6 +5,59 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## New: admin email broadcasts, segmented by event/tag
+
+**Why:** requested — admin wants to build a segment from customers who
+actually purchased (filtered by event, or by an event's tag/category)
+and send them an email. SMS is planned as a second channel later, which
+shaped the design (schema and API both carry `channel` from day one
+instead of assuming email-only).
+
+- **New website admin page, `admin/broadcast.html`** (+ sidebar link on
+  all seven admin pages): checklist of events and of every tag currently
+  in use (derived from real event data, not a fixed vocabulary — tags
+  are free-text per event throughout this codebase), a live "matched /
+  emailable" count as filters change, a subject+body compose box, and a
+  history table of past sends with per-broadcast sent/failed counts.
+  Event and tag filters combine as OR (either one matching an event
+  includes its customers) — two different ways to point at the same kind
+  of audience, not two conditions that must both hold. No filters at all
+  = every customer who has ever completed a purchase.
+- **Audience = distinct customers with at least one `approved`
+  reservation** matching the filter — an actual completed purchase, not
+  an abandoned or still-pending one.
+- **Async by design**: creating a broadcast resolves the audience
+  immediately (so the admin sees a real count back, not a promise) and
+  queues one row per emailable customer; a new background loop
+  (`run_broadcast_loop_sync`, same shape as the existing sync expiry/
+  backup loops) drains it a few at a time over SMTP, so sending to a
+  real-sized list can't block the admin's HTTP request. A customer with
+  no email on file is counted in "matched" but not queued — there's
+  nowhere to send this version of a broadcast to them yet.
+- New tables `broadcasts` / `broadcast_recipients` (schema v14, additive)
+  — per-recipient rows (not just an aggregate count) so a failure is
+  attributable, same reasoning as keeping individual `payments` rows
+  instead of a running total on `reservations`.
+- **Caught mid-build**: `services/broadcast_service.py` already existed
+  — a working, pre-existing Telegram-side broadcast feature (admin picks
+  an audience of Telegram users inside the bot itself and messages them
+  directly; see `handlers/admin_panel.py`'s `broadcast_*` handlers) that
+  a first pass at this work overwrote outright without reading the file
+  first. Caught before deploy by `git status` showing the file as
+  modified rather than new, which shouldn't have been possible for a
+  file this session had never touched before. Fixed by restoring the
+  original Telegram functions and adding this feature's functions
+  alongside them under `email_`-prefixed names, so nothing about the
+  existing in-bot broadcast flow changed — re-verified both the Telegram
+  handler's imports and the new website flow end-to-end afterward.
+- **Verified** through the real admin UI: filtering by an event's tag
+  showed the right matched/emailable split (including a customer with a
+  purchase but no email on file, correctly matched-but-not-queued);
+  sending queued the right recipients; the background loop picked them
+  up and the history table's status moved from "در حال ارسال" to
+  "انجام‌شده" with the correct sent count; the actual email content
+  (subject/body) came through unchanged in the delivery log.
+
 ## Fixed: mobile nav menu collapsed into a sliver, bled over the page
 
 **Why:** reported with a real phone screenshot on `account.html` —

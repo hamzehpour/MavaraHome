@@ -210,6 +210,26 @@ const API = {
     },
     async reject(id) { return apiFetchAdmin(`/admin/waitlist/${id}/reject`, { method: 'POST' }); },
   },
+  // Admin-built customer segments (by event and/or event tag) + a
+  // one-shot email to that segment. Sending is async on the backend
+  // (a background loop drains it) — creating a broadcast returns
+  // matched/queued counts immediately, and the history list's sent/
+  // failed counts fill in as the loop works through it.
+  broadcasts: {
+    async audience(eventIds, tags) {
+      const params = new URLSearchParams();
+      if (eventIds && eventIds.length) params.set('event_ids', eventIds.join(','));
+      if (tags && tags.length) params.set('tags', tags.join(','));
+      return apiFetchAdmin('/admin/broadcast-audience?' + params.toString());
+    },
+    async create({ subject, body, eventIds, tags }) {
+      return apiFetchAdmin('/admin/broadcasts', {
+        method: 'POST',
+        body: JSON.stringify({ subject, body, event_ids: eventIds || [], tags: tags || [] }),
+      });
+    },
+    async list() { return apiFetchAdmin('/admin/broadcasts'); },
+  },
   paymentInfo: {
     async get() { return apiFetch('/payment-info'); },
   },

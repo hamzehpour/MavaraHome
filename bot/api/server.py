@@ -33,7 +33,7 @@ from urllib.parse import urlparse, parse_qs
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from services import event_service, reservation_service, settings_service, customer_auth_service
+from services import event_service, reservation_service, settings_service, customer_auth_service, broadcast_service
 from database.repositories import events as events_repo
 from database.repositories import sessions as sessions_repo
 from database.repositories import reservations as reservations_repo
@@ -460,6 +460,26 @@ class Handler(BaseHTTPRequestHandler):
                 rows = reservation_service.list_pending_waitlist()
                 return self._send_json(200, {"data": [_waitlist_public(r) for r in rows]})
 
+            if path == "/api/v1/admin/broadcast-audience":
+                # Live preview while the admin is still adjusting filters
+                # — resolves the same query create_broadcast() will use,
+                # so the count shown before sending is never a guess.
+                if not self._is_admin():
+                    return self._send_json(401, {"error": "unauthorized"})
+                event_ids = [int(x) for x in qs.get("event_ids", [""])[0].split(",") if x.strip().isdigit()]
+                tags = [t for t in qs.get("tags", [""])[0].split(",") if t.strip()]
+                audience = broadcast_service.resolve_email_audience(event_ids or None, tags or None)
+                emailable = sum(1 for c in audience if c.get("email"))
+                return self._send_json(200, {"data": {
+                    "matched": len(audience), "emailable": emailable,
+                    "sample": [c["full_name"] for c in audience[:5]],
+                }})
+
+            if path == "/api/v1/admin/broadcasts":
+                if not self._is_admin():
+                    return self._send_json(401, {"error": "unauthorized"})
+                return self._send_json(200, {"data": broadcast_service.list_email_broadcasts()})
+
             m = re.match(r"^/api/v1/admin/reservations/(\d+)/receipt$", path)
             if m:
                 # Admin-only counterpart to the now-private receipt upload
@@ -834,6 +854,31 @@ class Handler(BaseHTTPRequestHandler):
                     status = 409 if result.get("error") == "already_processed" else 400
                     return self._send_json(status, {"error": result.get("error", "failed")})
                 return self._send_json(200, {"data": {"success": True}})
+
+            if path == "/api/v1/admin/broadcasts":
+                admin_payload = self._get_admin_payload()
+                if not admin_payload:
+                    return self._send_json(401, {"error": "unauthorized"})
+                body = self._read_json_body()
+                text = (body.get("body") or "").strip()
+                if not text:
+                    return self._send_json(400, {"error": "validation", "details": "body is required"})
+                subject = (body.get("subject") or "").strip() or None
+                event_ids_raw = body.get("event_ids") or []
+                tags_raw = body.get("tags") or []
+                if not isinstance(event_ids_raw, list) or not isinstance(tags_raw, list):
+                    return self._send_json(400, {"error": "validation", "details": "event_ids/tags must be arrays"})
+                try:
+                    event_ids = [int(x) for x in event_ids_raw]
+                except (TypeError, ValueError):
+                    return self._send_json(400, {"error": "validation", "details": "event_ids must be integers"})
+                tags = [str(t) for t in tags_raw if str(t).strip()]
+                result = broadcast_service.create_email_broadcast(
+                    channel="email", subject=subject, body=text,
+                    event_ids=event_ids or None, tags=tags or None,
+                    created_by=admin_payload["admin_id"],
+                )
+                return self._send_json(201, {"data": result})
 
             if path == "/api/v1/admin/reservations/bulk-approve":
                 admin_payload = self._get_admin_payload()
@@ -1219,9 +1264,10 @@ def main():
     # for why a plain background thread here, not a port of bot.py's
     # asyncio loops.
     import threading
-    from utils.scheduler import run_expiry_loop_sync, run_backup_loop_sync
+    from utils.scheduler import run_expiry_loop_sync, run_backup_loop_sync, run_broadcast_loop_sync
     threading.Thread(target=run_expiry_loop_sync, daemon=True, name="expiry-loop").start()
     threading.Thread(target=run_backup_loop_sync, daemon=True, name="backup-loop").start()
+    threading.Thread(target=run_broadcast_loop_sync, daemon=True, name="broadcast-loop").start()
 
     server = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
     logger.info("Mavara unified API listening on :%d", PORT)
