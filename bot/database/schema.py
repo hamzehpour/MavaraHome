@@ -12,7 +12,7 @@ what's missing instead of guessing from column-already-exists errors.
 from database.connection import get_connection
 from config.settings import BOOTSTRAP_ADMIN_IDS
 
-SCHEMA_VERSION = 12
+SCHEMA_VERSION = 13
 
 SCHEMA_STATEMENTS = [
     # ---- users -------------------------------------------------
@@ -576,6 +576,20 @@ def init_db() -> None:
             # services/customer_auth_service.py's module note on why
             # phone stays infrastructure-only).
             "ALTER TABLE customer_otp ADD COLUMN channel TEXT NOT NULL DEFAULT 'email'",
+            # Schema v13: waiting_list never recorded which channel the
+            # original request came from — harmless while the only way
+            # to approve one was a Telegram-only admin flow that could
+            # only ever mean 'telegram', but the new website admin
+            # waiting-list page (reservation-migration follow-up) exposed
+            # the gap: approving a *website* signup was creating the
+            # resulting reservation with source='telegram' regardless,
+            # since that literal was hardcoded at the one call site that
+            # existed before a second one (this feature) needed it to
+            # vary. Defaults existing rows to 'telegram' — true for every
+            # row that could exist before this column did, since the
+            # website waiting-list flow is new enough that no real
+            # production data predates it.
+            "ALTER TABLE waiting_list ADD COLUMN source TEXT NOT NULL DEFAULT 'telegram'",
         ):
             try:
                 conn.execute(alter_sql)

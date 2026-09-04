@@ -80,7 +80,7 @@ def _create_reservation_for_user(user: dict, session_id: int, people: int, sourc
     )
 
     if not result["success"] and result["waiting"]:
-        result["waitlist_id"] = waitlist_repo.add(user_id=user["id"], session_id=session_id, people=people)
+        result["waitlist_id"] = waitlist_repo.add(user_id=user["id"], session_id=session_id, people=people, source=source)
 
     result["user_id"] = user["id"]
     result["unit_price"] = unit_price
@@ -115,7 +115,7 @@ def create_manual_reservation(operator_telegram_id: int, session_id: int, people
     )
 
     if not result["success"] and result["waiting"]:
-        waitlist_repo.add(user_id=user["id"], session_id=session_id, people=people)
+        waitlist_repo.add(user_id=user["id"], session_id=session_id, people=people, source="phone")
         return result
 
     if result["success"]:
@@ -378,22 +378,31 @@ def list_pending_waitlist() -> list[dict]:
     return waitlist_repo.list_all("waiting")
 
 
-def approve_waitlist_entry(waitlist_id: int, reviewed_by: int) -> dict:
-    """Admin approves a waiting-list entry from the website: grows the
-    session's capacity and creates a real pending_payment reservation for
-    that buyer (approve_overflow_atomic — the exact same atomic operation
-    the Telegram "overflow approve" button already used), then tells the
-    buyer a seat is theirs.
+def approve_waitlist_entry(waitlist_id: int, reviewed_by: int, unit_price: int) -> dict:
+    """Admin approves a waiting-list entry from the website admin panel.
 
-    Notification is email-first, unlike the Telegram-only flow this
-    reuses: a website waiting-list signup may well have no Telegram
-    account at all (get_or_create_customer resolves by email), so email
-    is the one channel guaranteed to reach them. If they DO have a
-    linked Telegram account, a message is also queued via bot_outbox —
-    best-effort, and NOT equivalent to the Telegram-native flow's FSM
-    trick (that requires the bot process's own in-memory dispatcher
-    state, unreachable from here): the buyer is simply told what to do
-    next, not auto-armed to have their next photo picked up as a receipt.
+    Deliberately NOT the same shape as the Telegram-only overflow-
+    approval flow (approve_overflow_atomic): that one creates a
+    pending_payment reservation and waits for the buyer to send a
+    receipt over Telegram — appropriate when the buyer is the one who'll
+    act next. Here, the admin looking at this page IS the one deciding
+    to seat this person (found by report: it was creating a
+    still-unpaid, ticketless reservation with no way to finalize it from
+    this page at all), so this finalizes on the spot: the admin sets the
+    price right here — it may not match the event's listed price (a
+    courtesy discount, a plus-one at a different rate, cash already
+    collected offline...) — capacity grows, the reservation is created
+    already 'approved', and a real ticket/QR is issued immediately, the
+    same way create_manual_reservation()'s phone/walk-in booking path
+    already works.
+
+    Notification is email-first, unlike the Telegram-only flow: a
+    website waiting-list signup may well have no Telegram account at all
+    (get_or_create_customer resolves by email). If they DO have a linked
+    Telegram account, a message is also queued via bot_outbox —
+    best-effort, informational only (unlike the Telegram-native flow's
+    FSM trick, which needs the bot process's own in-memory dispatcher
+    state and isn't reachable from this API process).
     """
     entry = waitlist_repo.get_entry_with_context(waitlist_id)
     if not entry or entry["status"] != "waiting":
@@ -401,34 +410,41 @@ def approve_waitlist_entry(waitlist_id: int, reviewed_by: int) -> dict:
     if not waitlist_repo.set_status_if(waitlist_id, "waiting", "converted"):
         return {"success": False, "error": "already_processed"}
 
-    result = approve_overflow_atomic(session_id=entry["session_id"], user_id=entry["user_id"], people=entry["people"])
+    result = reservations_repo.increase_capacity_and_reserve_locked(
+        session_id=entry["session_id"], user_id=entry["user_id"], people=entry["people"],
+        unit_price=unit_price, capacity_increase=entry["people"],
+        expires_at=None, status="approved", source=entry.get("source") or "telegram",
+    )
     if not result.get("success"):
         # Nothing was actually created — don't leave the waitlist entry
         # stuck as "converted" with no reservation behind it.
         waitlist_repo.set_status(waitlist_id, "waiting")
         return {"success": False, "error": "reservation_failed"}
 
+    from services.ticket_service import issue_ticket
+    code, _qr_image = issue_ticket(result["reservation_id"])
+    result["reservation_code"] = code
+
     reservation = reservations_repo.get_reservation(result["reservation_id"])
     ctx = _email_context_for_reservation(reservation)
-    card_number = settings_service.get_active_card_number()
-    card_holder = settings_service.get_active_card_holder()
-    payment_line = f"شماره کارت: {card_number}" + (f" — به نام {card_holder}" if card_holder else "") if card_number else "برای دریافت شماره کارت با ما در تلگرام تماس بگیرید."
     _notify_customer_by_email(
         reservation,
-        subject=f"ظرفیت رزرو {ctx['event_title']} برایت باز شد",
+        subject=f"رزرو شما برای {ctx['event_title']} تایید شد",
         body=(
-            f"خبر خوب! یک جا برای «{ctx['event_title']}» ({ctx['session_date']} - {ctx['session_time']}) "
-            "کنار گذاشتیم.\n\n"
-            f"{payment_line}\n\n"
-            "برای نهایی‌شدن رزرو، رسید پرداخت را از طریق تلگرام خانه ماورا برایمان بفرست."
+            f"رزرو شما تایید شد ✅\n\n"
+            f"رویداد: {ctx['event_title']}\n"
+            f"تاریخ: {ctx['session_date']}\n"
+            f"ساعت: {ctx['session_time']}\n"
+            f"کد رزرو: {code}\n\n"
+            "برای دیدن/دانلود بلیت، از همین ایمیل وارد سایت خانه ماورا بشوید."
         ),
     )
     if entry.get("telegram_id"):
         from database.repositories import bot_outbox as outbox_repo
-        from texts import fa
-        outbox_repo.enqueue(entry["telegram_id"], fa.OVERFLOW_APPROVED_BUYER_MSG)
-        outbox_repo.enqueue(entry["telegram_id"], payment_line)
-        outbox_repo.enqueue(entry["telegram_id"], fa.ASK_RECEIPT_PHOTO)
+        outbox_repo.enqueue(
+            entry["telegram_id"],
+            f"🎉 خبر خوب! ظرفیت برایت باز شد و بلیطت صادر شد.\nکد رزرو: {code}\nبرای دیدن بلیت وارد سایت خانه ماورا شو.",
+        )
 
     result["waitlist_id"] = waitlist_id
     return result

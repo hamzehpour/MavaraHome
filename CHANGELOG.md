@@ -5,6 +5,50 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Waiting-list approval: two real bugs from live use, fixed
+
+**Why:** using the page just shipped, both surfaced immediately —
+approving a *website* waiting-list entry showed up in the reservations
+list tagged "تلگرام", and approving created a still-unpaid reservation
+with no ticket, no way to finalize it from the page at all.
+
+- **Bug 1 — wrong source, root cause**: `increase_capacity_and_reserve_
+  locked()` (the one atomic operation both the Telegram overflow-approval
+  flow and the new website one call) hardcoded `source='telegram'` in
+  its INSERT — literally the only value it had ever needed, until a
+  second call site (this feature) needed it to vary. `waiting_list`
+  itself never recorded which channel a request came from either, so
+  there was nothing to pass through even after fixing that. Fixed at the
+  root: schema v13 adds `waiting_list.source` (defaults existing rows to
+  'telegram' — true for everything that could predate this column, since
+  the website waiting-list flow is this session's own recent feature);
+  both places a waiting-list entry gets created now record their real
+  source ('website', 'telegram', or 'phone' for the manual/walk-in
+  path); `increase_capacity_and_reserve_locked()` and
+  `approve_waitlist_entry()` now pass that real value through instead of
+  a hardcoded literal.
+- **Bug 2 — no way to finalize, redesigned**: `approve_waitlist_entry()`
+  used to mirror the Telegram-only flow exactly — grow capacity, create
+  a `pending_payment` reservation, and wait for the buyer to send a
+  receipt over Telegram. That makes sense when the buyer is the one who
+  acts next; it doesn't when an admin on the website is the one deciding
+  to seat this person. Redesigned to finalize on the spot: the approval
+  modal now has an editable price field (pre-filled with the event's own
+  effective price, editable for a discount/cash-already-collected/
+  different-headcount case), and confirming creates the reservation
+  already `approved` with that price and issues a real ticket/QR
+  immediately — same as `create_manual_reservation()`'s existing phone/
+  walk-in booking path, just reached from this page instead of a staff
+  phone call.
+- **Verified** end-to-end through the real admin UI: a website-sourced
+  entry now shows "سایت" (not "تلگرام") in the list; approving it with
+  an admin-edited price (450,000 → 300,000) produced, confirmed via
+  direct DB read, a reservation with `status='approved'`,
+  `source='website'`, `unit_price=300000` (the edited amount, not the
+  suggested default), and a real `reservation_code`; the confirmation
+  email matched the normal approve-reservation template exactly, ticket
+  code included.
+
 ## Waiting-list admin: a new website admin page, and a real gap it closes
 
 **Why:** asked "where can I see waiting-list reservations in admin?" —

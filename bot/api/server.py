@@ -209,15 +209,24 @@ def _reservation_public(r: dict) -> dict:
 
 def _waitlist_public(w: dict) -> dict:
     from utils.jalali import display_date_for_event
+    # suggested_unit_price: the event's own effective price (per-event
+    # override, else the global default) — just a starting value for the
+    # admin's price field on approval, not binding; they can change it
+    # (see reservation_service.approve_waitlist_entry's docstring for why
+    # the price is admin-entered rather than always this).
+    suggested_price, currency = event_service.get_effective_price(
+        {"ticket_price": w.get("ticket_price"), "currency": w.get("currency")}
+    )
     return {
         "id": w["id"], "people": w["people"], "status": w.get("status"),
-        "created_at": w.get("created_at"),
+        "source": w.get("source"), "created_at": w.get("created_at"),
         "buyer_name": w.get("buyer_name"), "buyer_phone": w.get("buyer_phone"),
         "buyer_email": w.get("buyer_email"),
         "session_id": w.get("session_id"),
         "session_date": display_date_for_event(w["session_date"], w.get("calendar_type", "jalali")),
         "session_time": w.get("session_time"), "capacity": w.get("capacity"),
         "event_id": w.get("event_id"), "event_title": w.get("event_title"),
+        "suggested_unit_price": suggested_price, "currency": currency,
     }
 
 
@@ -798,7 +807,16 @@ class Handler(BaseHTTPRequestHandler):
                 if not admin_payload:
                     return self._send_json(401, {"error": "unauthorized"})
                 waitlist_id = int(m.group(1))
-                result = reservation_service.approve_waitlist_entry(waitlist_id, reviewed_by=admin_payload["admin_id"])
+                body = self._read_json_body()
+                try:
+                    unit_price = int(body.get("unit_price"))
+                except (TypeError, ValueError):
+                    unit_price = -1
+                if unit_price < 0:
+                    return self._send_json(400, {"error": "validation", "details": "unit_price must be a non-negative integer"})
+                result = reservation_service.approve_waitlist_entry(
+                    waitlist_id, reviewed_by=admin_payload["admin_id"], unit_price=unit_price,
+                )
                 if not result.get("success"):
                     status = 409 if result.get("error") == "already_processed" else 400
                     return self._send_json(status, {"error": result.get("error", "failed")})

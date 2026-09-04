@@ -200,7 +200,14 @@ const API = {
   // own approve/reject actions, not just another filter on reservations.
   waitlist: {
     async allAdmin() { return apiFetchAdmin('/admin/waitlist'); },
-    async approve(id) { return apiFetchAdmin(`/admin/waitlist/${id}/approve`, { method: 'POST' }); },
+    // unitPrice: admin-entered at approval time (pre-filled with the
+    // event's own price by the caller) — approving finalizes the
+    // reservation and issues a ticket immediately, it doesn't just grow
+    // capacity and leave the buyer to pay later. See
+    // reservation_service.approve_waitlist_entry's docstring.
+    async approve(id, unitPrice) {
+      return apiFetchAdmin(`/admin/waitlist/${id}/approve`, { method: 'POST', body: JSON.stringify({ unit_price: Number(unitPrice) }) });
+    },
     async reject(id) { return apiFetchAdmin(`/admin/waitlist/${id}/reject`, { method: 'POST' }); },
   },
   paymentInfo: {

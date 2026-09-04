@@ -7,17 +7,32 @@
         <button onclick="logout()" style="margin-top:auto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>خروج</button></aside>
     <main class="admin-main">
         <div><h2>لیست انتظار</h2><p style="color:var(--text-muted);font-size:13px;margin-top:4px;margin-bottom:16px">
-            درخواست‌هایی که برای یک سانس تکمیل‌ظرفیت ثبت شدن — چه از تلگرام، چه از سایت. تأیید یعنی ظرفیت آن سانس یکی افزایش پیدا می‌کند و یک رزرو واقعی (در انتظار پرداخت) برای همان نفر ساخته می‌شود؛ خریدار با ایمیل (و پیام تلگرام، اگر داشته باشد) خبردار می‌شود.
+            درخواست‌هایی که برای یک سانس تکمیل‌ظرفیت ثبت شدن — چه از تلگرام، چه از سایت. تأیید یعنی ظرفیت آن سانس یکی افزایش پیدا می‌کند، مبلغ را همین‌جا مشخص می‌کنی، و رزرو مستقیم تأییدشده و بلیط برایش صادر می‌شود؛ خریدار با ایمیل (و پیام تلگرام، اگر داشته باشد) خبردار می‌شود.
         </p></div>
         <div id="stats" style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:14px;font-size:12.5px;color:var(--text-muted)"></div>
-        <table class="admin-table"><thead><tr><th>نام</th><th>تماس</th><th>رویداد</th><th>سانس</th><th>تعداد</th><th>ثبت‌شده</th><th>عملیات</th></tr></thead><tbody id="tbody"></tbody></table>
+        <table class="admin-table"><thead><tr><th>نام</th><th>تماس</th><th>منبع</th><th>رویداد</th><th>سانس</th><th>تعداد</th><th>ثبت‌شده</th><th>عملیات</th></tr></thead><tbody id="tbody"></tbody></table>
     </main>
+</div>
+<div class="admin-modal-overlay" id="approveModal" style="display:none">
+  <div class="admin-modal" style="max-width:420px">
+    <div class="admin-modal-header"><h3>تأیید ظرفیت و صدور بلیط</h3><button onclick="closeApproveModal()" style="font-size:20px">✕</button></div>
+    <div class="admin-modal-body">
+      <p id="approveSummary" style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.9"></p>
+      <label>قیمت هر بلیط (تومان)</label>
+      <input type="number" id="approveUnitPrice" min="0" step="1000" oninput="updateApproveTotal()">
+      <p style="font-size:13px;margin-top:8px">مبلغ کل: <strong id="approveTotal" style="color:var(--gold-deep)"></strong></p>
+      <p style="font-size:11.5px;color:var(--text-muted);margin-top:10px;line-height:1.8">با تأیید، ظرفیت سانس یکی افزایش پیدا می‌کند، یک رزرو تأییدشده با همین مبلغ ساخته می‌شود و بلیط بلافاصله صادر می‌شود — نیازی به ارسال رسید نیست.</p>
+      <button class="btn btn--gold" style="width:100%;margin-top:16px" onclick="confirmApprove()">تأیید نهایی و صدور بلیط</button>
+    </div>
+  </div>
 </div>
 <script src="../../assets/js/app.js"></script>
 <script>
 if (!API.auth.check()) window.location.href = 'login.html';
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+const sourceLabels = { website: 'سایت', telegram: 'تلگرام', phone: 'تلفن' };
 let rows = [];
+let approveTarget = null;
 async function init() {
   await reload();
 }
@@ -33,21 +48,46 @@ function render() {
         ${w.buyer_phone ? `<span dir="ltr">${esc(w.buyer_phone)}</span><br>` : ''}
         ${w.buyer_email ? `<span style="color:var(--text-muted)">${esc(w.buyer_email)}</span>` : ''}
       </td>
+      <td><span class="badge">${esc(sourceLabels[w.source] || w.source || '—')}</span></td>
       <td>${esc(w.event_title || w.event_id)}</td>
       <td style="font-size:12px" dir="ltr">${esc(w.session_date || '')} ${esc(w.session_time || '')}</td>
       <td>${w.people}</td>
       <td style="font-size:11px;color:var(--text-muted)" dir="ltr">${esc((w.created_at || '').replace('T', ' ').slice(0, 16))}</td>
       <td style="white-space:nowrap">
-        <button class="btn btn--gold" style="font-size:10.5px;padding:4px 10px" onclick="approve(${w.id})">تأیید ظرفیت</button>
+        <button class="btn btn--gold" style="font-size:10.5px;padding:4px 10px" onclick="openApproveModal(${w.id})">تأیید ظرفیت</button>
         <button class="btn btn--outline" style="font-size:10.5px;padding:4px 10px;color:#c44" onclick="reject(${w.id})">رد</button>
-      </td></tr>`).join('') || '<tr><td colspan="7">در حال حاضر کسی در لیست انتظار نیست.</td></tr>';
+      </td></tr>`).join('') || '<tr><td colspan="8">در حال حاضر کسی در لیست انتظار نیست.</td></tr>';
 }
-async function approve(id) {
-  if (!confirm('ظرفیت این سانس یکی افزایش پیدا کند و برای این نفر رزرو ساخته شود؟')) return;
+function openApproveModal(id) {
+  const w = rows.find(r => r.id === id);
+  if (!w) return;
+  approveTarget = w;
+  document.getElementById('approveSummary').innerHTML =
+    `${esc(w.buyer_name || '—')} · ${w.people} نفر<br>${esc(w.event_title || '')} — <span dir="ltr">${esc(w.session_date || '')} ${esc(w.session_time || '')}</span>`;
+  document.getElementById('approveUnitPrice').value = w.suggested_unit_price || 0;
+  updateApproveTotal();
+  document.getElementById('approveModal').style.display = 'flex';
+}
+function closeApproveModal() {
+  document.getElementById('approveModal').style.display = 'none';
+  approveTarget = null;
+}
+function updateApproveTotal() {
+  if (!approveTarget) return;
+  const unit = Number(document.getElementById('approveUnitPrice').value) || 0;
+  const total = unit * approveTarget.people;
+  document.getElementById('approveTotal').textContent = total.toLocaleString('fa-IR') + ' ' + (approveTarget.currency || 'تومان');
+}
+async function confirmApprove() {
+  if (!approveTarget) return;
+  const unitPrice = Number(document.getElementById('approveUnitPrice').value);
+  if (!(unitPrice >= 0)) { alert('قیمت را درست وارد کن.'); return; }
+  const id = approveTarget.id;
   try {
-    await API.waitlist.approve(id);
+    const result = await API.waitlist.approve(id, unitPrice);
+    closeApproveModal();
     await reload();
-    toast('تأیید شد — رزرو ساخته شد و به خریدار اطلاع داده شد');
+    toast('تأیید شد — بلیط با کد ' + (result.reservation_code || '#' + result.id) + ' صادر شد');
   } catch (err) {
     alert('خطا — ' + (err.details || err.message));
   }

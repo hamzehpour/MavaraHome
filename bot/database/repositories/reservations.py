@@ -3,12 +3,25 @@ from database.connection import get_connection
 
 def increase_capacity_and_reserve_locked(session_id: int, user_id: int, people: int,
                                            unit_price: int, capacity_increase: int,
-                                           expires_at: str | None = None) -> dict:
+                                           expires_at: str | None = None,
+                                           status: str = "pending_payment",
+                                           source: str = "telegram") -> dict:
     """
     Used when an admin approves an overflow-capacity request: growing the
     session's capacity and inserting the new reservation happen in ONE
     transaction, so a concurrent booking can't grab the newly freed seats
     before the waitlisted buyer does.
+
+    status/source default to the Telegram-only overflow-approval flow's
+    original behavior (pending_payment, 'telegram') for backward
+    compatibility with that one caller. The website admin waiting-list
+    page's approval passes status='approved' (it finalizes the booking
+    right there, with an admin-entered price, rather than creating
+    another pending reservation waiting on a receipt) and the waiting-
+    list entry's own real source — 'telegram' was previously hardcoded
+    here regardless of where the original request came from, which is
+    exactly why a website-originated waitlist approval showed up as a
+    Telegram-sourced reservation until this parameter existed.
     """
     with get_connection() as conn:
         session = conn.execute("SELECT * FROM sessions WHERE id = ?", (session_id,)).fetchone()
@@ -21,9 +34,9 @@ def increase_capacity_and_reserve_locked(session_id: int, user_id: int, people: 
             INSERT INTO reservations(
                 user_id, session_id, people, unit_price, total_price, status, source, expires_at
             )
-            VALUES (?, ?, ?, ?, ?, 'pending_payment', 'telegram', ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (user_id, session_id, people, unit_price, total, expires_at),
+            (user_id, session_id, people, unit_price, total, status, source, expires_at),
         )
         return {"success": True, "reservation_id": cur.lastrowid, "total_price": total, "new_capacity": new_capacity}
 

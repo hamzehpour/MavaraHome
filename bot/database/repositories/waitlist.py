@@ -18,11 +18,11 @@ def get_entry_with_context(entry_id: int) -> dict | None:
         return dict(row) if row else None
 
 
-def add(user_id: int, session_id: int, people: int) -> int:
+def add(user_id: int, session_id: int, people: int, source: str = "telegram") -> int:
     with get_connection() as conn:
         cur = conn.execute(
-            "INSERT INTO waiting_list(user_id, session_id, people) VALUES (?, ?, ?)",
-            (user_id, session_id, people),
+            "INSERT INTO waiting_list(user_id, session_id, people, source) VALUES (?, ?, ?, ?)",
+            (user_id, session_id, people, source),
         )
         return cur.lastrowid
 
@@ -49,7 +49,8 @@ def list_all(status: str = "waiting") -> list[dict]:
             SELECT w.*, u.full_name AS buyer_name, u.phone AS buyer_phone,
                    u.email AS buyer_email, u.telegram_id,
                    s.session_date, s.session_time, s.capacity,
-                   e.id AS event_id, e.title AS event_title, e.calendar_type
+                   e.id AS event_id, e.title AS event_title, e.calendar_type,
+                   e.ticket_price, e.currency
             FROM waiting_list w
             JOIN users u ON u.id = w.user_id
             JOIN sessions s ON s.id = w.session_id
