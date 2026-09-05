@@ -158,7 +158,10 @@ async def run_outbox_loop(bot: Bot) -> None:
         try:
             for item in outbox_repo.list_pending():
                 try:
-                    await bot.send_message(item["telegram_id"], item["body"])
+                    if item["kind"] == "receipt_review":
+                        await _deliver_receipt_review(bot, item)
+                    else:
+                        await bot.send_message(item["telegram_id"], item["body"])
                     outbox_repo.mark_sent(item["id"])
                 except Exception:
                     logger.exception("Failed to deliver outbox message id=%s", item["id"])
@@ -167,6 +170,46 @@ async def run_outbox_loop(bot: Bot) -> None:
             logger.exception("Error while running the outbox delivery job")
 
         await asyncio.sleep(5)
+
+
+async def _deliver_receipt_review(bot: Bot, item: dict) -> None:
+    """Delivers a "receipt_review" outbox item: the admin-channel alert
+    for a reservation reaching pending_review, with the actual receipt
+    image attached and the same approve/reject buttons the Telegram-only
+    staff DM already has (see handlers/payment.py) — requested so an
+    admin can act right from the channel instead of having to go dig up
+    the reservation elsewhere.
+
+    item["photo_ref"] is a prefixed reference set by reservation_service.
+    _notify_admin_channel_new_request(): "tg:<file_id>" for a receipt
+    submitted through the Telegram bot (send as-is, Telegram already has
+    it), or "file:<relative path>" for one uploaded through the website
+    (read from private_media/ and upload fresh — the bot process and the
+    website API process share that directory since both run under the
+    same BASE_DIR, but a raw path is meaningless to Telegram's API, only
+    an actual upload is)."""
+    from aiogram.types import FSInputFile
+    from keyboards.admin import reservation_review_keyboard
+    from config.settings import BASE_DIR
+
+    photo_ref = item["photo_ref"] or ""
+    if photo_ref.startswith("tg:"):
+        photo = photo_ref[len("tg:"):]
+    elif photo_ref.startswith("file:"):
+        photo = FSInputFile(BASE_DIR / "private_media" / photo_ref[len("file:"):])
+    else:
+        # No usable receipt reference — still alert, just without the
+        # image, rather than silently dropping the whole notification.
+        await bot.send_message(
+            item["telegram_id"], item["body"],
+            reply_markup=reservation_review_keyboard(item["reservation_id"]) if item["reservation_id"] else None,
+        )
+        return
+
+    await bot.send_photo(
+        item["telegram_id"], photo=photo, caption=item["body"],
+        reply_markup=reservation_review_keyboard(item["reservation_id"]),
+    )
 
 
 async def run_backup_loop() -> None:

@@ -12,7 +12,7 @@ what's missing instead of guessing from column-already-exists errors.
 from database.connection import get_connection
 from config.settings import BOOTSTRAP_ADMIN_IDS
 
-SCHEMA_VERSION = 14
+SCHEMA_VERSION = 15
 
 SCHEMA_STATEMENTS = [
     # ---- users -------------------------------------------------
@@ -730,6 +730,21 @@ def init_db() -> None:
             # website waiting-list flow is new enough that no real
             # production data predates it.
             "ALTER TABLE waiting_list ADD COLUMN source TEXT NOT NULL DEFAULT 'telegram'",
+            # Schema v15: the new-reservation channel alert (settings_
+            # service.notify_admin_channel) started as plain text — an
+            # admin then asked to be able to approve/reject right from
+            # that channel message, the same way the existing Telegram-
+            # only staff DM already lets them (see handlers/payment.py).
+            # That needs the receipt image attached and the review
+            # keyboard bound to it — bot_outbox only ever carried plain
+            # text before, so a "receipt_review" kind needs somewhere to
+            # stash which reservation the buttons are for and where the
+            # receipt image actually lives (a Telegram file_id for a
+            # Telegram-submitted receipt, or a local file path under
+            # private_media/ for a website-submitted one — see
+            # reservation_service._notify_admin_channel_new_request()).
+            "ALTER TABLE bot_outbox ADD COLUMN reservation_id INTEGER",
+            "ALTER TABLE bot_outbox ADD COLUMN photo_ref TEXT",
         ):
             try:
                 conn.execute(alter_sql)

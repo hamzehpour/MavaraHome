@@ -5,6 +5,43 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Admin channel alert now includes the receipt + approve/reject buttons (schema v15)
+
+**Why:** requested, right after seeing the plain-text alert land — an
+admin wanted to act directly from the channel (approve/reject a payment)
+the same way the existing Telegram-only staff DM already lets them
+(`handlers/payment.py`), instead of the channel message being read-only
+and needing a trip elsewhere to actually do anything.
+
+- `bot_outbox` gained two nullable columns, `reservation_id` and
+  `photo_ref` — a plain "text" message (the waitlist alert, which has no
+  receipt) leaves both NULL, unchanged from before.
+- New `kind="receipt_review"` outbox item: delivered by
+  `utils/scheduler._deliver_receipt_review()`, which sends the receipt
+  as a photo with the alert as its caption and the same
+  `reservation_review_keyboard()` the DM uses. `photo_ref` is a prefixed
+  reference — `"tg:<file_id>"` for a receipt submitted through the
+  Telegram bot (Telegram already has it, reused as-is), `"file:<relative
+  path>"` for one uploaded through the website (read from
+  `private_media/` and uploaded fresh, since a bare path is meaningless
+  to Telegram's API — only an actual upload is).
+- `settings_service.notify_admin_channel_with_receipt()`: same
+  channel/no-op-if-unset shape as `notify_admin_channel()`, enqueues the
+  new kind instead of plain text.
+- The existing approve/reject callback handlers needed no changes at
+  all — `admin_reservations.py`'s `_safe_ack_admin_message()` already
+  handled being invoked on a photo-caption message (it was written for
+  the DM case, which is also a photo), and permission is checked by who
+  clicked, not which chat the button was clicked in.
+
+Verified locally: a website-submitted receipt (`file:` prefix) and a
+Telegram-submitted one (`tg:` prefix) both produce the correct
+`bot_outbox` row; `_deliver_receipt_review()` against a mock bot
+confirmed the local-file path resolves to a real, existing file and
+builds an `FSInputFile`, the Telegram case passes the file_id straight
+through as a string, and both produce the correct approve/reject
+callback_data for their reservation id.
+
 ## Fixed: monitoring channel setup didn't work for a Telegram *group*
 
 **Why:** hit live, during setup — the forward-a-message flow

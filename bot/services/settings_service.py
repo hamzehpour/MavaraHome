@@ -188,6 +188,26 @@ def notify_admin_channel(text: str) -> None:
         pass
 
 
+def notify_admin_channel_with_receipt(text: str, reservation_id: int, photo_ref: str) -> None:
+    """Same channel/setup as notify_admin_channel() above, but for the
+    reservation-reaching-pending_review alert specifically — attaches the
+    actual receipt image and the same approve/reject buttons the
+    Telegram-only staff DM already has (handlers/payment.py), so an
+    admin can act right from the channel instead of going to find the
+    reservation elsewhere. `photo_ref` is "tg:<file_id>" or
+    "file:<relative path>" — see utils/scheduler._deliver_receipt_review,
+    which is what actually resolves it into something Telegram accepts."""
+    channel_id = settings_repo.get("monitoring_channel_id", "")
+    if not channel_id:
+        return
+    try:
+        from database.repositories import bot_outbox as outbox_repo
+        outbox_repo.enqueue(int(channel_id), text, kind="receipt_review",
+                             reservation_id=reservation_id, photo_ref=photo_ref)
+    except Exception:
+        pass
+
+
 # ── Website settings page: type + range/length guardrails ──
 # The Telegram menu above (update_setting) stays exactly as free-text as
 # it always was — deliberately unchanged, so nothing about the existing

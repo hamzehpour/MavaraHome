@@ -5,11 +5,15 @@ database/schema.py for why this exists instead of an HTTP callback."""
 from database.connection import get_connection
 
 
-def enqueue(telegram_id: int, body: str, kind: str = "text") -> int:
+def enqueue(telegram_id: int, body: str, kind: str = "text",
+            reservation_id: int | None = None, photo_ref: str | None = None) -> int:
+    """reservation_id/photo_ref are only used by kind="receipt_review" (see
+    utils/scheduler.run_outbox_loop) — a plain "text" message leaves both
+    NULL, same as before these columns existed."""
     with get_connection() as conn:
         cur = conn.execute(
-            "INSERT INTO bot_outbox(telegram_id, kind, body) VALUES (?, ?, ?)",
-            (telegram_id, kind, body),
+            "INSERT INTO bot_outbox(telegram_id, kind, body, reservation_id, photo_ref) VALUES (?, ?, ?, ?, ?)",
+            (telegram_id, kind, body, reservation_id, photo_ref),
         )
         return cur.lastrowid
 
