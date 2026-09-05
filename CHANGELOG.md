@@ -5,6 +5,31 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Fixed: monitoring channel setup didn't work for a Telegram *group*
+
+**Why:** hit live, during setup — the forward-a-message flow
+(`handlers/channel_setup.py`) only ever worked for an actual Telegram
+*channel* (or a supergroup post sent anonymously "as the group").
+Forwarding an ordinary message sent by a group *member* carries
+`forward_from` (that member), never `forward_from_chat` — Telegram
+gives no way to recover "this came from group X" from that kind of
+forward at all, so the admin's group could never pass, no matter how
+carefully the forward was done ("چرا جلوش نوشت [my own name]! این از
+کانال نیست" was Telegram behaving correctly, just for a flow that
+assumes a channel).
+
+- New `/setgroup` command, sent directly inside the group (not via the
+  bot's private chat): needs no forward at all — a bot command always
+  reaches the bot regardless of the group's privacy-mode setting, and
+  `message.chat.id` inside the group already IS the group's id.
+- Both routes (forward-from-channel, `/setgroup`-in-group) now call one
+  shared `_configure_monitoring_chat()` so they save the same setting,
+  log the same way, and trigger the same reservation backfill —
+  previously only the forward path existed to duplicate.
+- Updated the setup instructions and the "not a forward" error message
+  to point at `/setgroup` as the group alternative, so this doesn't
+  strand the next admin who reaches for a group instead of a channel.
+
 ## Fixed: deploy/mavara-bot.service and mavara-api.service pointed at a stale path
 
 Both templates still said `/opt/mavara-bot` / `User=mavara` — the
