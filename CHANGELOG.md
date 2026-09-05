@@ -5,6 +5,44 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Booking form: payment receipt is now required, custom-styled, and its errors are visible
+
+**Why:** requested — the receipt was optional, but a customer skipping
+it left the admin no proof of payment to review against. Separately: a
+real UI bug — the file-type/size error rendered in `bkFormError`, a box
+at the very *top* of the modal, while the receipt field sits further
+down; on mobile, once the buyer had scrolled to reach it, the error
+appeared off-screen above the fold and went unnoticed.
+
+- The receipt file is now required for a normal booking (unchanged for
+  a waiting-list signup — there's no confirmed seat to pay for yet, so
+  the whole payment section stays hidden there, same as before).
+- New dedicated `#bkReceiptError` box directly under the file picker
+  (not the shared top-of-form box) — and shown via `scrollIntoView()`,
+  so it's never off-screen. Reused `.bk-form-msg--error`, the site's
+  existing error style, rather than inventing a new one.
+- The plain `<input type="file">` — bare browser chrome, no visual
+  connection to the site — is now a custom `.bk-file-*` component: a
+  pill-styled label button (matching `.bk-chip`'s visual language:
+  `var(--bg-soft)`/`var(--border)`, gold on selection) plus a filename
+  display, built on the standard clip-rect technique (the native input
+  stays in the DOM and keyboard/screen-reader operable, just visually
+  replaced by the label) rather than `display:none`, which would break
+  both. Deliberately validated in JS rather than via `required` on that
+  native input — a browser's validation bubble anchored to a visually
+  hidden 1px element lands in an inconsistent spot across browsers,
+  which would have reintroduced a version of the same "error rendered
+  somewhere the buyer doesn't look" bug this was fixing.
+- Label copy: "رسید پرداخت (اختیاری)" → "ارسال رسید پرداخت" (and the
+  hint text below it), since it no longer is optional.
+
+Verified with Playwright at a mobile viewport (400×900): submitting
+with no file shows the required error positioned right under the file
+picker (not the top box, confirmed via bounding-box diff) with zero
+scrolling needed; oversized/wrong-type files show their existing
+errors in the same spot; selecting a valid file clears the error and
+lets the booking proceed; screenshotted in both light and dark theme.
+
 ## The "email was sent" admin message now reflects the real outcome
 
 **Why:** found immediately after shipping the previous fix (which

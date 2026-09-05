@@ -71,6 +71,7 @@ const I18N = {
     bk_submit_error: 'ثبت رزرو با خطا مواجه شد — لطفاً دوباره تلاش کن یا از تلگرام با ما در تماس باش.',
     bk_file_type_error: 'فقط فایل تصویری (مثل jpg یا png) پذیرفته می‌شود.',
     bk_file_size_error: 'حجم فایل باید کمتر از ۱.۵ مگابایت باشد.',
+    bk_file_required_error: 'ارسال رسید پرداخت برای ثبت رزرو الزامی است.',
     bk_no_receipt_note: 'برای نهایی‌شدن رزرو، رسید پرداخت را هر وقت آماده بود از طریق تلگرام برایمان بفرست.',
     bk_receipt_failed_note: 'رزروت ثبت شد، ولی ارسال رسید با خطا مواجه شد — لطفاً آن را از طریق تلگرام برایمان بفرست.',
     bk_back: 'بازگشت', bk_continue: 'ادامه', bk_edit: 'ویرایش',
@@ -80,8 +81,9 @@ const I18N = {
     support_prefix: 'در صورتی که سوال یا نیاز به پشتیبانی دارید، از طریق',
     support_tg_label: 'اکانت تلگرام خانه ماورا', support_phone_label: 'شماره موبایل ', support_and: ' یا ',
     support_suffix: ' با ما در ارتباط باشید.',
-    pay_title: 'پرداخت (کارت به کارت)', pay_upload_label: 'رسید پرداخت (اختیاری)',
-    pay_upload_hint: 'اگر رسید را همین حالا داری، آپلودش کن؛ در غیر این صورت می‌تونی بعداً از تلگرام برایمان بفرستی.',
+    pay_title: 'پرداخت (کارت به کارت)', pay_upload_label: 'ارسال رسید پرداخت',
+    pay_upload_hint: 'برای نهایی‌شدن رزرو، رسید پرداخت را همین‌جا بارگذاری کن.',
+    pay_upload_choose: 'انتخاب فایل', pay_upload_none: 'فایلی انتخاب نشده',
     pay_ok: 'رسید پرداختت هم دریافت شد؛ پس از بررسی ادمین، تاییدیه‌ی نهایی به ایمیلت ارسال می‌شود.',
     pay_fallback: 'اطلاعات کارت هنوز تنظیم نشده — برای دریافت شماره کارت از تلگرام با ما در تماس باش.',
     fb_title: 'بازخورد و نظرات', fb_name_ph: 'نام شما (اختیاری)', fb_text_ph: 'نظر خود را بنویسید...', fb_submit: 'ثبت', empty_comment: 'هنوز نظری ثبت نشده.',
@@ -148,6 +150,7 @@ const I18N = {
     bk_submit_error: "We couldn't complete your reservation — please try again, or reach us on Telegram.",
     bk_file_type_error: 'Please choose an image file (jpg, png, etc.).',
     bk_file_size_error: 'The file must be smaller than 1.5MB.',
+    bk_file_required_error: 'Uploading a payment receipt is required to complete the reservation.',
     bk_no_receipt_note: "To finalize your reservation, send us the payment receipt on Telegram whenever it's ready.",
     bk_receipt_failed_note: "Your reservation is booked, but the receipt failed to upload — please send it to us on Telegram.",
     bk_back: 'Back', bk_continue: 'Continue', bk_edit: 'Edit',
@@ -157,8 +160,9 @@ const I18N = {
     support_prefix: 'If you have a question or need support, reach us via',
     support_tg_label: 'Mavara Home on Telegram', support_phone_label: 'the number ', support_and: ' or ',
     support_suffix: '.',
-    pay_title: 'Payment (bank transfer)', pay_upload_label: 'Payment receipt (optional)',
-    pay_upload_hint: 'Upload it now if you have it — or send it to us on Telegram later.',
+    pay_title: 'Payment (bank transfer)', pay_upload_label: 'Upload payment receipt',
+    pay_upload_hint: 'Upload the payment receipt here to finalize your reservation.',
+    pay_upload_choose: 'Choose file', pay_upload_none: 'No file chosen',
     pay_ok: "Receipt received too — you'll get a confirmation email once it's reviewed.",
     pay_fallback: 'Card details are not set up yet — message us on Telegram for the card number.',
     fb_title: 'Feedback & comments', fb_name_ph: 'Your name (optional)', fb_text_ph: 'Write your comment...', fb_submit: 'Submit', empty_comment: 'No comments yet.',
@@ -565,9 +569,17 @@ async function buildBooking(e) {
       <div id="bkPayment" style="margin-bottom:18px">
         <div class="bk-label">${T('pay_title')}</div>
         <p style="font-size:13px;line-height:2;margin-bottom:10px">${payInfoHTML}</p>
-        <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:6px">${T('pay_upload_label')}</label>
-        <input type="file" id="bkReceipt" accept="image/*" style="font-size:12.5px;display:block;margin-bottom:6px">
-        <p style="font-size:11.5px;color:var(--text-muted);line-height:1.8">${T('pay_upload_hint')}</p>
+        <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:8px">${T('pay_upload_label')}</label>
+        <div class="bk-file-picker" id="bkFileWrap">
+          <input type="file" id="bkReceipt" class="bk-file-input" accept="image/*">
+          <label for="bkReceipt" class="bk-file-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M12 3l-4 4M12 3l4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+            <span>${T('pay_upload_choose')}</span>
+          </label>
+          <span class="bk-file-name" id="bkFileName">${T('pay_upload_none')}</span>
+        </div>
+        <p id="bkReceiptError" class="bk-form-msg bk-form-msg--error" style="display:none;margin-top:10px"></p>
+        <p style="font-size:11.5px;color:var(--text-muted);line-height:1.8;margin-top:8px">${T('pay_upload_hint')}</p>
       </div>
       <div style="display:flex;gap:10px">
         <button type="button" class="btn btn--outline" id="bkBackBtn">${T('bk_back')}</button>
@@ -587,6 +599,7 @@ async function buildBooking(e) {
       <p style="margin-top:14px;font-size:13.5px;color:var(--text-muted)">${T('bk_loading')}</p>
     </div>`;
   document.getElementById('bkForm').addEventListener('submit', handleFormContinue);
+  document.getElementById('bkReceipt').addEventListener('change', onReceiptFileChange);
   document.getElementById('bkBackBtn').onclick = goToPicker;
   document.getElementById('bkEditBtn').onclick = goToForm;
   document.getElementById('bkConfirmSubmit').onclick = confirmAndSubmit;
@@ -605,11 +618,26 @@ function goToForm() {
   document.getElementById('bkForm').style.display = 'block';
   document.getElementById('bkConfirmBlock').style.display = 'none';
   document.getElementById('bkFormError').style.display = 'none';
+  document.getElementById('bkReceiptError').style.display = 'none';
   // A waiting-list entry has no quantity to pick and nothing to pay yet
   // (there's no confirmed seat) — just name/phone/email.
   const isWaitlist = __bk.mode === 'waitlist';
   document.getElementById('bkQtyBlock').style.display = isWaitlist ? 'none' : 'block';
   document.getElementById('bkPayment').style.display = isWaitlist ? 'none' : 'block';
+}
+// Custom-styled file picker (see .bk-file-* in styles.css) — the native
+// <input type="file"> is visually hidden but stays focusable/keyboard-
+// operable (clip-rect technique, not display:none), with a styled
+// <label for="bkReceipt"> standing in as the visible button. This just
+// keeps the filename display and "has-file" state (gold border, see
+// .bk-file-picker.has-file) in sync with whatever the browser's native
+// file picker dialog returned.
+function onReceiptFileChange() {
+  const file = document.getElementById('bkReceipt').files[0];
+  document.getElementById('bkFileName').textContent = file ? file.name : T('pay_upload_none');
+  document.getElementById('bkFileWrap').classList.toggle('has-file', !!file);
+  const errBox = document.getElementById('bkReceiptError');
+  if (errBox) errBox.style.display = 'none';
 }
 function selectDate(dateIso, chip) {
   __bk.dateId = dateIso; __bk.sessionId = null; __bk.qty = 1;
@@ -690,9 +718,19 @@ function handleFormContinue(ev) {
   ev.preventDefault();
   const errBox = document.getElementById('bkFormError');
   errBox.style.display = 'none';
+  const receiptErrBox = document.getElementById('bkReceiptError');
+  receiptErrBox.style.display = 'none';
   // Name/phone/email are `required` on their <input>s, so the browser's
   // own validation UI stops the submit before this handler runs on an
-  // empty or malformed value — nothing to duplicate here.
+  // empty or malformed value — nothing to duplicate here. The receipt
+  // file is validated explicitly below instead of via `required` on its
+  // <input> — that input is visually hidden (see .bk-file-input in
+  // styles.css), and a native validation bubble anchored to a 1px
+  // hidden element lands in an inconsistent spot across browsers; this
+  // way the error always renders in the same place, right under the
+  // file picker, and is scrolled into view — the actual bug report this
+  // fixed was the OLD top-of-form error going unnoticed once the buyer
+  // had scrolled down to the receipt field on mobile.
   const s = API.sessions.get(__bk.eventId, __bk.sessionId);
   if (!s) { errBox.style.display = 'block'; errBox.textContent = T('bk_submit_error'); goToPicker(); return; }
   // A full session is exactly the point of the waitlist flow — only a
@@ -705,10 +743,14 @@ function handleFormContinue(ev) {
   if (__bk.mode !== 'waitlist') {
     const fileInput = document.getElementById('bkReceipt');
     const file = fileInput && fileInput.files[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) { errBox.style.display = 'block'; errBox.textContent = T('bk_file_type_error'); return; }
-      if (file.size > 1_500_000) { errBox.style.display = 'block'; errBox.textContent = T('bk_file_size_error'); return; }
-    }
+    const showReceiptError = (msg) => {
+      receiptErrBox.style.display = 'block';
+      receiptErrBox.textContent = msg;
+      receiptErrBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+    if (!file) { showReceiptError(T('bk_file_required_error')); return; }
+    if (!file.type.startsWith('image/')) { showReceiptError(T('bk_file_type_error')); return; }
+    if (file.size > 1_500_000) { showReceiptError(T('bk_file_size_error')); return; }
   }
   goToConfirm();
 }
