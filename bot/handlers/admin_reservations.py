@@ -162,7 +162,7 @@ async def approve(callback: CallbackQuery, bot: Bot, state: FSMContext) -> None:
         # same instant. Either way, nothing was double-processed.
         await callback.answer("این رزرو هم‌زمان توسط شخص دیگری پردازش شد.", show_alert=True)
         return
-    code, qr_bytes = result
+    code, qr_bytes, email_sent = result
     from aiogram.types import BufferedInputFile
     qr_image = BufferedInputFile(qr_bytes, filename="ticket.png")
     logs_repo.record("reservation_approved", callback.from_user.id, f"reservation_id={reservation_id}",
@@ -193,21 +193,26 @@ async def approve(callback: CallbackQuery, bot: Bot, state: FSMContext) -> None:
     elif not reservation.get("user_telegram_id"):
         # A website-only customer has no Telegram account to message at
         # all — this isn't a delivery failure, it's the expected shape
-        # for this buyer. The confirmation already went out by email
+        # for this buyer. The confirmation email was already attempted
         # inside reservation_service.approve_reservation() (see
         # _notify_customer_by_email) before this handler even started —
         # the old message here ("کاربر ربات را بلاک کرده — تلفنی پیگیری
         # کنید") was actively misleading for this case, since there was
         # never a Telegram delivery to fail in the first place.
-        from database.repositories import users as users_repo
-        buyer = users_repo.get_by_id(reservation["user_id"])
-        if buyer and buyer.get("email"):
+        #
+        # `email_sent` is the REAL outcome, not just "does this buyer
+        # have an email on file" — those look identical until the SMTP
+        # server actually rejects the send (bad credentials, etc.), which
+        # is exactly the bug this replaced: the admin was told the email
+        # went out when it silently hadn't.
+        if email_sent:
             await _safe_ack_admin_message(callback, "✅ رزرو تأیید شد — چون این خریدار تلگرام ندارد، تأییدیه از طریق ایمیل برایش ارسال شد.")
         else:
             await _safe_ack_admin_message(
                 callback,
-                "⚠️ رزرو تأیید شد، ولی این خریدار نه تلگرام دارد نه ایمیلی ثبت کرده — "
-                "هیچ تأییدیه‌ای برایش ارسال نشد. لطفاً تلفنی پیگیری کنید.",
+                "⚠️ رزرو تأیید شد، ولی ارسال ایمیل تأییدیه به این خریدار ناموفق بود "
+                "(یا ایمیلی ثبت نکرده، یا سرویس ایمیل خطا داد — لاگ سرور را چک کنید). "
+                "لطفاً تلفنی پیگیری کنید.",
             )
     else:
         await _safe_ack_admin_message(

@@ -243,7 +243,7 @@ def _notify_admin_channel_new_waitlist(waitlist_id: int) -> None:
     settings_service.notify_admin_channel(text)
 
 
-def _notify_customer_by_email(reservation: dict, subject: str, body: str) -> None:
+def _notify_customer_by_email(reservation: dict, subject: str, body: str) -> bool:
     """Reservation-migration finding #5: a customer who booked without
     ever talking to the Telegram bot (website-originated, no telegram_id)
     used to get NO notification at all when their reservation was
@@ -252,23 +252,28 @@ def _notify_customer_by_email(reservation: dict, subject: str, body: str) -> Non
     below regardless of which channel (Telegram or the future website
     booking flow) triggered it, so this can't drift out of sync with one
     of them the way two separate notification code paths eventually
-    would. A no-op if the user has no email on file (e.g. a Telegram-only
-    customer — they already got a Telegram message from the handler that
-    called into this service). Best-effort: send_email() itself never
-    raises (see utils/email_sender.py), so a delivery failure here can
-    never fail the status transition that already committed."""
+    would. Best-effort: send_email() itself never raises (see
+    utils/email_sender.py), so a delivery failure here can never fail the
+    status transition that already committed.
+
+    Returns whether an email actually went out — False both when there
+    was no email on file (e.g. a Telegram-only customer) AND when send_
+    email() itself failed (bad SMTP credentials, etc.). Callers that
+    tell the admin "an email was sent" need the real outcome, not just
+    "this buyer has an email on file" — those looked identical from the
+    outside until a real SMTP auth failure showed the difference."""
     from database.repositories import users as users_repo
     from utils.email_sender import send_email
 
     user = users_repo.get_by_id(reservation["user_id"])
     if not user or not user.get("email"):
-        return
-    send_email(to=user["email"], subject=subject, body=body)
+        return False
+    return send_email(to=user["email"], subject=subject, body=body)
 
 
 def approve_reservation(
     reservation_id: int, reviewed_by: int, expected_status: str = "pending_review"
-) -> tuple[str, "io.BytesIO"] | None:
+) -> tuple[str, "io.BytesIO", bool] | None:
     """Returns None if the reservation had already moved past expected_status
     (e.g. a duplicate/double-tap callback) — the caller should treat that
     as 'already handled', not retry.
@@ -279,7 +284,13 @@ def approve_reservation(
     starts from awaiting_buyer_confirmation instead; passing that in here
     fixed a real bug where approving in that flow always incorrectly
     reported 'already processed' because it was hardcoded to only accept
-    pending_review."""
+    pending_review.
+
+    The third element is whether the confirmation email actually went out
+    (see _notify_customer_by_email) — the Telegram admin-approve handler
+    uses this to tell the admin the truth for a website-only buyer with
+    no Telegram to message, instead of assuming the email succeeded just
+    because the buyer has one on file."""
     from database.repositories import payments as payments_repo
     from services.ticket_service import issue_ticket
 
@@ -299,8 +310,8 @@ def approve_reservation(
         "approved", event_title=ctx["event_title"], session_date=ctx["session_date"],
         session_time=ctx["session_time"], reservation_code=code,
     )
-    _notify_customer_by_email(reservation, subject=subject, body=body)
-    return code, qr_image
+    email_sent = _notify_customer_by_email(reservation, subject=subject, body=body)
+    return code, qr_image, email_sent
 
 
 def mark_awaiting_buyer_confirmation(reservation_id: int, admin_note: str) -> bool:

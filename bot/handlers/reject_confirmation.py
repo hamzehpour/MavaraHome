@@ -171,7 +171,7 @@ async def resolve_dispute(callback: CallbackQuery, bot: Bot, state: FSMContext) 
         if result is None:
             await callback.answer("این رزرو قبلاً پردازش شده بود.", show_alert=True)
             return
-        code, qr_bytes = result
+        code, qr_bytes, _email_sent = result
         session = sessions_repo.get_session(reservation["session_id"])
         event = events_repo.get_event(session["event_id"]) if session else None
         ticket_text = settings_service.render_ticket_confirmed(

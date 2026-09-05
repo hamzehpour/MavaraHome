@@ -5,6 +5,32 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## The "email was sent" admin message now reflects the real outcome
+
+**Why:** found immediately after shipping the previous fix (which
+assumed "buyer has an email on file" meant "the email went out") — a
+real production SMTP auth failure (Gmail rejecting the configured app
+password, unrelated to this code) showed the gap: the admin was told
+"✅ ... تأییدیه از طریق ایمیل برایش ارسال شد" for a reservation whose
+email had actually just failed to send.
+
+- `_notify_customer_by_email()` now returns whether `send_email()`
+  actually succeeded, instead of nothing.
+- `approve_reservation()` returns that as a third tuple element,
+  `(code, qr_image, email_sent)` — the two Telegram-side callers that
+  unpack it (`admin_reservations.py`, `reject_confirmation.py`) updated
+  accordingly; the two website API callers were untouched since they
+  never unpacked past `result is None` in the first place.
+- The admin-side message for a website-only buyer (no Telegram) now
+  branches on the real `email_sent` value, not "does this buyer have an
+  email" — so a genuine SMTP failure surfaces as an honest "ارسال ایمیل
+  ناموفق بود ... لاگ سرور را چک کنید" instead of a false "ارسال شد".
+
+(Separately: the actual SMTP failure hit in production was Gmail
+rejecting `mavarahome.me@gmail.com`'s configured password with `535 —
+Username and Password not accepted` — an app-password/2FA setup issue
+on the Google account, not a code bug; see the chat for the fix.)
+
 ## Admin channel alert now includes the receipt + approve/reject buttons (schema v15)
 
 **Why:** requested, right after seeing the plain-text alert land — an
