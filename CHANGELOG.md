@@ -5,6 +5,25 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Small pulsing green dot on every "در حال اجرا" (live) event badge
+
+**Why:** requested — make an ongoing event easier to spot at a glance
+among a grid/slider of cards.
+
+`badgeHTML()` in `site.js` is the single function every event card on
+the public site renders its status badge through (homepage slider,
+homepage "upcoming" preview, the events grid page) — one change there
+covers all of them, no per-page duplication. Reused `.live-dot` as-is
+(the same small pulsing dot already used on about-mansour.html's
+"Mansour is live now" pill) rather than building a new indicator, so
+it's the one consistent "something is live right now" signal across
+the site, not two similar-but-different dots.
+
+Verified with Playwright, light and dark theme: the dot renders
+correctly on the events grid page and the homepage slider/preview
+cards, only for `status === 'ongoing'` — "به‌زودی"/"آرشیو" badges
+unaffected.
+
 ## Approval confirmation email now has the PDF ticket attached
 
 **Why:** requested — the ticket (QR code) was only reachable via a

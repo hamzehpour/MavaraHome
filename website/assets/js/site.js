@@ -238,7 +238,11 @@ function tagsHTML(e) {
   return (e.tags || []).length ? '<div class="event-tags">' + e.tags.map(t => '<span>' + esc(t) + '</span>').join('') + '</div>' : '';
 }
 function badgeHTML(status) {
-  return status === 'ongoing' ? '<span class="event-badge event-badge--live">' + T('b_live') + '</span>'
+  // .live-dot is the same small pulsing green dot already used on the
+  // "Mansour is live now" pill (about-mansour.html) — reused as-is here
+  // so every "در حال اجرا" badge, wherever an event card renders one,
+  // gets the same at-a-glance signal instead of a new one-off dot.
+  return status === 'ongoing' ? '<span class="event-badge event-badge--live"><i class="live-dot"></i>' + T('b_live') + '</span>'
        : status === 'upcoming' ? '<span class="event-badge event-badge--soon">' + T('b_soon') + '</span>'
        : '<span class="event-badge event-badge--ended">' + T('b_ended') + '</span>';
 }
