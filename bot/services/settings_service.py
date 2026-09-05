@@ -12,12 +12,6 @@ EDITABLE_SETTINGS = {
     "rules_text": "متن قوانین",
     "support_contact": "شماره/آیدی پشتیبانی",
     "payment_expiry_minutes": "مهلت ارسال رسید توسط خریدار (دقیقه)",
-    "review_reminder_minutes": "یادآوری به ادمین اگر رزرو دیرتر از این مدت بررسی نشد (دقیقه)",
-    # Was already a real, working setting (utils/scheduler.py reads it) —
-    # just never listed here, so it was editable nowhere at all, not even
-    # from the Telegram menu that every other setting in this dict already
-    # gets for free just by being listed.
-    "review_reminder_repeat_minutes": "تکرار یادآوری بررسی رزرو دیرمانده، تا وقتی بررسی شود (دقیقه)",
     "tmpl_payment_instructions": (
         "متن راهنمای پرداخت — متغیرها: {people} {unit_price} {total_price} {card_number} {card_holder}"
     ),
@@ -226,8 +220,6 @@ SETTINGS_FIELD_TYPES: dict[str, str] = {
     "rules_text": "textarea",
     "support_contact": "text",
     "payment_expiry_minutes": "int",
-    "review_reminder_minutes": "int",
-    "review_reminder_repeat_minutes": "int",
     "tmpl_payment_instructions": "textarea",
     "tmpl_receipt_received": "textarea",
     "tmpl_ticket_confirmed": "textarea",
@@ -262,8 +254,6 @@ SETTINGS_INT_RANGE: dict[str, tuple[int, int]] = {
     "ticket_price": (0, 1_000_000_000),
     "max_tickets_per_person": (1, 100),
     "payment_expiry_minutes": (1, 60 * 24 * 7),
-    "review_reminder_minutes": (1, 60 * 24 * 7),
-    "review_reminder_repeat_minutes": (1, 60 * 24),
 }
 _MAX_LEN_BY_TYPE = {"text": 300, "textarea": 4000}
 

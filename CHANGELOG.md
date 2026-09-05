@@ -5,6 +5,32 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Removed: the repeating "رزرو همچنان منتظر بررسی است" staff reminder
+
+**Why:** requested — disable it entirely.
+
+Found the flow: `utils/scheduler.py`'s `run_expiry_loop` (every 120s)
+called `_send_review_reminders(bot)`, which DM'd every staff member
+with payment-approval permission once a `pending_review`/
+`awaiting_buyer_confirmation` reservation sat unactioned past
+`review_reminder_minutes`, then repeated every
+`review_reminder_repeat_minutes` until resolved.
+
+Removed the function and its call site entirely (not just disabled —
+there's nothing left to accidentally re-enable), and removed the two
+settings that only ever configured it (`review_reminder_minutes`,
+`review_reminder_repeat_minutes`) from `EDITABLE_SETTINGS`,
+`SETTINGS_FIELD_TYPES`, `SETTINGS_INT_RANGE`, `DEFAULT_SETTINGS`, and
+the website settings page's "رزرو و پرداخت" section — an admin would
+otherwise still see a working-looking control for a feature that no
+longer does anything. (A stale settings row from before this change
+may still sit harmlessly in the production DB; nothing reads it
+anymore.)
+
+Verified: `_send_review_reminders` no longer exists on the scheduler
+module, and both removed keys are confirmed absent from
+`EDITABLE_SETTINGS`.
+
 ## Small pulsing green dot on every "در حال اجرا" (live) event badge
 
 **Why:** requested — make an ongoing event easier to spot at a glance

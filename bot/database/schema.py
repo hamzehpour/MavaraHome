@@ -443,8 +443,6 @@ DEFAULT_SETTINGS = {
     "rules_text": "",
     "support_contact": "",
     "payment_expiry_minutes": "15",
-    "review_reminder_minutes": "60",
-    "review_reminder_repeat_minutes": "10",
     "auto_rotate_cards": "0",
     "card_rotation_last_date": "",
     "owner_passcode_hash": "",

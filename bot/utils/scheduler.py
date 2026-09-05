@@ -43,7 +43,6 @@ async def run_expiry_loop(bot: Bot) -> None:
                 logger.info("Expired %d stale reservation(s)", len(expired))
 
             await _maybe_rotate_bank_card()
-            await _send_review_reminders(bot)
             await _process_owner_removals(bot)
         except Exception:
             logger.exception("Error while running the reservation-expiry job")
@@ -61,59 +60,6 @@ async def _process_owner_removals(bot: Bot) -> None:
             await bot.send_message(row["telegram_id"], "شما دیگر مالک این ربات نیستید (طبق فرایند حذف امن انجام‌شده).")
         except Exception:
             pass
-
-
-async def _send_review_reminders(bot: Bot) -> None:
-    """
-    Reservations sitting in pending_review (or awaiting_buyer_confirmation)
-    longer than `review_reminder_minutes` get staff pinged — this never
-    frees the seat, it only nudges staff to actually decide. After the
-    first ping, it repeats every `review_reminder_repeat_minutes` (like an
-    alarm) until the reservation is finally resolved — a single one-time
-    nudge was easy to miss and lost the seat-holding safety net's whole point.
-    """
-    from database.connection import get_connection
-    from database.repositories import settings as settings_repo
-    from datetime import datetime, timedelta, timezone
-
-    first_wait = settings_repo.get_int("review_reminder_minutes", 60)
-    repeat_every = settings_repo.get_int("review_reminder_repeat_minutes", 10)
-    cutoff = (datetime.now(timezone.utc) - timedelta(minutes=first_wait)).isoformat(timespec="seconds")
-    repeat_cutoff = (datetime.now(timezone.utc) - timedelta(minutes=repeat_every)).isoformat(timespec="seconds")
-
-    with get_connection() as conn:
-        stale = conn.execute(
-            """
-            SELECT id, created_at FROM reservations
-            WHERE status IN ('pending_review', 'awaiting_buyer_confirmation')
-              AND created_at < ?
-            """,
-            (cutoff,),
-        ).fetchall()
-
-        for row in stale:
-            last_reminder = conn.execute(
-                "SELECT created_at FROM logs WHERE action = 'review_reminder_sent' "
-                "AND details = ? ORDER BY created_at DESC LIMIT 1",
-                (str(row["id"]),),
-            ).fetchone()
-            if last_reminder and last_reminder["created_at"] > repeat_cutoff:
-                continue  # already reminded recently — wait for the next repeat window
-
-            from services import permissions
-            for telegram_id in permissions.list_staff_with_permission(permissions.APPROVE_PAYMENTS):
-                try:
-                    await bot.send_message(
-                        telegram_id,
-                        f"⏰ یادآوری: رزرو شماره {row['id']} همچنان منتظر بررسی است "
-                        "— لطفاً هرچه زودتر تصمیم بگیرید.",
-                    )
-                except Exception:
-                    pass
-            conn.execute(
-                "INSERT INTO logs(action, telegram_id, details) VALUES ('review_reminder_sent', NULL, ?)",
-                (str(row["id"]),),
-            )
 
 
 async def _maybe_rotate_bank_card() -> None:
