@@ -36,8 +36,8 @@ website's pages/admin/ticket-template.html). A specific event can also
 override the header logo (events.ticket_logo) and adds its own
 `important_notes` (free text, one consideration per line — e.g. parking
 instructions, "please keep silent") which is printed automatically under
-a "ملاحظات" heading — see _ticket_context() in api/server.py for how
-these are gathered per-reservation.
+a "ملاحظات" heading — see services.ticket_service.get_ticket_context()
+for how these are gathered per-reservation.
 """
 import io
 import os

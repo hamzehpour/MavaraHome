@@ -243,7 +243,8 @@ def _notify_admin_channel_new_waitlist(waitlist_id: int) -> None:
     settings_service.notify_admin_channel(text)
 
 
-def _notify_customer_by_email(reservation: dict, subject: str, body: str) -> bool:
+def _notify_customer_by_email(reservation: dict, subject: str, body: str,
+                               attachments: list[tuple[str, bytes]] | None = None) -> bool:
     """Reservation-migration finding #5: a customer who booked without
     ever talking to the Telegram bot (website-originated, no telegram_id)
     used to get NO notification at all when their reservation was
@@ -261,14 +262,47 @@ def _notify_customer_by_email(reservation: dict, subject: str, body: str) -> boo
     email() itself failed (bad SMTP credentials, etc.). Callers that
     tell the admin "an email was sent" need the real outcome, not just
     "this buyer has an email on file" — those looked identical from the
-    outside until a real SMTP auth failure showed the difference."""
+    outside until a real SMTP auth failure showed the difference.
+
+    attachments: passed straight through to send_email() — see
+    _build_ticket_pdf_bytes() below, the only current source of one."""
     from database.repositories import users as users_repo
     from utils.email_sender import send_email
 
     user = users_repo.get_by_id(reservation["user_id"])
     if not user or not user.get("email"):
         return False
-    return send_email(to=user["email"], subject=subject, body=body)
+    return send_email(to=user["email"], subject=subject, body=body, attachments=attachments)
+
+
+def _build_ticket_pdf_bytes(reservation: dict) -> list[tuple[str, bytes]]:
+    """The PDF ticket attached to the approval confirmation email —
+    requested so the buyer has the actual ticket in hand from the email
+    alone, not just a text confirmation (the QR/PDF was previously only
+    reachable via a Telegram photo or logging into the website account
+    page). Returns [] instead of raising on any failure (a missing logo
+    file, a malformed event address, reportlab hiccup, whatever) — the
+    approval itself must never fail, or worse, silently not notify the
+    buyer at all, just because the PDF couldn't be built; the email
+    still goes out, just without the attachment. Reuses the exact same
+    assembly (ticket_service.get_ticket_context) and renderer (utils.
+    ticket_pdf.build_ticket_pdf) the customer's own ticket.pdf download
+    already uses — one PDF layout, not two that could drift apart."""
+    try:
+        from services import ticket_service
+        from utils.ticket_pdf import build_ticket_pdf
+
+        ctx = ticket_service.get_ticket_context(reservation)
+        pdf_bytes = build_ticket_pdf(reservation=reservation, **ctx)
+        code = reservation.get("reservation_code") or "ticket"
+        return [(f"ticket-{code}.pdf", pdf_bytes)]
+    except Exception:
+        import logging
+        logging.getLogger("mavara_bot").exception(
+            "Failed to build ticket PDF for reservation_id=%s — approval email sent without attachment",
+            reservation.get("id"),
+        )
+        return []
 
 
 def approve_reservation(
@@ -310,7 +344,9 @@ def approve_reservation(
         "approved", event_title=ctx["event_title"], session_date=ctx["session_date"],
         session_time=ctx["session_time"], reservation_code=code,
     )
-    email_sent = _notify_customer_by_email(reservation, subject=subject, body=body)
+    email_sent = _notify_customer_by_email(
+        reservation, subject=subject, body=body, attachments=_build_ticket_pdf_bytes(reservation),
+    )
     return code, qr_image, email_sent
 
 
@@ -490,7 +526,9 @@ def approve_waitlist_entry(waitlist_id: int, reviewed_by: int, unit_price: int) 
         "approved", event_title=ctx["event_title"], session_date=ctx["session_date"],
         session_time=ctx["session_time"], reservation_code=code,
     )
-    _notify_customer_by_email(reservation, subject=subject, body=body)
+    _notify_customer_by_email(
+        reservation, subject=subject, body=body, attachments=_build_ticket_pdf_bytes(reservation),
+    )
     if entry.get("telegram_id"):
         from database.repositories import bot_outbox as outbox_repo
         outbox_repo.enqueue(

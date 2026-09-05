@@ -5,6 +5,39 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Approval confirmation email now has the PDF ticket attached
+
+**Why:** requested — the ticket (QR code) was only reachable via a
+Telegram photo or by logging into the website account page; a buyer
+who only ever used email had no direct way to get it.
+
+- `utils/email_sender.send_email()` gained an optional `attachments`
+  parameter — a plain `MIMEText` when there's nothing to attach
+  (every existing call site, unchanged wire format), a `MIMEMultipart`
+  with the PDF as an `application/pdf` part when there is.
+- New `reservation_service._build_ticket_pdf_bytes()`: builds the same
+  PDF the website's own `ticket.pdf` download already produces, and
+  is wired into both places that send an "approved" email —
+  `approve_reservation()` (normal review-and-approve) and
+  `approve_waitlist_entry()` (waiting-list approval). Best-effort: any
+  failure building the PDF (missing logo file, reportlab error, etc.)
+  logs and sends the email without the attachment rather than blocking
+  the approval or the notification entirely.
+- Moved `_ticket_context`/`_resolve_media_path` out of `api/server.py`
+  (where they were module-private) into `services/ticket_service.py`
+  as `get_ticket_context`/`resolve_media_path`, so the bot-process side
+  (`reservation_service.py`) and the website's own ticket.pdf endpoint
+  now share one assembly function instead of two that could drift
+  apart — a straight move, `api/server.py`'s two call sites updated,
+  behavior unchanged.
+
+Verified locally: a real approval produces a valid PDF (`%PDF` header,
+opens with actual event/QR content) attached to the console-printed
+email (no SMTP configured locally) for both the normal-approval and
+waiting-list-approval paths; the website's `/ticket.pdf` download
+endpoint re-tested end-to-end (real OTP login, real download) after
+the `_ticket_context` move to confirm it wasn't broken by the refactor.
+
 ## Booking form: payment receipt is now required, custom-styled, and its errors are visible
 
 **Why:** requested — the receipt was optional, but a customer skipping

@@ -33,7 +33,7 @@ from urllib.parse import urlparse, parse_qs
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from services import event_service, reservation_service, settings_service, customer_auth_service, broadcast_service
+from services import event_service, reservation_service, settings_service, customer_auth_service, broadcast_service, ticket_service
 from database.repositories import events as events_repo
 from database.repositories import sessions as sessions_repo
 from database.repositories import reservations as reservations_repo
@@ -255,43 +255,10 @@ def _message_public(m: dict) -> dict:
     }
 
 
-def _resolve_media_path(rel_path: str | None) -> str | None:
-    """Turns a stored 'media/xxx/yyy.png' path (as returned by
-    /api/v1/admin/upload) into a real filesystem path for reportlab to
-    open. Returns None for anything falsy or unexpected, instead of
-    raising — a missing/malformed logo path must never break ticket
-    generation, it should just mean no logo gets drawn."""
-    if not rel_path or not isinstance(rel_path, str):
-        return None
-    bot_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    full = os.path.normpath(os.path.join(bot_root, rel_path))
-    # Guard against a stray '../' in a stored path ever escaping bot_root.
-    if not full.startswith(bot_root):
-        return None
-    return full
-
-
-def _ticket_context(reservation: dict) -> dict:
-    """Assembles what a ticket PDF/screen needs from a bare reservation
-    row — pure lookups + the existing display_date_for_event formatter,
-    not new business logic (mirrors how _reservation_public already
-    composes data for the admin list)."""
-    from utils.jalali import display_date_for_event
-    session = sessions_repo.get_session(reservation["session_id"]) or {}
-    event = events_repo.get_event(session.get("event_id")) if session else None
-    template = settings_service.get_ticket_template()
-    logo_rel = ((event or {}).get("ticket_logo") or template.get("logo") or "").strip()
-    return {
-        "event_title": event["title"] if event else "",
-        "address": (event or {}).get("address"),
-        "session_date_display": display_date_for_event(session.get("session_date", ""), (event or {}).get("calendar_type", "jalali")) if session else "",
-        "session_time": session.get("session_time", ""),
-        # Per-event "important notes" (parking, silence, etc.) — printed
-        # automatically under the ملاحظات heading, see utils/ticket_pdf.py.
-        "important_notes": (event or {}).get("important_notes"),
-        "logo_path": _resolve_media_path(logo_rel) if logo_rel else None,
-        "template": {"title": template["title"], "subtitle": template["subtitle"], "footer": template["footer"]},
-    }
+# _resolve_media_path / _ticket_context moved to services/ticket_service.py
+# (resolve_media_path / get_ticket_context) so reservation_service.py can
+# build the same ticket PDF for the admin-approve confirmation email —
+# see that module's _build_ticket_pdf_bytes().
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -642,11 +609,11 @@ class Handler(BaseHTTPRequestHandler):
                 # see database/repositories/reservations.py), so the
                 # customer dashboard needs to enrich each row with its
                 # event/session details itself, same as the ticket PDF
-                # already does via _ticket_context().
+                # already does via ticket_service.get_ticket_context().
                 enriched = []
                 for r in rows:
                     r = dict(r)
-                    ctx = _ticket_context(r)
+                    ctx = ticket_service.get_ticket_context(r)
                     r["event_title"] = ctx["event_title"]
                     r["session_date"] = ctx["session_date_display"]
                     r["session_time"] = ctx["session_time"]
@@ -664,7 +631,7 @@ class Handler(BaseHTTPRequestHandler):
                 if reservation["status"] != "approved" or not reservation.get("reservation_code"):
                     return self._send_json(409, {"error": "ticket_not_ready", "details": "reservation is not confirmed yet"})
                 from utils.ticket_pdf import build_ticket_pdf
-                ctx = _ticket_context(reservation)
+                ctx = ticket_service.get_ticket_context(reservation)
                 pdf_bytes = build_ticket_pdf(reservation=reservation, **ctx)
                 self.send_response(200)
                 self.send_header("Content-Type", "application/pdf")
