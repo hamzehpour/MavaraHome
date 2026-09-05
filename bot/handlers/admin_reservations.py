@@ -190,6 +190,25 @@ async def approve(callback: CallbackQuery, bot: Bot, state: FSMContext) -> None:
 
     if delivered:
         await _safe_ack_admin_message(callback, fa.RESERVATION_APPROVED_ADMIN_SIDE)
+    elif not reservation.get("user_telegram_id"):
+        # A website-only customer has no Telegram account to message at
+        # all — this isn't a delivery failure, it's the expected shape
+        # for this buyer. The confirmation already went out by email
+        # inside reservation_service.approve_reservation() (see
+        # _notify_customer_by_email) before this handler even started —
+        # the old message here ("کاربر ربات را بلاک کرده — تلفنی پیگیری
+        # کنید") was actively misleading for this case, since there was
+        # never a Telegram delivery to fail in the first place.
+        from database.repositories import users as users_repo
+        buyer = users_repo.get_by_id(reservation["user_id"])
+        if buyer and buyer.get("email"):
+            await _safe_ack_admin_message(callback, "✅ رزرو تأیید شد — چون این خریدار تلگرام ندارد، تأییدیه از طریق ایمیل برایش ارسال شد.")
+        else:
+            await _safe_ack_admin_message(
+                callback,
+                "⚠️ رزرو تأیید شد، ولی این خریدار نه تلگرام دارد نه ایمیلی ثبت کرده — "
+                "هیچ تأییدیه‌ای برایش ارسال نشد. لطفاً تلفنی پیگیری کنید.",
+            )
     else:
         await _safe_ack_admin_message(
             callback,
