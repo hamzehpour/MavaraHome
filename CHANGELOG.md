@@ -5,6 +5,55 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Fix: "تکمیل رزرو" button/countdown stayed after successfully completing a resumed reservation
+
+**Why:** reported, right after the resume feature above shipped — after
+resuming a reservation and uploading its receipt, closing the modal
+still showed the exact same "تکمیل رزرو" button and a countdown ticking
+toward a lock that no longer applied (the reservation had already moved
+to `pending_review`, which never expires). The account.html/event-
+detail.html card was drawn from the reservation's status as it was
+*before* the modal opened, and had no way to find out the status had
+just changed underneath it.
+
+- `resumeReservationModal(record, onDone)` now takes an optional
+  callback, fired the instant the receipt upload actually succeeds (see
+  `submitReceiptStep()`) — not on modal close, so the page behind it
+  updates immediately, even before the buyer dismisses the success
+  screen.
+- `account.html` passes `() => renderDashboard()` — the whole reservation
+  list re-fetches and redraws, dropping the resume card the moment its
+  status changes.
+- `event-detail.html` (via `initEventDetail()` in site.js) passes
+  `() => initEventDetail()` — the CTA swaps back to the normal "رزرو
+  بلیت" the instant the reservation leaves `pending_payment`.
+- A fresh (non-resumed) booking never sets `onDone`, so nothing extra
+  happens there — there's no prior on-page state tied to a reservation
+  that didn't exist yet.
+
+**Also caught while investigating:** the new `payment_reminder_minutes`
+setting and the four new email templates (`tmpl_email_payment_reminder_*`,
+`tmpl_email_needs_correction_*`) added by the 4-step redesign were never
+actually seeded into the already-deployed production database — `DEFAULT_SETTINGS`
+is only inserted via `database/schema.init_db()`'s `INSERT OR IGNORE`, which
+runs from `migrate.py`, not automatically on every `api.server`/`bot.py`
+start. The redesign didn't bump `SCHEMA_VERSION` (no new columns), so the
+earlier deploy instructions said `migrate.py` wasn't needed — true for
+the schema itself, but not for these new *settings rows*, which were
+consequently missing until `migrate.py` is actually run once. Until then,
+the payment-reminder and needs-correction emails would go out with an
+empty subject/body. **`migrate.py` needs to be run once** on production
+to backfill these (safe/idempotent, no data loss — confirmed locally: an
+existing test database missing the new keys had them filled in
+correctly by a `migrate.py` run, with `payment_expiry_minutes` — already
+present — left untouched).
+
+Verified locally: full 49-test suite still passes. Playwright re-ran
+both resume paths end-to-end and confirmed the underlying page updates
+immediately after a successful receipt upload, before the modal is even
+closed — the account.html card lost its resume button/countdown, and
+the event-detail.html CTA reverted to the normal "رزرو بلیت" button.
+
 ## Resume an unfinished reservation instead of starting over
 
 **Why:** requested, right after the 4-step redesign above shipped — a

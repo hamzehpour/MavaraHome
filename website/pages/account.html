@@ -148,7 +148,12 @@ function reservationCard(r) {
 // resumeReservationModal() (site.js) needs the full reservation record.
 function startResume(id) {
   const record = currentReservations.find(r => Number(r.id) === Number(id));
-  if (record) resumeReservationModal(record);
+  // onDone re-renders the whole dashboard once the receipt actually
+  // uploads — otherwise this card kept showing its old "تکمیل رزرو"
+  // button + a countdown ticking toward a lock that no longer applies,
+  // since the list behind the modal was drawn before the status changed
+  // and had no way to notice on its own.
+  if (record) resumeReservationModal(record, () => renderDashboard());
 }
 
 // Self-service resubmission for a reservation the admin marked

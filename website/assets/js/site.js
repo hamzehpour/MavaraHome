@@ -506,7 +506,12 @@ async function initEventDetail() {
   __bk.eventObj = e;
   if (myIncompleteReservation) {
     const resumeBtn = document.getElementById('bkResumeBtn');
-    if (resumeBtn) resumeBtn.onclick = () => resumeReservationModal(myIncompleteReservation);
+    // onDone re-runs this whole function once the receipt actually
+    // uploads, so the CTA swaps back to the normal "رزرو بلیت" the
+    // instant the reservation leaves pending_payment — without it the
+    // amber "تکمیل رزرو" button and its countdown kept showing (toward a
+    // lock that no longer applies) until the page was reloaded by hand.
+    if (resumeBtn) resumeBtn.onclick = () => resumeReservationModal(myIncompleteReservation, () => initEventDetail());
     startCountdown('bkPageResumeCountdown', myIncompleteReservation.expires_at);
   } else {
     const openBtn = document.getElementById('bkOpenBtn');
@@ -540,7 +545,7 @@ async function initEventDetail() {
 // normal booking, submitting a waitlist entry doesn't need reviewing
 // against a second step first for the buyer since there's no payment
 // window to enter.
-const __bk = { eventId: null, dateId: null, sessionId: null, qty: 1, eventObj: null, submitted: false, mode: 'book', record: null, payInfoHTML: '', paymentExpiryMinutes: 10, lockTimer: null };
+const __bk = { eventId: null, dateId: null, sessionId: null, qty: 1, eventObj: null, submitted: false, mode: 'book', record: null, payInfoHTML: '', paymentExpiryMinutes: 10, lockTimer: null, onDone: null };
 
 // Shared by openBookingModal() (fresh booking) and resumeReservationModal()
 // (an existing pending_payment reservation the buyer left mid-way — see
@@ -570,6 +575,7 @@ function openBookingModal() {
   if (!e) return;
   __bk.eventId = e.id; __bk.dateId = null; __bk.sessionId = null; __bk.qty = 1; __bk.submitted = false; __bk.mode = 'book';
   __bk.record = null;
+  __bk.onDone = null;
   if (__bk.lockTimer) { clearInterval(__bk.lockTimer); __bk.lockTimer = null; }
   _ensureBookingOverlay();
   buildBooking(e);
@@ -584,7 +590,18 @@ function openBookingModal() {
 // sending the receipt — see goToReceiptStep(), which shows the payment
 // card + live countdown again right there as a reminder, so nothing
 // after step 2 needs to be reintroduced from scratch.
-async function resumeReservationModal(record) {
+//
+// `onDone`, if given, is called the instant the receipt upload actually
+// succeeds (see submitReceiptStep()) — the host page (account.html,
+// event-detail.html) uses it to re-render its own "تکمیل رزرو" button/
+// countdown, which was drawn from the reservation's state as it was
+// *before* the modal opened and has no way to know on its own that the
+// status just changed underneath it. Without this, closing the modal
+// left the exact same stale button and a countdown still ticking toward
+// a lock that no longer applies (the reservation moved to pending_review,
+// which never expires) — reported after the first version shipped
+// without it.
+async function resumeReservationModal(record, onDone) {
   const event = API.events.get(record.event_id);
   if (!event) return;
   __bk.eventObj = event;
@@ -597,6 +614,7 @@ async function resumeReservationModal(record) {
   // createReservationAndLock() into making a second one.
   __bk.submitted = true;
   __bk.record = record;
+  __bk.onDone = typeof onDone === 'function' ? onDone : null;
   if (__bk.lockTimer) { clearInterval(__bk.lockTimer); __bk.lockTimer = null; }
   _ensureBookingOverlay();
   await buildBooking(event, { resume: true });
@@ -1048,6 +1066,18 @@ async function submitReceiptStep(file) {
     await API.receipts.submit(record.id, dataUrl);
     if (__bk.lockTimer) { clearInterval(__bk.lockTimer); __bk.lockTimer = null; }
     showResult(`${T('bk_done')}<br>${T('bk_tracking_id')}: <strong dir="ltr" style="color:var(--gold-deep)">#${esc(record.id)}</strong><br>${T('pay_ok')}`);
+    // The reservation's status just changed server-side (pending_payment
+    // -> pending_review) — tell the page behind this modal so it can
+    // redraw whatever it was showing based on the old status (see
+    // resumeReservationModal()'s docstring for the bug this fixes). Only
+    // ever set when this modal was opened via resumeReservationModal();
+    // a fresh booking has no prior on-page state tied to this reservation
+    // to refresh.
+    if (typeof __bk.onDone === 'function') {
+      const done = __bk.onDone;
+      __bk.onDone = null;
+      try { done(); } catch { /* host page's own refresh failing must never break this success screen */ }
+    }
   } catch (err) {
     document.getElementById('bkLoading').style.display = 'none';
     document.getElementById('bkReceiptBlock').style.display = 'block';
