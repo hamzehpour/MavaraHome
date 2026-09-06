@@ -289,14 +289,6 @@ def broadcast_session_or_day_keyboard(event_id: int, date_iso: str, sessions: li
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def reject_confirm_keyboard(reservation_id: int) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=fa.REJECT_CONFIRM_ACCEPT, callback_data=f"reject_confirm:accept:{reservation_id}")],
-        [InlineKeyboardButton(text=fa.REJECT_CONFIRM_RESEND_RECEIPT, callback_data=f"reject_confirm:resend:{reservation_id}")],
-        [InlineKeyboardButton(text=fa.REJECT_CONFIRM_DISPUTE, callback_data=f"reject_confirm:dispute:{reservation_id}")],
-    ])
-
-
 def overflow_request_keyboard(waitlist_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=fa.OVERFLOW_APPROVE_BUTTON, callback_data=f"overflow:approve:{waitlist_id}")],
@@ -388,14 +380,6 @@ def reject_reason_menu_keyboard(reservation_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=fa.REJECT_REASON_TYPE_MYSELF, callback_data=f"reject_reason_mode:type:{reservation_id}")],
         [InlineKeyboardButton(text=fa.REJECT_REASON_RECEIPT_PROBLEM, callback_data=f"reject_reason_mode:receipt:{reservation_id}")],
-    ])
-
-
-def dispute_resolve_keyboard(reservation_id: int) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=fa.DISPUTE_APPROVE_BUTTON, callback_data=f"dispute_resolve:approve:{reservation_id}")],
-        [InlineKeyboardButton(text=fa.DISPUTE_REJECT_AGAIN_BUTTON, callback_data=f"dispute_resolve:again:{reservation_id}")],
-        [InlineKeyboardButton(text=fa.DISPUTE_REJECT_BUTTON, callback_data=f"dispute_resolve:reject:{reservation_id}")],
     ])
 
 

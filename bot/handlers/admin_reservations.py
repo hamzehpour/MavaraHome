@@ -363,6 +363,22 @@ async def reject_reason_mode(callback: CallbackQuery, bot: Bot, dispatcher: Disp
 
 
 async def _apply_rejection(target, admin_telegram_id: int, reservation_id: int, reason: str, bot: Bot) -> None:
+    """Reject is direct and final now — same logic as the website admin
+    panel's own reject action, no more Telegram-only grace period (see
+    reservation_service.reject_reservation()'s docstring for why that was
+    removed: "نیازمند اصلاح" already covers "something's fixable, don't
+    reject outright", and the grace period never even reached a website-
+    only buyer in the first place). Notifies the buyer on every channel
+    available — a plain Telegram DM (no buttons; there's nothing left for
+    them to decide) if they have one, and always by email."""
+    email_sent = reservation_service.reject_reservation(reservation_id, admin_telegram_id, reason)
+    if email_sent is None:
+        await target.answer("این رزرو قبلاً پردازش شده — دوباره پردازش نشد.")
+        return
+
+    logs_repo.record("reservation_rejected", admin_telegram_id, f"reservation_id={reservation_id}: {reason}",
+                      target_type="reservation", target_id=reservation_id)
+
     from database.connection import get_connection
     with get_connection() as conn:
         row = conn.execute(
@@ -374,55 +390,19 @@ async def _apply_rejection(target, admin_telegram_id: int, reservation_id: int, 
         ).fetchone()
     buyer_telegram_id = row["telegram_id"] if row else None
 
-    if not buyer_telegram_id:
-        # No Telegram account to hold the interactive grace-period/dispute
-        # flow open for at all — reject_confirm_keyboard's accept/dispute
-        # buttons need a live chat to mean anything, and a plain email has
-        # no equivalent. Rather than parking this in awaiting_buyer_
-        # confirmation forever waiting for a button click that can never
-        # come (the actual bug reported: "ارسال پیام به خریدار ناموفق بود
-        # آیدی تلگرام: None"), reject it outright — same shape as the
-        # website admin panel's own reject action — and tell them by
-        # email instead.
-        email_sent = reservation_service.reject_reservation(reservation_id, admin_telegram_id, reason)
-        logs_repo.record("reservation_rejected", admin_telegram_id, f"reservation_id={reservation_id}: {reason}",
-                          target_type="reservation", target_id=reservation_id)
-        if email_sent:
-            await target.answer(
-                "✅ این خریدار تلگرام ندارد — رزرو مستقیماً و نهایی رد شد و دلیل رد از طریق ایمیل برایش ارسال شد."
-            )
-        else:
-            await target.answer(
-                "⚠️ رزرو رد شد، ولی ارسال ایمیل رد به این خریدار ناموفق بود "
-                "(یا ایمیلی ثبت نکرده، یا سرویس ایمیل خطا داد — لاگ سرور را چک کنید). "
-                "لطفاً تلفنی پیگیری کنید."
-            )
-        return
+    telegram_delivered = await _notify_buyer(bot, buyer_telegram_id, text=fa.rejection_notice_to_buyer(reason))
 
-    transitioned = reservation_service.mark_awaiting_buyer_confirmation(reservation_id, reason)
-    if not transitioned:
-        await target.answer("این رزرو قبلاً پردازش شده — دوباره پردازش نشد.")
-        return
-
-    logs_repo.record("reservation_reject_pending_confirmation", admin_telegram_id,
-                      f"reservation_id={reservation_id}: {reason}",
-                      target_type="reservation", target_id=reservation_id)
-
-    from keyboards.admin import reject_confirm_keyboard
-    delivered = await _notify_buyer(
-        bot, buyer_telegram_id,
-        text=fa.reject_notice_to_buyer(reason),
-        reply_markup=reject_confirm_keyboard(reservation_id),
-    )
-    if delivered:
-        await target.answer(
-            "رد پرداخت برای خریدار ارسال شد و منتظر پاسخ او هستیم — "
-            "تا تعیین‌تکلیف نهایی، صندلی این رزرو همچنان رزرو شده باقی می‌ماند."
-        )
+    if telegram_delivered and email_sent:
+        await target.answer("✅ رزرو رد شد — به خریدار هم از طریق تلگرام و هم ایمیل اطلاع داده شد.")
+    elif telegram_delivered:
+        await target.answer("✅ رزرو رد شد و از طریق تلگرام به خریدار اطلاع داده شد (ارسال ایمیل ناموفق بود یا ایمیلی ثبت نشده).")
+    elif email_sent:
+        await target.answer("✅ رزرو رد شد — چون ارسال تلگرام ناموفق بود (یا این خریدار تلگرام ندارد)، اطلاع‌رسانی از طریق ایمیل انجام شد.")
     else:
         await target.answer(
-            f"⚠️ رزرو رد شد ولی ارسال پیام به خریدار ناموفق بود "
-            f"(آیدی تلگرام: {buyer_telegram_id}). احتمالاً کاربر ربات را بلاک کرده — لطفاً تلفنی پیگیری کنید."
+            "⚠️ رزرو رد شد، ولی نه پیام تلگرام و نه ایمیل به خریدار نرسید "
+            "(احتمالاً ربات را بلاک کرده و ایمیلی هم ثبت نکرده، یا سرویس ایمیل خطا داد — لاگ سرور را چک کنید). "
+            "لطفاً تلفنی پیگیری کنید."
         )
 
 

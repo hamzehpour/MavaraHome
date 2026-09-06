@@ -855,7 +855,13 @@ class Handler(BaseHTTPRequestHandler):
                 reservation_id = int(m.group(1))
                 body = self._read_json_body()
                 reason = body.get("reason", "")
-                reservation_service.reject_reservation(reservation_id, reviewed_by=admin_payload["admin_id"], reason=reason)
+                # Same atomic-guarded reject_reservation() the Telegram
+                # reject button now calls too (no more Telegram-only grace
+                # period — see that function's docstring) — None means a
+                # double-click or a reservation already resolved elsewhere.
+                outcome = reservation_service.reject_reservation(reservation_id, reviewed_by=admin_payload["admin_id"], reason=reason)
+                if outcome is None:
+                    return self._send_json(409, {"error": "already_processed"})
                 reservation = reservations_repo.get_reservation(reservation_id)
                 return self._send_json(200, {"data": _reservation_public(reservation)})
 

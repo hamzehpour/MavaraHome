@@ -5,6 +5,66 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Remove the Telegram-only reject "grace period" — reject is now direct/final everywhere
+
+**Why:** requested — now that "نیازمند اصلاح" exists for "something's
+fixable, don't reject outright," the old two-step grace period
+(`awaiting_buyer_confirmation`: seat stays held, buyer gets Telegram
+buttons to accept the cancellation or dispute it, admin makes a final
+call on a dispute) is redundant, Telegram-only, and was the direct cause
+of the previous bug report (silently unreachable for a website-only
+buyer). Removing it makes Telegram's reject action exactly the same
+logic as the website admin panel's: reject is immediate and final.
+
+- Deleted `handlers/reject_confirmation.py` entirely (buyer accept/
+  dispute buttons, admin dispute-resolve keyboard, the "resend receipt
+  while disputed" mini-flow) and its registration in `bot.py`.
+- Deleted `states/dispute_states.py`; removed the now-unused
+  `ResendReceiptStates.awaiting_new_receipt` (kept
+  `awaiting_correction_receipt`, still used by the needs_correction
+  resubmission flow).
+- Removed `reservation_service.mark_awaiting_buyer_confirmation()` and
+  `finalize_rejection_if()`/`finalize_rejection()` (the dead-since-before
+  wrapper).
+- `reject_reservation()` is now THE reject action everywhere, and is
+  atomic-guarded like `approve_reservation()` (`set_status_if_any`,
+  `WHERE status IN (...)`) — a double-tap correctly reports "already
+  processed" (`None`) instead of silently re-sending the rejection email
+  a second time, which the old unconditional version could do. The
+  website's reject endpoint now checks for this and returns 409, matching
+  the approve endpoint's existing shape.
+- `handlers/admin_reservations.py`'s `_apply_rejection()` collapsed to
+  one path: reject, then notify on every channel available — a plain
+  Telegram DM (no buttons — nothing left to decide) if the buyer has one,
+  and always by email — reporting the real combined outcome to the admin
+  (both delivered / Telegram only / email only / neither).
+- Removed the now-dead texts/keyboards that only served the grace period
+  (`reject_notice_to_buyer`, `REJECT_CONFIRM_*`, `DISPUTE_*`,
+  `RESERVATION_CANCELLED_BY_BUYER`, `RESERVATION_FINAL_REJECTED`,
+  `ASK_NEW_RECEIPT_PHOTO`, etc.) — kept everything the reason-collection
+  step still uses (`ADMIN_REJECT_REASON_MENU`,
+  `RECEIPT_PROBLEM_PRESET_REASON`, ...) and every reference to the
+  `awaiting_buyer_confirmation` *status string* itself in capacity-
+  counting SQL and status-label maps, since those stay correct for any
+  historical row already in that state.
+
+**Operational note:** if any reservation is currently sitting in "در
+انتظار پاسخ خریدار" (`awaiting_buyer_confirmation`) at deploy time, its
+old Telegram accept/dispute buttons will stop responding (the handlers
+are gone) and neither admin UI currently offers an action button for that
+status — resolve any such reservation (approve or reject it) BEFORE
+deploying this change, or it'll need a direct database fix afterwards.
+This is very unlikely to apply (the grace period was rarely reached even
+before today), but worth a quick check.
+
+Verified locally: full 48-test suite passes (49 minus one test for the
+removed dispute-approval fix, one other rewritten for the new direct-
+reject shape); the scratch test's reject-related checks updated to match
+(reject now returns `None`/final-status instead of transitioning through
+`awaiting_buyer_confirmation`); real HTTP round-trip against a local
+`ENV=test` server confirms a first reject succeeds (200, status
+`rejected`) and a second (double-tap) correctly returns 409.
+
 ## Fix: rejecting via Telegram left a website-only buyer stuck, never notified
 
 **Why:** reported — rejecting a reservation from Telegram showed "⚠️ رزرو

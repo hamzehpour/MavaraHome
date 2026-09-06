@@ -425,24 +425,21 @@ def _build_ticket_pdf_bytes(reservation: dict) -> list[tuple[str, bytes]]:
 
 def approve_reservation(
     reservation_id: int, reviewed_by: int,
-    expected_status: str | tuple[str, ...] = ("pending_review", "needs_correction"),
+    expected_statuses: tuple[str, ...] = ("pending_review", "needs_correction"),
 ) -> tuple[str, "io.BytesIO", bool] | None:
-    """Returns None if the reservation had already moved past expected_status
-    (e.g. a duplicate/double-tap callback) — the caller should treat that
-    as 'already handled', not retry.
+    """Returns None if the reservation had already moved past
+    expected_statuses (e.g. a duplicate/double-tap callback) — the caller
+    should treat that as 'already handled', not retry.
 
-    expected_status defaults to accepting EITHER pending_review (the normal
-    admin-approves-a-fresh-receipt path) or needs_correction (an admin who
-    sent a "نیازمند اصلاح" message can still approve directly afterwards —
-    e.g. the buyer explained in a DM that the receipt was actually fine —
+    Defaults to accepting EITHER pending_review (the normal admin-
+    approves-a-fresh-receipt path) or needs_correction (an admin who sent
+    a "نیازمند اصلاح" message can still approve directly afterwards — e.g.
+    the buyer explained in a DM that the receipt was actually fine —
     without waiting for a resubmission first; see request_correction()'s
     docstring for why that status has no time limit to race against here).
-    The dispute-resolution path — where a buyer disputed an earlier
-    rejection and an admin now approves it after all — passes a single
-    string, 'awaiting_buyer_confirmation', instead; passing that in here
-    fixed a real bug where approving in that flow always incorrectly
-    reported 'already processed' because it was hardcoded to only accept
-    pending_review.
+    Overridable for any future caller that needs a different starting
+    point — kept as a parameter rather than hardcoded for that reason,
+    though nothing currently overrides it.
 
     The third element is whether the confirmation email actually went out
     (see _notify_customer_by_email) — the Telegram admin-approve handler
@@ -452,7 +449,6 @@ def approve_reservation(
     from database.repositories import payments as payments_repo
     from services.ticket_service import issue_ticket
 
-    expected_statuses = (expected_status,) if isinstance(expected_status, str) else tuple(expected_status)
     transitioned = reservations_repo.set_status_if_any(reservation_id, expected_statuses, "approved")
     if not transitioned:
         return None
@@ -475,25 +471,6 @@ def approve_reservation(
     return code, qr_image, email_sent
 
 
-def mark_awaiting_buyer_confirmation(reservation_id: int, admin_note: str) -> bool:
-    """
-    First step of rejecting a payment: the seat stays held (this status is
-    counted the same as pending/approved everywhere capacity is computed)
-    until the buyer either accepts the cancellation or disputes it and an
-    admin makes the final call — this is what prevents the same seat being
-    sold twice while a rejection is still being sorted out.
-    Uses the same atomic conditional transition as approve_reservation, so
-    a double-tapped Reject button (or two admins rejecting at once) can't
-    both succeed. Accepts from pending_review OR needs_correction — same
-    reasoning as approve_reservation's default: an admin who sent a
-    "نیازمند اصلاح" message can still reject outright afterwards instead of
-    waiting on a resubmission. Returns False if the reservation had
-    already moved past either of those.
-    """
-    return reservations_repo.set_status_if_any(reservation_id, ("pending_review", "needs_correction"),
-                                                "awaiting_buyer_confirmation", admin_note=admin_note)
-
-
 def _notify_rejection_email(reservation_id: int, reason: str) -> bool:
     reservation = reservations_repo.get_reservation(reservation_id)
     if not reservation:
@@ -506,48 +483,40 @@ def _notify_rejection_email(reservation_id: int, reason: str) -> bool:
     return _notify_customer_by_email(reservation, subject=subject, body=body)
 
 
-def finalize_rejection_if(reservation_id: int, expected_status: str, reviewed_by: int, reason: str) -> bool:
-    """Same idea as approve_reservation's atomic guard — used by the buyer's
-    'accept cancellation' button and the admin's dispute-resolution button,
-    both of which could otherwise be double-tapped."""
+def reject_reservation(
+    reservation_id: int, reviewed_by: int, reason: str,
+    expected_statuses: tuple[str, ...] = ("pending_review", "needs_correction"),
+) -> bool | None:
+    """Direct, final rejection — the one reject action everywhere now
+    (website admin panel, and Telegram's reject button). This used to be
+    Telegram-only a two-step "grace period": the seat stayed held in
+    'awaiting_buyer_confirmation' while the buyer could accept the
+    cancellation or dispute it via Telegram buttons. Removed per request
+    now that "نیازمند اصلاح" covers the actual reason that grace period
+    existed for (something's fixable — wrong receipt, wrong amount — so
+    don't reject outright); a reject is a genuine final decision, and the
+    old flow also silently never even reached a website-only buyer at all
+    (no Telegram chat to hold the buttons in), leaving them stuck with no
+    notification whatsoever.
+
+    Atomic conditional transition, same shape as approve_reservation() —
+    returns None if the reservation had already moved past
+    `expected_statuses` (double-tap, or resolved elsewhere in the
+    meantime), so a duplicate tap can't re-run the payment-status update
+    or re-send the rejection email. Returns whether the rejection email
+    actually went out otherwise — see _notify_customer_by_email()'s
+    docstring for why this can't be assumed just because the buyer has an
+    email on file."""
     from database.repositories import payments as payments_repo
 
-    transitioned = reservations_repo.set_status_if(reservation_id, expected_status, "rejected", admin_note=reason)
+    transitioned = reservations_repo.set_status_if_any(reservation_id, expected_statuses, "rejected", admin_note=reason)
     if not transitioned:
-        return False
-
-    payment = payments_repo.get_latest_payment(reservation_id)
-    if payment:
-        payments_repo.set_payment_status(payment["id"], "rejected", reviewed_by)
-    _notify_rejection_email(reservation_id, reason)
-    return True
-
-
-def finalize_rejection(reservation_id: int, reviewed_by: int, reason: str) -> None:
-    reject_reservation(reservation_id, reviewed_by, reason)
-
-
-def reject_reservation(reservation_id: int, reviewed_by: int, reason: str) -> bool:
-    """Direct, final rejection — no grace period, no dispute button (that's
-    handlers/admin_reservations.py's Telegram-only flow via
-    mark_awaiting_buyer_confirmation(), which needs a live chat for its
-    accept/dispute buttons to mean anything). Used by the website admin
-    panel's reject action, and by the Telegram reject flow specifically
-    for a buyer with no telegram_id — there's no interactive flow to hold
-    that reservation open for, so it's rejected outright instead of
-    parking it in awaiting_buyer_confirmation forever waiting for a button
-    click that can never come.
-
-    Returns whether the rejection email actually went out — see
-    _notify_customer_by_email()'s docstring for why this can't be assumed
-    just because the buyer has an email on file."""
-    from database.repositories import payments as payments_repo
+        return None
 
     payment = payments_repo.get_latest_payment(reservation_id)
     if payment:
         payments_repo.set_payment_status(payment["id"], "rejected", reviewed_by)
 
-    reservations_repo.set_status(reservation_id, "rejected", admin_note=reason)
     return _notify_rejection_email(reservation_id, reason)
 
 

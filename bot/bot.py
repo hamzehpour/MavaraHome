@@ -17,7 +17,7 @@ from utils.scheduler import run_expiry_loop, run_backup_loop, run_outbox_loop
 
 from handlers import (
     common, booking, payment, admin_reservations, admin_events, admin_panel,
-    staff_manual_booking, support, bank_cards, reject_confirmation, overflow_requests,
+    staff_manual_booking, support, bank_cards, overflow_requests,
     owner_management, channel_setup, reopening_interest,
 )
 
@@ -50,7 +50,6 @@ async def main() -> None:
     dp.include_router(staff_manual_booking.router)
     dp.include_router(support.router)
     dp.include_router(bank_cards.router)
-    dp.include_router(reject_confirmation.router)
     dp.include_router(overflow_requests.router)
     dp.include_router(owner_management.router)
     dp.include_router(channel_setup.router)

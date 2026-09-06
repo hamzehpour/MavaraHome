@@ -341,8 +341,11 @@ def _t():
     assert second is None, "second approve (double-tap) must be a no-op, not re-issue a ticket"
 
 
-@test("Rejected-then-accepted-by-buyer frees the seat")
+@test("Rejecting a reservation frees its seat immediately")
 def _t():
+    # The old two-step "grace period" (awaiting_buyer_confirmation, buyer
+    # could accept/dispute) was removed — "نیازمند اصلاح" now covers what
+    # that period was for, and reject_reservation() is direct/final.
     event_id = events_repo.create_event(title="تست رد و آزادسازی")
     session_id = sessions_repo.create_session(event_id, "2027-04-04", "18:00", capacity=2)
     _make_user(700005)
@@ -351,13 +354,13 @@ def _t():
     reservations_repo.set_status(reservation_id, "pending_review")
 
     assert sessions_repo.reserved_count(session_id) == 2, "seat should still be held during review"
-    transitioned = reservation_service.mark_awaiting_buyer_confirmation(reservation_id, "test reason")
-    assert transitioned is True
-    assert sessions_repo.reserved_count(session_id) == 2, "seat must stay held during the grace period"
+    outcome = reservation_service.reject_reservation(reservation_id, reviewed_by=1, reason="test")
+    assert outcome is not None, "reject must succeed from pending_review"
+    assert sessions_repo.reserved_count(session_id) == 0, "seat should be freed immediately on rejection"
 
-    ok = reservation_service.finalize_rejection_if(reservation_id, "awaiting_buyer_confirmation", 1, "test")
-    assert ok is True
-    assert sessions_repo.reserved_count(session_id) == 0, "seat should be freed only after final rejection"
+    # Double-tap must be a no-op, not re-process.
+    outcome2 = reservation_service.reject_reservation(reservation_id, reviewed_by=1, reason="test again")
+    assert outcome2 is None, "second reject (double-tap) must report already-processed, not re-send anything"
 
 
 @test("Reopening interest: paused event can't be booked, register/duplicate/cancel works")
@@ -641,38 +644,6 @@ def _t():
     assert validate_people_pick("5", max_selectable=5) == 5
     for bad in ("0", "-1", "-10", "999", "999999", "abc", "1abc", "", "1.5", "None", "null"):
         assert validate_people_pick(bad, max_selectable=5) is None, f"should reject {bad!r}"
-
-
-@test("Regression: dispute-resolution approve accepts awaiting_buyer_confirmation (not just pending_review)")
-def _t():
-    # Bug report: after a buyer disputed a rejection, admin tapping "approve"
-    # in the dispute-resolution flow always got "already processed" because
-    # approve_reservation() only ever accepted pending_review as the starting
-    # state, but by that point the reservation is in
-    # awaiting_buyer_confirmation. Fixed by making the expected starting
-    # status a parameter (default unchanged for the normal approve path).
-    event_id = events_repo.create_event(title="تست رگرشن تایید بعد از اعتراض")
-    session_id = sessions_repo.create_session(event_id, "2027-05-05", "18:00", capacity=2)
-    _make_user(700006)
-    res = reservation_service.start_reservation(telegram_id=700006, session_id=session_id, people=1)
-    reservation_id = res["reservation_id"]
-    reservations_repo.set_status(reservation_id, "pending_review")
-    assert reservation_service.mark_awaiting_buyer_confirmation(reservation_id, "test reason") is True
-
-    # Old (buggy) default would fail here because it hardcodes pending_review.
-    result = reservation_service.approve_reservation(
-        reservation_id, reviewed_by=1, expected_status="awaiting_buyer_confirmation"
-    )
-    assert result is not None, "approve must succeed from awaiting_buyer_confirmation, not report 'already processed'"
-
-    reservation = reservations_repo.get_reservation(reservation_id)
-    assert reservation["status"] == "approved"
-
-    # Calling it again (double-tap) must now correctly report already-handled.
-    result2 = reservation_service.approve_reservation(
-        reservation_id, reviewed_by=1, expected_status="awaiting_buyer_confirmation"
-    )
-    assert result2 is None, "second tap after approval must be a no-op, not re-issue a ticket"
 
 
 @test("Admin manual people-count edit respects destination capacity")

@@ -15,11 +15,10 @@ def issue_ticket(reservation_id: int) -> tuple[str, bytes]:
     This lives in services/ (shared by the bot AND the website's approve
     endpoint), and the website approve path must keep working with no
     aiogram installed at all (Phase 1's own stated rule: an API-only
-    process should never need a Telegram token). Callers on the bot side
-    (handlers/admin_reservations.py, handlers/reject_confirmation.py)
-    wrap these bytes in aiogram.types.BufferedInputFile themselves right
-    before send_photo — that's where the aiogram dependency belongs, not
-    here.
+    process should never need a Telegram token). The caller on the bot
+    side (handlers/admin_reservations.py) wraps these bytes in
+    aiogram.types.BufferedInputFile itself right before send_photo —
+    that's where the aiogram dependency belongs, not here.
 
     (Found by testing the website approve flow with aiogram genuinely
     absent, in this sandbox — before this fix it crashed with

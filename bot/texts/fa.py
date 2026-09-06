@@ -328,34 +328,17 @@ BROADCAST_PICK_DATE = "روز مورد نظر را انتخاب کنید:"
 BROADCAST_PICK_SESSION_OR_WHOLE_DAY = "می‌خواهید به کل این روز پیام بدهید یا یک سانس مشخص؟"
 BROADCAST_WHOLE_DAY = "📅 کل این روز"
 
-# ---------- reject → buyer-confirmation grace period ----------
-def reject_notice_to_buyer(admin_note: str) -> str:
+# ---------- reject (direct/final — no grace period) ----------
+# The reject flow used to hold the seat in 'awaiting_buyer_confirmation'
+# while the buyer could accept the cancellation or dispute it — removed
+# per request now that "نیازمند اصلاح" covers the actual reason that
+# grace period existed for (something's fixable, don't reject outright).
+# A reject is final immediately; this is just the plain notice sent to
+# the buyer (Telegram DM and/or email — see reservation_service.
+# reject_reservation()), with no buttons to tap.
+def rejection_notice_to_buyer(admin_note: str) -> str:
     note = f"\n\nدلیل: {admin_note}" if admin_note else ""
-    return (
-        "😔 ادمین پرداخت شما را رد کرد." + note +
-        "\n\nاگر این را می‌پذیرید، رزرو کنسل خواهد شد. "
-        "اگر فکر می‌کنید اشتباهی رخ داده (مثلاً واریز انجام شده)، می‌توانید توضیح بدهید."
-    )
-
-REJECT_CONFIRM_ACCEPT = "✅ می‌پذیرم، رزرو کنسل شود"
-REJECT_CONFIRM_DISPUTE = "✍️ توضیح می‌دهم"
-RESERVATION_CANCELLED_BY_BUYER = "رزرو شما کنسل شد. هر زمان خواستید می‌توانید دوباره از منوی «رزرو بلیت» اقدام کنید."
-ASK_DISPUTE_EXPLANATION = "توضیح خود را بنویسید — برای ادمین ارسال می‌شود:"
-DISPUTE_SENT_TO_BUYER_SIDE = "✅ توضیح شما برای بررسی مجدد به ادمین ارسال شد."
-
-def dispute_notify_admin(full_name: str, phone: str, admin_note: str, explanation: str) -> str:
-    return (
-        "⚠️ خریدار به رد پرداخت اعتراض کرد\n\n"
-        f"👤 {full_name} — 📱 {phone}\n"
-        f"دلیل رد قبلی: {admin_note or '—'}\n\n"
-        f"توضیح خریدار:\n{explanation}\n\n"
-        "لطفاً تصمیم نهایی را بگیرید:"
-    )
-
-DISPUTE_APPROVE_BUTTON = "✅ قبول می‌کنم، تأیید کن"
-DISPUTE_REJECT_BUTTON = "❌ قطعاً رد کن"
-DISPUTE_RESOLVED_REJECTED_ADMIN_SIDE = "رزرو قطعاً رد شد و به خریدار اطلاع داده شد."
-RESERVATION_FINAL_REJECTED = "😔 پس از بررسی، رزرو شما نهایتاً رد شد و کنسل گردید."
+    return "😔 متأسفانه پرداخت شما رد شد و رزرو کنسل گردید." + note
 
 # ---------- overflow-capacity request (waitlist → admin approval) ----------
 def overflow_request_admin(full_name: str, phone: str, people: int, capacity: int,
@@ -527,17 +510,11 @@ def manage_groups_header(telegram_id: int, groups: set[str]) -> str:
     current = "، ".join(group_labels.get(g, g) for g in sorted(groups)) or "هیچ‌کدام"
     return f"گروه‌های فعلی آیدی {telegram_id}:\n{current}\n\nروی هرکدام بزنید تا اضافه/حذف شود:"
 
-# ---------- resend-receipt / repeat-dispute flow ----------
-REJECT_CONFIRM_RESEND_RECEIPT = "📤 ارسال رسید جدید"
-ASK_NEW_RECEIPT_PHOTO = "لطفاً تصویر رسید جدید را ارسال کنید:"
-NEW_RECEIPT_SUBMITTED_BUYER_SIDE = "✅ رسید جدید ارسال شد و دوباره برای بررسی به تیم ما رفت."
+# ---------- reject-reason collection ----------
 RECEIPT_PROBLEM_PRESET_REASON = "فیش پرداختی واضح نیست یا خوانا نیست — لطفاً رسید واضح‌تری ارسال کنید."
 ADMIN_REJECT_REASON_MENU = "دلیل رد را چطور اعلام می‌کنید؟"
 REJECT_REASON_TYPE_MYSELF = "✍️ خودم می‌نویسم"
 REJECT_REASON_RECEIPT_PROBLEM = "🧾 مشکل از رسید است (پیام آماده)"
-DISPUTE_REJECT_AGAIN_BUTTON = "🔁 رد دوباره (دلیل جدید)"
-ASK_REJECT_AGAIN_REASON = "دلیل جدید رد را بنویسید:"
-DISPUTE_FINAL_REJECT_CONFIRM = "آیا مطمئنید می‌خواهید این رزرو را قطعاً و نهایی رد/کنسل کنید؟"
 
 # ---------- factory reset (test/dev only) ----------
 FACTORY_RESET_BUTTON = "🧹 پاک‌سازی کامل و شروع تمیز (فقط تست)"
