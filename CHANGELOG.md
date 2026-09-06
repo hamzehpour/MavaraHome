@@ -5,6 +5,22 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Emphasize accurate phone/email in the booking form
+
+**Why:** requested — the phone/email step had no reminder that these are
+the only way the buyer ever hears back (ticket, tracking code, "نیازمند
+اصلاح" messages, the payment reminder). A typo there silently strands the
+whole reservation with no way to reach them.
+
+- New note right under the phone/email fields in the booking form's step
+  2 (`bkUser`, site.js): "⚠️ شماره موبایل و ایمیل را با دقت و بدون اشتباه
+  وارد کنید — بلیت، کد پیگیری و هر خبری درباره‌ی این رزرو فقط از همین دو
+  راه به دستتان می‌رسد." — styled in the gold-deep warning tone already
+  used elsewhere in the flow, not a jarring red error.
+
+Verified with Playwright: the note renders correctly under both fields
+in the actual booking modal.
+
 ## "حساب من" first in the mobile menu, with a hint of what it's for
 
 **Why:** requested — on mobile, "حساب من" was the last item in the

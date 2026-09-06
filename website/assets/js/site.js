@@ -62,6 +62,7 @@ const I18N = {
     events_eyebrow: 'تقویم', events_title: 'رویدادهای خانه ماورا', events_sub: 'همین حالا، به‌زودی، و آنچه گذشت', tag_all: 'همه',
     info_label: 'اطلاعات', loc_label: 'مکان', date_label: 'تاریخ', book_tg: 'رزرو از تلگرام',
     reserve_title: 'رزرو این رویداد', reserve_name: 'نام و نام خانوادگی', reserve_phone: 'شماره موبایل', reserve_email: 'ایمیل (برای پیگیری رزرو و دریافت بلیت)',
+    bk_contact_accuracy_note: '⚠️ شماره موبایل و ایمیل را با دقت و بدون اشتباه وارد کنید — بلیت، کد پیگیری و هر خبری درباره‌ی این رزرو فقط از همین دو راه به دستتان می‌رسد.',
     bk_book_now: 'رزرو بلیت', bk_close: 'بستن پنجره',
     bk_date: 'تاریخ اجرا', bk_session: 'انتخاب سانس', bk_remaining: (n) => n + ' نفر باقی مانده', bk_full: 'تکمیل ظرفیت', bk_full_alert: 'این سانس همین الان تکمیل شد — سانس دیگری را انتخاب کن یا در لیست انتظار ثبت‌نام کن.', bk_waitlist: 'ثبت‌نام در لیست انتظار',
     bk_qty: 'تعداد بلیت', bk_each: 'قیمت هر بلیت', bk_total: 'مبلغ کل', bk_buyer: 'اطلاعات خریدار', bk_confirm: 'ثبت رزرو',
@@ -152,6 +153,7 @@ const I18N = {
     events_eyebrow: 'Calendar', events_title: 'Mavara events', events_sub: 'Now, soon, and what has passed', tag_all: 'All',
     info_label: 'Details', loc_label: 'Location', date_label: 'Date', book_tg: 'Book on Telegram',
     reserve_title: 'Reserve this event', reserve_name: 'Full name', reserve_phone: 'Mobile number', reserve_email: 'Email (to track your reservation and get your ticket)',
+    bk_contact_accuracy_note: "⚠️ Double-check your mobile number and email — your ticket, tracking code, and any updates about this reservation are sent only through these two.",
     bk_book_now: 'Book a ticket', bk_close: 'Close',
     bk_date: 'Show date', bk_session: 'Choose a session', bk_remaining: (n) => n + ' left', bk_full: 'Sold out', bk_full_alert: 'This session just sold out — pick another session or join the waiting list.', bk_waitlist: 'Join the waiting list',
     bk_qty: 'Number of tickets', bk_each: 'Price per ticket', bk_total: 'Total', bk_buyer: 'Your details', bk_confirm: 'Confirm reservation',
@@ -712,6 +714,7 @@ async function buildBooking(e, opts) {
         <input id="bkName" placeholder="${T('reserve_name')}" required maxlength="120" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;font-family:inherit;margin-bottom:8px">
         <input id="bkPhone" placeholder="${T('reserve_phone')}" required maxlength="20" dir="ltr" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;font-family:inherit;margin-bottom:8px">
         <input id="bkEmail" type="email" placeholder="${T('reserve_email')}" required maxlength="180" dir="ltr" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;font-family:inherit">
+        <p style="font-size:11.5px;color:var(--gold-deep);line-height:1.8;margin-top:8px">${T('bk_contact_accuracy_note')}</p>
       </div>
       <div style="display:flex;gap:10px">
         <button type="button" class="btn btn--outline" id="bkBackBtn">${T('bk_back')}</button>
