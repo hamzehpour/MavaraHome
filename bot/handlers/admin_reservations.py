@@ -250,6 +250,39 @@ async def finish_approve_note(message: Message, state: FSMContext, bot: Bot) -> 
         await message.answer("⚠️ ارسال یادداشت به خریدار ناموفق بود.")
 
 
+@router.callback_query(F.data.startswith("review:correct:"))
+async def start_correction(callback: CallbackQuery, state: FSMContext) -> None:
+    reservation_id = int(callback.data.split(":")[2])
+    await state.update_data(correction_reservation_id=reservation_id)
+    await state.set_state(AdminReviewStates.awaiting_correction_message)
+    await callback.message.answer(fa.ASK_CORRECTION_MESSAGE)
+    await callback.answer()
+
+
+@router.message(AdminReviewStates.awaiting_correction_message)
+async def finish_correction(message: Message, state: FSMContext, bot: Bot) -> None:
+    data = await state.get_data()
+    reservation_id = data["correction_reservation_id"]
+    await state.clear()
+
+    correction_message = message.text.strip()
+    if not correction_message:
+        await message.answer(fa.ASK_CORRECTION_MESSAGE)
+        await state.set_state(AdminReviewStates.awaiting_correction_message)
+        await state.update_data(correction_reservation_id=reservation_id)
+        return
+
+    ok = reservation_service.request_correction(reservation_id, message.from_user.id, correction_message)
+    if not ok:
+        await message.answer("این رزرو قبلاً پردازش شده — دوباره پردازش نشد.")
+        return
+
+    logs_repo.record("reservation_needs_correction", message.from_user.id,
+                      f"reservation_id={reservation_id}: {correction_message}",
+                      target_type="reservation", target_id=reservation_id)
+    await message.answer(fa.RESERVATION_NEEDS_CORRECTION_ADMIN_SIDE)
+
+
 @router.callback_query(F.data.startswith("review:reject:"))
 async def start_reject(callback: CallbackQuery, state: FSMContext) -> None:
     from keyboards.admin import reject_reason_menu_keyboard

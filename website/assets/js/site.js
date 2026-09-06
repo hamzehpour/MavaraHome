@@ -73,10 +73,9 @@ const I18N = {
     bk_file_size_error: 'حجم فایل باید کمتر از ۱.۵ مگابایت باشد.',
     bk_file_required_error: 'ارسال رسید پرداخت برای ثبت رزرو الزامی است.',
     bk_no_receipt_note: 'برای نهایی‌شدن رزرو، رسید پرداخت را هر وقت آماده بود از طریق تلگرام برایمان بفرست.',
-    bk_receipt_failed_note: 'رزروت ثبت شد، ولی ارسال رسید با خطا مواجه شد — لطفاً آن را از طریق تلگرام برایمان بفرست.',
     bk_back: 'بازگشت', bk_continue: 'ادامه', bk_edit: 'ویرایش',
     bk_review_title: 'بازبینی اطلاعات رزرو', bk_review_title_waitlist: 'بازبینی ثبت‌نام در لیست انتظار',
-    bk_no_receipt: 'بدون رسید پرداخت', bk_loading: 'در حال ثبت رزرو…',
+    bk_loading: 'در حال ثبت رزرو…',
     bk_waitlist_note: 'این سانس تکمیل ظرفیت است؛ با ثبت‌نام در لیست انتظار، در صورت آزاد شدن جا با شما تماس می‌گیریم.',
     support_prefix: 'در صورتی که سوال یا نیاز به پشتیبانی دارید، از طریق',
     support_tg_label: 'اکانت تلگرام خانه ماورا', support_phone_label: 'شماره موبایل ', support_and: ' یا ',
@@ -86,6 +85,15 @@ const I18N = {
     pay_upload_choose: 'انتخاب فایل', pay_upload_none: 'فایلی انتخاب نشده',
     pay_ok: 'رسید پرداختت هم دریافت شد؛ پس از بررسی ادمین، تاییدیه‌ی نهایی به ایمیلت ارسال می‌شود.',
     pay_fallback: 'اطلاعات کارت هنوز تنظیم نشده — برای دریافت شماره کارت از تلگرام با ما در تماس باش.',
+    bk_step2_title: 'اطلاعات رزرو', bk_step2_continue: 'ادامه به پرداخت',
+    bk_lock_title: 'ظرفیت شما رزرو و قفل شد',
+    bk_lock_note: (mm) => `صندلی‌های شما به مدت ${mm} دقیقه برای شما نگه داشته می‌شود — لطفاً مبلغ زیر را واریز کرده و رسید را ارسال کنید تا رزروتان نهایی شود.`,
+    bk_lock_expired: 'مهلت قفل ظرفیت به پایان رسید — برای رزرو مجدد، دوباره از دکمه «رزرو بلیت» اقدام کنید.',
+    bk_lock_continue: 'ادامه به ارسال رسید',
+    bk_receipt_step_title: 'ارسال رسید پرداخت',
+    bk_receipt_submit: 'ارسال رسید و ثبت نهایی',
+    bk_receipt_submit_error: 'ارسال رسید با خطا مواجه شد — رزرو شما همچنان ثبت است، لطفاً دوباره تلاش کن یا از تلگرام رسید را برایمان بفرست.',
+    bk_receipt_expired_error: 'مهلت قفل ظرفیت این رزرو به پایان رسیده — برای رزرو مجدد از ابتدا اقدام کن.',
     fb_title: 'بازخورد و نظرات', fb_name_ph: 'نام شما (اختیاری)', fb_text_ph: 'نظر خود را بنویسید...', fb_submit: 'ثبت', empty_comment: 'هنوز نظری ثبت نشده.',
     f_tag: 'سفری به سوی خویشتن<br>از مسیر آگاهی، به یاری هنر',
     f_social: 'شبکه‌های اجتماعی', f_contact: 'تماس',
@@ -152,10 +160,9 @@ const I18N = {
     bk_file_size_error: 'The file must be smaller than 1.5MB.',
     bk_file_required_error: 'Uploading a payment receipt is required to complete the reservation.',
     bk_no_receipt_note: "To finalize your reservation, send us the payment receipt on Telegram whenever it's ready.",
-    bk_receipt_failed_note: "Your reservation is booked, but the receipt failed to upload — please send it to us on Telegram.",
     bk_back: 'Back', bk_continue: 'Continue', bk_edit: 'Edit',
     bk_review_title: 'Review your reservation', bk_review_title_waitlist: 'Review your waiting list request',
-    bk_no_receipt: 'No receipt attached', bk_loading: 'Booking your reservation…',
+    bk_loading: 'Booking your reservation…',
     bk_waitlist_note: "This session is full — join the waiting list and we'll reach out if a seat opens up.",
     support_prefix: 'If you have a question or need support, reach us via',
     support_tg_label: 'Mavara Home on Telegram', support_phone_label: 'the number ', support_and: ' or ',
@@ -165,6 +172,15 @@ const I18N = {
     pay_upload_choose: 'Choose file', pay_upload_none: 'No file chosen',
     pay_ok: "Receipt received too — you'll get a confirmation email once it's reviewed.",
     pay_fallback: 'Card details are not set up yet — message us on Telegram for the card number.',
+    bk_step2_title: 'Reservation details', bk_step2_continue: 'Continue to payment',
+    bk_lock_title: 'Your seats are booked and locked',
+    bk_lock_note: (mm) => `Your seats are held for ${mm} minutes — please transfer the amount below and upload the receipt to finalize your reservation.`,
+    bk_lock_expired: 'The capacity lock has expired — please start a new reservation from the "Book a ticket" button.',
+    bk_lock_continue: 'Continue to upload receipt',
+    bk_receipt_step_title: 'Upload payment receipt',
+    bk_receipt_submit: 'Submit receipt and finish',
+    bk_receipt_submit_error: "Uploading the receipt failed — your reservation is still on file, please try again or send it to us on Telegram.",
+    bk_receipt_expired_error: 'This reservation’s capacity lock has expired — please start over.',
     fb_title: 'Feedback & comments', fb_name_ph: 'Your name (optional)', fb_text_ph: 'Write your comment...', fb_submit: 'Submit', empty_comment: 'No comments yet.',
     f_tag: 'A journey toward the self<br>through awareness, by the hand of art',
     f_social: 'Social media', f_contact: 'Contact',
@@ -466,27 +482,39 @@ async function initEventDetail() {
 }
 
 /* ── Booking (same backend the Telegram bot itself uses) ──
-   The form used to be two steps — buyer info first, then a second
-   "payment" panel that only appeared after the reservation already
-   existed. Splitting it that way suggested two separate actions when
-   there's really one: "book this session." It's now a single form —
-   name/phone/email + the (optional) payment receipt together — submitted
-   once. The reservation and the receipt upload still happen as two API
-   calls under the hood (the backend has always kept them separate), but
-   the buyer only sees one step and one button. */
+   Four real steps, matching the actual capacity-lock lifecycle:
+     1. "رزرو بلیت" button → opens this modal, picker (date/session).
+     2. bkForm: name/phone/email + seat count. Submitting this is what
+        actually creates the reservation server-side (createReservationAndLock())
+        — that's the moment payment_expiry_minutes' lock starts ticking,
+        so it has to happen here, not at the very end.
+     3. bkLockBlock: payment card details + a live countdown of how long
+        the lock lasts. Nothing to submit here except "continue" — the
+        reservation already exists.
+     4. bkReceiptBlock: upload the payment receipt (mandatory) → waits
+        for admin approve/reject/needs-correction.
+   This used to be collapsed into a single step (name/phone/email + the
+   optional receipt, submitted once) — see CHANGELOG for why that broke
+   the capacity lock entirely: with reservation-creation and receipt-
+   upload happening in the same instant, expires_at never had a real
+   window to matter. Splitting steps 2 and 3 apart re-creates that
+   window on purpose. */
 // __bk.mode: 'book' (normal reservation) or 'waitlist' (a full session's
-// "ثبت‌نام در لیست انتظار" button) — same form/confirm/loading/result
-// steps either way (see goToForm()/renderConfirm() below for the few
-// places they differ: no quantity/payment for a waitlist entry, and the
-// full-session check in handleFormContinue() doesn't apply to it). The
-// actual API call in confirmAndSubmit() is identical either way — the
-// backend already decides waiting-vs-booked from real capacity.
-const __bk = { eventId: null, dateId: null, sessionId: null, qty: 1, eventObj: null, submitted: false, mode: 'book' };
+// "ثبت‌نام در لیست انتظار" button). A waitlist entry isn't a real
+// reservation yet (no seat, nothing to pay for), so it skips qty/payment/
+// lock/receipt entirely and keeps its own short review→submit path (see
+// goToConfirm()/renderConfirm()/confirmAndSubmit() below) — unlike a
+// normal booking, submitting a waitlist entry doesn't need reviewing
+// against a second step first for the buyer since there's no payment
+// window to enter.
+const __bk = { eventId: null, dateId: null, sessionId: null, qty: 1, eventObj: null, submitted: false, mode: 'book', record: null, payInfoHTML: '', paymentExpiryMinutes: 10, lockTimer: null };
 
 function openBookingModal() {
   const e = __bk.eventObj;
   if (!e) return;
   __bk.eventId = e.id; __bk.dateId = null; __bk.sessionId = null; __bk.qty = 1; __bk.submitted = false; __bk.mode = 'book';
+  __bk.record = null;
+  if (__bk.lockTimer) { clearInterval(__bk.lockTimer); __bk.lockTimer = null; }
   let overlay = document.getElementById('bkModalOverlay');
   if (!overlay) {
     overlay = document.createElement('div');
@@ -508,6 +536,7 @@ function openBookingModal() {
 }
 function closeBookingModal() {
   const overlay = document.getElementById('bkModalOverlay');
+  if (__bk.lockTimer) { clearInterval(__bk.lockTimer); __bk.lockTimer = null; }
   if (!overlay) return;
   overlay.classList.remove('open');
   document.body.style.overflow = '';
@@ -525,6 +554,12 @@ async function buildBooking(e) {
   if (paymentInfo && paymentInfo.card_number) {
     payInfoHTML = `${lang() === 'en' ? 'Card' : 'شماره کارت'}: <strong dir="ltr">${esc(paymentInfo.card_number)}</strong>${paymentInfo.card_holder ? ' · ' + esc(paymentInfo.card_holder) : ''}`;
   }
+  __bk.payInfoHTML = payInfoHTML;
+  // Read from the server instead of hardcoding "10" — see api/server.py's
+  // /payment-info, which now includes this alongside the card details so
+  // the lock-countdown text (step 3, renderLock()) can never drift from
+  // whatever an admin has actually set payment_expiry_minutes to.
+  __bk.paymentExpiryMinutes = (paymentInfo && Number(paymentInfo.payment_expiry_minutes)) || 10;
   const dates = API.dates.forEvent(e.id);
   if (!dates.length) {
     box.innerHTML = `<p class="bk-form-msg bk-form-msg--error">${T('bk_no_sessions')}</p>`;
@@ -543,17 +578,23 @@ async function buildBooking(e) {
   // demonstrates "these are clickable" instead of asking the buyer to
   // infer it from a plain rounded label).
   const multipleDates = dates.length > 1;
-  // Four steps, one visible at a time — picker → form → confirm → (loading
-  // → ) result. Picking a session used to reveal qty/buyer/payment fields
-  // *underneath* the still-visible date/session picker, so the whole
-  // screen just kept growing. Now picking a session switches the view to
-  // just the form (bkFormBlock) — the date/session picker (bkPickerBlock)
-  // is hidden, not gone: the "بازگشت" button in the form flips back to it.
-  // Submitting the form doesn't book anything by itself either anymore —
-  // it moves to a read-only recap (bkConfirmBlock) of exactly what's about
-  // to be sent, and only *that* screen's button actually calls the API,
-  // behind a brief loading state. Once that call resolves, box.innerHTML
-  // is replaced outright (see showResult()) — no leftover form underneath.
+  // Five blocks, one visible at a time — picker → form → (lock →) (receipt
+  // →) / confirm → loading → result. Picking a session used to reveal
+  // qty/buyer/payment fields *underneath* the still-visible date/session
+  // picker, so the whole screen just kept growing. Now picking a session
+  // switches the view to just the form (bkForm) — the date/session picker
+  // (bkPickerBlock) is hidden, not gone: the "بازگشت" button in the form
+  // flips back to it.
+  //
+  // A normal booking (mode 'book') goes bkForm → bkLockBlock → bkReceiptBlock
+  // → bkLoading → result: submitting bkForm is what actually creates the
+  // reservation (createReservationAndLock()) — that's the real capacity-
+  // lock start, so it can't be deferred to a later "confirm" screen the way
+  // it used to be. bkLockBlock just shows the payment card + a live
+  // countdown of the lock the buyer already has; bkReceiptBlock is the
+  // mandatory receipt upload. A waitlist entry (mode 'waitlist') skips all
+  // of that — no seat exists yet to lock or pay for — and keeps the
+  // original review-then-submit path via bkConfirmBlock/confirmAndSubmit().
   box.innerHTML = `
     <div id="bkFormError" class="bk-form-msg bk-form-msg--error" style="display:none"></div>
     <div id="bkPickerBlock">
@@ -570,25 +611,35 @@ async function buildBooking(e) {
         <input id="bkPhone" placeholder="${T('reserve_phone')}" required maxlength="20" dir="ltr" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;font-family:inherit;margin-bottom:8px">
         <input id="bkEmail" type="email" placeholder="${T('reserve_email')}" required maxlength="180" dir="ltr" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;font-family:inherit">
       </div>
-      <div id="bkPayment" style="margin-bottom:18px">
-        <div class="bk-label">${T('pay_title')}</div>
-        <p style="font-size:13px;line-height:2;margin-bottom:10px">${payInfoHTML}</p>
-        <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:8px">${T('pay_upload_label')}</label>
-        <div class="bk-file-picker" id="bkFileWrap">
-          <input type="file" id="bkReceipt" class="bk-file-input" accept="image/*">
-          <label for="bkReceipt" class="bk-file-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M12 3l-4 4M12 3l4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
-            <span>${T('pay_upload_choose')}</span>
-          </label>
-          <span class="bk-file-name" id="bkFileName">${T('pay_upload_none')}</span>
-        </div>
-        <p id="bkReceiptError" class="bk-form-msg bk-form-msg--error" style="display:none;margin-top:10px"></p>
-        <p style="font-size:11.5px;color:var(--text-muted);line-height:1.8;margin-top:8px">${T('pay_upload_hint')}</p>
-      </div>
       <div style="display:flex;gap:10px">
         <button type="button" class="btn btn--outline" id="bkBackBtn">${T('bk_back')}</button>
         <button class="btn btn--gold" id="bkSubmit" type="submit" style="flex:1">${T('bk_continue')}</button>
       </div>
+    </form>
+    <div id="bkLockBlock" style="display:none">
+      <div class="bk-label">${T('bk_lock_title')}</div>
+      <div id="bkLockSummary" style="background:var(--bg-soft);border-radius:12px;padding:14px;font-size:13.5px;line-height:2;margin-bottom:14px"></div>
+      <div style="background:var(--bg-soft);border-radius:12px;padding:14px;margin-bottom:10px">
+        <p id="bkLockNote" style="font-size:13px;line-height:1.9;margin-bottom:10px"></p>
+        <p style="font-size:14px;font-weight:700;color:var(--gold-deep)">⏳ <span id="bkLockCountdown" dir="ltr"></span></p>
+      </div>
+      <p style="font-size:13px;line-height:2;margin-bottom:18px">${payInfoHTML}</p>
+      <button type="button" class="btn btn--gold" id="bkLockContinueBtn" style="width:100%">${T('bk_lock_continue')}</button>
+    </div>
+    <form id="bkReceiptBlock" style="display:none">
+      <div class="bk-label">${T('bk_receipt_step_title')}</div>
+      <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:8px">${T('pay_upload_label')}</label>
+      <div class="bk-file-picker" id="bkFileWrap">
+        <input type="file" id="bkReceipt" class="bk-file-input" accept="image/*">
+        <label for="bkReceipt" class="bk-file-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M12 3l-4 4M12 3l4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+          <span>${T('pay_upload_choose')}</span>
+        </label>
+        <span class="bk-file-name" id="bkFileName">${T('pay_upload_none')}</span>
+      </div>
+      <p id="bkReceiptError" class="bk-form-msg bk-form-msg--error" style="display:none;margin-top:10px"></p>
+      <p style="font-size:11.5px;color:var(--text-muted);line-height:1.8;margin-top:8px;margin-bottom:18px">${T('pay_upload_hint')}</p>
+      <button class="btn btn--gold" id="bkReceiptSubmit" type="submit" style="width:100%">${T('bk_receipt_submit')}</button>
     </form>
     <div id="bkConfirmBlock" style="display:none">
       <div class="bk-label" id="bkConfirmTitle">${T('bk_review_title')}</div>
@@ -603,8 +654,10 @@ async function buildBooking(e) {
       <p style="margin-top:14px;font-size:13.5px;color:var(--text-muted)">${T('bk_loading')}</p>
     </div>`;
   document.getElementById('bkForm').addEventListener('submit', handleFormContinue);
+  document.getElementById('bkReceiptBlock').addEventListener('submit', handleReceiptSubmit);
   document.getElementById('bkReceipt').addEventListener('change', onReceiptFileChange);
   document.getElementById('bkBackBtn').onclick = goToPicker;
+  document.getElementById('bkLockContinueBtn').onclick = goToReceiptStep;
   document.getElementById('bkEditBtn').onclick = goToForm;
   document.getElementById('bkConfirmSubmit').onclick = confirmAndSubmit;
   box.querySelectorAll('.bk-chip').forEach(chip => chip.onclick = () => selectDate(chip.dataset.date, chip));
@@ -612,22 +665,25 @@ async function buildBooking(e) {
   document.getElementById('bkPlus').onclick = () => stepQty(1);
   selectDate(dates[0].id, box.querySelector('.bk-chip') || null);
 }
+// Shows exactly one step-block, hides the rest — bkLoading isn't in this
+// list since it's toggled separately by its own callers (reached from
+// more than one step, always as a brief overlay rather than a step of
+// its own).
+function _showBookingStep(id) {
+  ['bkPickerBlock', 'bkForm', 'bkLockBlock', 'bkReceiptBlock', 'bkConfirmBlock'].forEach(blockId => {
+    const el = document.getElementById(blockId);
+    if (el) el.style.display = blockId === id ? 'block' : 'none';
+  });
+}
 function goToPicker() {
-  document.getElementById('bkPickerBlock').style.display = 'block';
-  document.getElementById('bkForm').style.display = 'none';
-  document.getElementById('bkConfirmBlock').style.display = 'none';
+  _showBookingStep('bkPickerBlock');
 }
 function goToForm() {
-  document.getElementById('bkPickerBlock').style.display = 'none';
-  document.getElementById('bkForm').style.display = 'block';
-  document.getElementById('bkConfirmBlock').style.display = 'none';
+  _showBookingStep('bkForm');
   document.getElementById('bkFormError').style.display = 'none';
-  document.getElementById('bkReceiptError').style.display = 'none';
-  // A waiting-list entry has no quantity to pick and nothing to pay yet
-  // (there's no confirmed seat) — just name/phone/email.
+  // A waiting-list entry has no quantity to pick — just name/phone/email.
   const isWaitlist = __bk.mode === 'waitlist';
   document.getElementById('bkQtyBlock').style.display = isWaitlist ? 'none' : 'block';
-  document.getElementById('bkPayment').style.display = isWaitlist ? 'none' : 'block';
 }
 // Custom-styled file picker (see .bk-file-* in styles.css) — the native
 // <input type="file"> is visually hidden but stays focusable/keyboard-
@@ -715,26 +771,20 @@ function renderSummary() {
   const currencyLabel = lang() === 'en' ? 'T' : (event.currency || 'تومان');
   el.innerHTML = `${head}<br>${T('bk_qty')}: ${__bk.qty} · ${T('bk_each')}: ${unitPrice.toLocaleString(lang() === 'en' ? 'en-US' : 'fa-IR')}<br><strong style="color:var(--gold-deep)">${T('bk_total')}: ${total.toLocaleString(lang() === 'en' ? 'en-US' : 'fa-IR')} ${currencyLabel}</strong>`;
 }
-// Form submit ("ادامه") only validates and moves to the read-only recap —
-// it never calls the API itself. That happens once, in confirmAndSubmit(),
-// only after the buyer has seen exactly what's about to be sent.
+// Form submit ("ادامه به پرداخت") validates buyer info, then — for a
+// normal booking — creates the reservation right here (see
+// createReservationAndLock()): this is deliberately NOT deferred to a
+// later "confirm" step anymore, since creating the reservation is what
+// actually starts the payment_expiry_minutes lock. A waitlist entry has
+// no lock to start (no seat exists to hold), so it keeps the original
+// review-then-submit path via goToConfirm()/confirmAndSubmit().
 function handleFormContinue(ev) {
   ev.preventDefault();
   const errBox = document.getElementById('bkFormError');
   errBox.style.display = 'none';
-  const receiptErrBox = document.getElementById('bkReceiptError');
-  receiptErrBox.style.display = 'none';
   // Name/phone/email are `required` on their <input>s, so the browser's
   // own validation UI stops the submit before this handler runs on an
-  // empty or malformed value — nothing to duplicate here. The receipt
-  // file is validated explicitly below instead of via `required` on its
-  // <input> — that input is visually hidden (see .bk-file-input in
-  // styles.css), and a native validation bubble anchored to a 1px
-  // hidden element lands in an inconsistent spot across browsers; this
-  // way the error always renders in the same place, right under the
-  // file picker, and is scrolled into view — the actual bug report this
-  // fixed was the OLD top-of-form error going unnoticed once the buyer
-  // had scrolled down to the receipt field on mobile.
+  // empty or malformed value — nothing to duplicate here.
   const s = API.sessions.get(__bk.eventId, __bk.sessionId);
   if (!s) { errBox.style.display = 'block'; errBox.textContent = T('bk_submit_error'); goToPicker(); return; }
   // A full session is exactly the point of the waitlist flow — only a
@@ -744,70 +794,29 @@ function handleFormContinue(ev) {
     goToPicker();
     return;
   }
-  if (__bk.mode !== 'waitlist') {
-    const fileInput = document.getElementById('bkReceipt');
-    const file = fileInput && fileInput.files[0];
-    const showReceiptError = (msg) => {
-      receiptErrBox.style.display = 'block';
-      receiptErrBox.textContent = msg;
-      receiptErrBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    };
-    if (!file) { showReceiptError(T('bk_file_required_error')); return; }
-    if (!file.type.startsWith('image/')) { showReceiptError(T('bk_file_type_error')); return; }
-    if (file.size > 1_500_000) { showReceiptError(T('bk_file_size_error')); return; }
+  if (__bk.mode === 'waitlist') {
+    goToConfirm();
+    return;
   }
-  goToConfirm();
+  createReservationAndLock();
 }
-function goToConfirm() {
-  document.getElementById('bkForm').style.display = 'none';
-  document.getElementById('bkConfirmBlock').style.display = 'block';
-  const isWaitlist = __bk.mode === 'waitlist';
-  document.getElementById('bkConfirmTitle').textContent = isWaitlist ? T('bk_review_title_waitlist') : T('bk_review_title');
-  document.getElementById('bkConfirmSubmit').textContent = isWaitlist ? T('bk_waitlist') : T('bk_confirm');
-  renderConfirm();
-}
-function renderConfirm() {
-  const s = API.sessions.get(__bk.eventId, __bk.sessionId);
-  const d = API.dates.forEvent(__bk.eventId).find(x => x.id === __bk.dateId);
-  const event = API.events.get(__bk.eventId);
-  const isWaitlist = __bk.mode === 'waitlist';
-  const name = document.getElementById('bkName').value.trim();
-  const phone = document.getElementById('bkPhone').value.trim();
-  const email = document.getElementById('bkEmail').value.trim();
-  let head;
-  if (isWaitlist) {
-    head = `${esc(evTitle(event))} · ${esc(d ? d.jalali_date : '')} · <span dir="ltr">${esc(s.time)}</span><br><span style="color:var(--gold-deep);font-weight:600">${T('bk_waitlist_note')}</span>`;
-  } else {
-    const unitPrice = Number(event.price || 0);
-    const total = __bk.qty * unitPrice;
-    const currencyLabel = lang() === 'en' ? 'T' : (event.currency || 'تومان');
-    head = `${esc(evTitle(event))} · ${esc(d ? d.jalali_date : '')} · <span dir="ltr">${esc(s.time)}</span><br>
-    ${T('bk_qty')}: ${__bk.qty} · <strong style="color:var(--gold-deep)">${T('bk_total')}: ${total.toLocaleString(lang() === 'en' ? 'en-US' : 'fa-IR')} ${currencyLabel}</strong>`;
-  }
-  const file = isWaitlist ? null : document.getElementById('bkReceipt').files[0];
-  document.getElementById('bkConfirmBody').innerHTML = `
-    ${head}
-    <hr style="border:none;border-top:1px solid var(--border);margin:10px 0">
-    ${T('reserve_name')}: ${esc(name)}<br>
-    ${T('reserve_phone')}: <span dir="ltr">${esc(phone)}</span><br>
-    ${T('reserve_email')}: <span dir="ltr">${esc(email)}</span>
-    ${isWaitlist ? '' : `<br>${T('pay_upload_label')}: ${file ? esc(file.name) : T('bk_no_receipt')}`}`;
-}
-async function confirmAndSubmit() {
+// Step 2 → step 3. This is the one call in the whole flow that creates
+// the reservation — the moment the capacity lock (payment_expiry_minutes,
+// see reservation_service._expiry_timestamp()) actually starts. Nothing
+// before this point has touched the backend at all, so a buyer who
+// abandons the form mid-way never occupies a seat.
+async function createReservationAndLock() {
   // Guards a double-fire (e.g. a fast double-click before the screen
-  // switches away from this button) from creating a second reservation
-  // for the same booking — once a reservation exists there is no
-  // "resubmit", only report what happened next (receipt attached or not).
+  // switches away) from creating a second reservation for the same
+  // booking — once a reservation exists there is no "resubmit", only
+  // move forward to the receipt step.
   if (__bk.submitted) return;
   const s = API.sessions.get(__bk.eventId, __bk.sessionId);
   const name = document.getElementById('bkName').value.trim();
   const phone = document.getElementById('bkPhone').value.trim();
   const email = document.getElementById('bkEmail').value.trim();
-  // No receipt in waitlist mode — there's no confirmed seat to pay for yet.
-  const fileInput = document.getElementById('bkReceipt');
-  const file = __bk.mode === 'waitlist' ? null : (fileInput && fileInput.files[0]);
 
-  document.getElementById('bkConfirmBlock').style.display = 'none';
+  document.getElementById('bkForm').style.display = 'none';
   document.getElementById('bkLoading').style.display = 'block';
 
   let record;
@@ -820,6 +829,166 @@ async function confirmAndSubmit() {
     record = await API.reservations.create({ session_id: s.id, phone, full_name: name, email, people: __bk.qty });
   } catch (err) {
     document.getElementById('bkLoading').style.display = 'none';
+    document.getElementById('bkForm').style.display = 'block';
+    const errBox = document.getElementById('bkFormError');
+    errBox.style.display = 'block';
+    errBox.textContent = (err.status === 409 && err.message === 'sold_out') ? T('bk_full_alert') : T('bk_submit_error');
+    return;
+  }
+
+  // The reservation now exists server-side — from here on nothing can
+  // trigger a second one.
+  __bk.submitted = true;
+
+  if (record && record.waiting) {
+    // A race: the session filled up between page load and this submit —
+    // start_reservation_web() itself falls back to a waitlist entry, same
+    // as picking "ثبت‌نام در لیست انتظار" directly would have.
+    document.getElementById('bkLoading').style.display = 'none';
+    showResult(T('bk_waitlist_done'));
+    return;
+  }
+
+  __bk.record = record;
+  document.getElementById('bkLoading').style.display = 'none';
+  goToLock();
+}
+// Step 3: payment card + live countdown of the lock the buyer already has
+// (record.expires_at, set server-side at creation) — nothing to submit
+// here except moving on to actually upload the receipt.
+function goToLock() {
+  _showBookingStep('bkLockBlock');
+  renderLock();
+}
+function renderLock() {
+  const event = API.events.get(__bk.eventId);
+  const unitPrice = Number(event.price || 0);
+  const total = __bk.qty * unitPrice;
+  const currencyLabel = lang() === 'en' ? 'T' : (event.currency || 'تومان');
+  document.getElementById('bkLockSummary').innerHTML =
+    `${esc(evTitle(event))}<br>${T('bk_qty')}: ${__bk.qty} · <strong style="color:var(--gold-deep)">${T('bk_total')}: ${total.toLocaleString(lang() === 'en' ? 'en-US' : 'fa-IR')} ${currencyLabel}</strong>`;
+  document.getElementById('bkLockNote').textContent = T('bk_lock_note')(__bk.paymentExpiryMinutes);
+  startLockCountdown(__bk.record && __bk.record.expires_at);
+}
+// A live mm:ss countdown against the real server-side deadline — purely
+// informational (the actual enforcement is server-side: submit_receipt()
+// only accepts a still-pending_payment reservation, and expire_stale_
+// reservations() flips it to 'expired' once the deadline passes), but
+// showing a ticking clock is what makes "۱۰ دقیقه فرصت دارید" feel real
+// instead of just a one-time notice easy to forget.
+function startLockCountdown(expiresAtIso) {
+  if (__bk.lockTimer) { clearInterval(__bk.lockTimer); __bk.lockTimer = null; }
+  const el = document.getElementById('bkLockCountdown');
+  if (!el || !expiresAtIso) return;
+  const deadline = new Date(expiresAtIso).getTime();
+  const tick = () => {
+    const remainMs = deadline - Date.now();
+    if (remainMs <= 0) {
+      el.textContent = T('bk_lock_expired');
+      clearInterval(__bk.lockTimer);
+      __bk.lockTimer = null;
+      return;
+    }
+    const mm = Math.floor(remainMs / 60000);
+    const ss = Math.floor((remainMs % 60000) / 1000);
+    el.textContent = `${mm}:${String(ss).padStart(2, '0')}`;
+  };
+  tick();
+  __bk.lockTimer = setInterval(tick, 1000);
+}
+// Step 3 → step 4.
+function goToReceiptStep() {
+  _showBookingStep('bkReceiptBlock');
+}
+// Step 4 submit — the mandatory receipt upload. Unlike the old single-
+// step flow, a failure here does NOT lose the reservation (it already
+// exists, same as it always did once this point is reached) — the buyer
+// just sees an error and can try again from the same screen, right up
+// until the lock actually expires server-side.
+function handleReceiptSubmit(ev) {
+  ev.preventDefault();
+  const receiptErrBox = document.getElementById('bkReceiptError');
+  receiptErrBox.style.display = 'none';
+  const fileInput = document.getElementById('bkReceipt');
+  const file = fileInput && fileInput.files[0];
+  const showReceiptError = (msg) => {
+    receiptErrBox.style.display = 'block';
+    receiptErrBox.textContent = msg;
+    receiptErrBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+  if (!file) { showReceiptError(T('bk_file_required_error')); return; }
+  if (!file.type.startsWith('image/')) { showReceiptError(T('bk_file_type_error')); return; }
+  if (file.size > 1_500_000) { showReceiptError(T('bk_file_size_error')); return; }
+  submitReceiptStep(file);
+}
+async function submitReceiptStep(file) {
+  const record = __bk.record;
+  document.getElementById('bkReceiptBlock').style.display = 'none';
+  document.getElementById('bkLoading').style.display = 'block';
+  try {
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+    // Same submit_receipt() the Telegram bot's photo handler calls —
+    // triggers the exact same admin notification either way. A 409 here
+    // means the lock already expired server-side (or this reservation was
+    // otherwise no longer awaiting a receipt) between opening this step
+    // and submitting — surfaced as its own message rather than the
+    // generic upload-failed one, since retrying won't help.
+    await API.receipts.submit(record.id, dataUrl);
+    if (__bk.lockTimer) { clearInterval(__bk.lockTimer); __bk.lockTimer = null; }
+    showResult(`${T('bk_done')}<br>${T('bk_tracking_id')}: <strong dir="ltr" style="color:var(--gold-deep)">#${esc(record.id)}</strong><br>${T('pay_ok')}`);
+  } catch (err) {
+    document.getElementById('bkLoading').style.display = 'none';
+    document.getElementById('bkReceiptBlock').style.display = 'block';
+    const receiptErrBox = document.getElementById('bkReceiptError');
+    receiptErrBox.style.display = 'block';
+    receiptErrBox.textContent = err.status === 409 ? T('bk_receipt_expired_error') : T('bk_receipt_submit_error');
+  }
+}
+// ---------------- waitlist-only: review → submit (unchanged shape) ----------------
+function goToConfirm() {
+  document.getElementById('bkForm').style.display = 'none';
+  document.getElementById('bkConfirmBlock').style.display = 'block';
+  document.getElementById('bkConfirmTitle').textContent = T('bk_review_title_waitlist');
+  document.getElementById('bkConfirmSubmit').textContent = T('bk_waitlist');
+  renderConfirm();
+}
+function renderConfirm() {
+  const s = API.sessions.get(__bk.eventId, __bk.sessionId);
+  const d = API.dates.forEvent(__bk.eventId).find(x => x.id === __bk.dateId);
+  const event = API.events.get(__bk.eventId);
+  const name = document.getElementById('bkName').value.trim();
+  const phone = document.getElementById('bkPhone').value.trim();
+  const email = document.getElementById('bkEmail').value.trim();
+  const head = `${esc(evTitle(event))} · ${esc(d ? d.jalali_date : '')} · <span dir="ltr">${esc(s.time)}</span><br><span style="color:var(--gold-deep);font-weight:600">${T('bk_waitlist_note')}</span>`;
+  document.getElementById('bkConfirmBody').innerHTML = `
+    ${head}
+    <hr style="border:none;border-top:1px solid var(--border);margin:10px 0">
+    ${T('reserve_name')}: ${esc(name)}<br>
+    ${T('reserve_phone')}: <span dir="ltr">${esc(phone)}</span><br>
+    ${T('reserve_email')}: <span dir="ltr">${esc(email)}</span>`;
+}
+async function confirmAndSubmit() {
+  // Waitlist-only now (see handleFormContinue()) — a normal booking's
+  // reservation is created earlier, in createReservationAndLock().
+  if (__bk.submitted) return;
+  const s = API.sessions.get(__bk.eventId, __bk.sessionId);
+  const name = document.getElementById('bkName').value.trim();
+  const phone = document.getElementById('bkPhone').value.trim();
+  const email = document.getElementById('bkEmail').value.trim();
+
+  document.getElementById('bkConfirmBlock').style.display = 'none';
+  document.getElementById('bkLoading').style.display = 'block';
+
+  let record;
+  try {
+    record = await API.reservations.create({ session_id: s.id, phone, full_name: name, email, people: __bk.qty });
+  } catch (err) {
+    document.getElementById('bkLoading').style.display = 'none';
     document.getElementById('bkConfirmBlock').style.display = 'block';
     const errBox = document.getElementById('bkFormError');
     errBox.style.display = 'block';
@@ -827,40 +996,21 @@ async function confirmAndSubmit() {
     return;
   }
 
-  // The reservation now exists server-side — from here on nothing
-  // (including a receipt-upload failure below) can trigger a second one.
   __bk.submitted = true;
-
+  // A waitlist submission always lands as `waiting` — the session was
+  // full (that's the only way this mode gets reached) — but fall through
+  // to the generic done-message just in case a seat freed up in the
+  // meantime and the backend booked it outright instead.
   if (record && record.waiting) {
     showResult(T('bk_waitlist_done'));
     return;
   }
-
-  let receiptNote = T('bk_no_receipt_note');
-  if (file) {
-    try {
-      const dataUrl = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = () => reject(reader.error);
-        reader.readAsDataURL(file);
-      });
-      // Same submit_receipt() the Telegram bot's photo handler calls —
-      // triggers the exact same admin notification either way.
-      await API.receipts.submit(record.id, dataUrl);
-      receiptNote = T('pay_ok');
-    } catch {
-      receiptNote = T('bk_receipt_failed_note');
-    }
-  }
-  // reservation_code is only assigned once the admin approves payment
-  // (same as the Telegram bot flow) — showing a fake code here before
-  // that would be inventing data the backend hasn't actually issued yet.
-  showResult(`${T('bk_done')}<br>${T('bk_tracking_id')}: <strong dir="ltr" style="color:var(--gold-deep)">#${esc(record.id)}</strong><br>${receiptNote}`);
+  showResult(`${T('bk_done')}<br>${T('bk_tracking_id')}: <strong dir="ltr" style="color:var(--gold-deep)">#${esc(record.id)}</strong><br>${T('bk_no_receipt_note')}`);
 }
 // Replaces the picker/form/confirm/loading steps outright with just the
 // outcome — nothing left to scroll past once the operation is done.
 function showResult(html) {
+  if (__bk.lockTimer) { clearInterval(__bk.lockTimer); __bk.lockTimer = null; }
   const box = document.getElementById('bookingWidget');
   if (box) box.innerHTML = `<div class="bk-form-msg bk-form-msg--success">${html}</div>`;
 }

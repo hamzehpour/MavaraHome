@@ -5,6 +5,91 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Booking-flow redesign: real 4-step flow, capacity lock actually works again, "نیازمند اصلاح" admin action
+
+**Why:** requested — the capacity lock (`payment_expiry_minutes`) had been
+in the code for a while but stopped doing anything useful. A prior
+redesign (see the removed comment in `site.js`) collapsed reservation-
+creation and receipt-upload into one atomic step "for simplicity," which
+meant `expires_at` was set and then immediately irrelevant — there was
+never a window where a reservation existed *without* its receipt already
+attached, so the lock never actually held a seat against anything. On
+top of that, there was no way for an admin to say "I can't approve this,
+but I don't want to reject it either" (wrong receipt, wrong amount,
+illegible photo) — only a binary approve/reject.
+
+**Booking flow, now four real steps** (`website/assets/js/site.js`):
+1. "رزرو بلیت" button → date/session picker (unchanged).
+2. Name/phone/email + seat count (`bkForm`, payment fields removed).
+3. Submitting step 2 is what actually creates the reservation
+   (`createReservationAndLock()`) — this is the real, only moment the
+   lock starts. Step 3 (`bkLockBlock`) shows the payment card and a live
+   countdown against the reservation's real `expires_at` (now returned by
+   `/reservations`, `/admin/reservations` etc.), reading
+   `payment_expiry_minutes` from the new `/payment-info` field instead of
+   a hardcoded number.
+4. Mandatory receipt upload (`bkReceiptBlock`, reusing the existing
+   accessible file-picker), which can now genuinely fail/retry without
+   losing the reservation — it already exists by this point.
+   Waitlist signups (no seat to lock or pay for) keep their original,
+   unchanged review→submit path.
+- `payment_expiry_minutes` default lowered from 15 to **10** minutes;
+  new `payment_reminder_minutes` (default **5**) setting.
+- New `reservation_service.send_payment_reminders()`: a one-time email
+  nudge ("۵ دقیقه دیگر فرصت دارید") for any `pending_payment` reservation
+  past the reminder threshold, dedup'd via the `logs` table. Runs from
+  both `run_expiry_loop` (bot process) and `run_expiry_loop_sync` (API
+  process) since it's plain SMTP, not a Telegram DM — works even when
+  bot.py isn't running. New admin-editable templates:
+  `tmpl_email_payment_reminder_subject`/`_body`.
+- **New admin action, "نیازمند اصلاح"**, alongside approve/reject — on
+  both the Telegram review keyboard and the website admin panel
+  (`pages/admin/reservations.html`). Sends a required text message to the
+  buyer (email + Telegram DM if linked) and moves the reservation to a
+  new `needs_correction` status — no time limit while it sits there
+  (`reservations_repo.list_expired_pending` only ever matches
+  `pending_payment`, so this never auto-expires). The buyer resubmits a
+  receipt the same way as the first time (`submit_receipt()` now accepts
+  `needs_correction` as a starting status too, alongside
+  `pending_payment`), landing back on `pending_review`.
+  New template: `tmpl_email_needs_correction_subject`/`_body`.
+- Buyer-side resubmission for a `needs_correction` reservation: an
+  "ارسال رسید جدید" button in Telegram's "رزروهای من" and a file-upload
+  block in `pages/account.html`, both calling the same `submit_receipt()`
+  path.
+- New endpoint `POST /admin/reservations/<id>/needs-correction`; `admin_note`
+  and `expires_at` are now exposed on every reservation the admin/account
+  APIs return (repurposed per status — rejection reason when rejected,
+  the correction message when `needs_correction`).
+
+No schema/migration change — `needs_correction` reuses the existing
+free-text `status`/`admin_note` columns, and the reminder's one-time-send
+tracking reuses the generic `logs` table, same as the (now-removed)
+review-reminder feature did.
+
+**Bug fixed along the way:** `send_payment_reminders()`'s first draft
+compared `created_at` (SQLite's own `datetime('now')`, space-separated,
+no offset) against a Python-side `isoformat()` cutoff (`...T...+00:00`)
+— two different string shapes that don't sort against each other
+correctly, so the very first version fired a reminder for a
+brand-new reservation immediately. Fixed by computing the cutoff with
+SQLite's own `datetime('now', '-N minutes')` so both sides of the
+comparison are generated the same way.
+
+Verified locally: full existing 49-test suite still passes; a dedicated
+scratch test exercised `submit_receipt()` from both starting statuses,
+`request_correction()`'s transition/dedup/admin_note, and
+`send_payment_reminders()`'s threshold + dedup (including the timestamp-
+format bug above, caught by the test before the fix). Also verified
+end-to-end over real HTTP against a local `ENV=test` server + a
+Playwright run of the actual 4-step browser flow: session pick → step 2
+form → reservation created with a real `expires_at` → step 3's live
+countdown renders correctly against it → step 4 receipt upload (rejects
+a missing file, accepts an image) → `pending_review`. Then, via the raw
+API: admin `needs-correction` action → `needs_correction` with the
+correction message in `admin_note` → buyer resubmission via
+`POST /reservations/<id>/receipt` → back to `pending_review`.
+
 ## Split the admin alerts channel from the sales-monitoring channel
 
 **Why:** reported, live — the monitoring channel (silent per-day board,

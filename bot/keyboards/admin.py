@@ -142,7 +142,8 @@ def reservation_review_keyboard(reservation_id: int) -> InlineKeyboardMarkup:
         [
             InlineKeyboardButton(text=fa.APPROVE_BUTTON, callback_data=f"review:approve:{reservation_id}"),
             InlineKeyboardButton(text=fa.REJECT_BUTTON, callback_data=f"review:reject:{reservation_id}"),
-        ]
+        ],
+        [InlineKeyboardButton(text=fa.CORRECTION_BUTTON, callback_data=f"review:correct:{reservation_id}")],
     ])
 
 

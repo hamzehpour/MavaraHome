@@ -1,12 +1,16 @@
-from aiogram import Router, F
+from aiogram import Router, F, Bot
 from aiogram.filters import CommandStart
+from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 
 from texts import fa
 from keyboards.main_menu import main_menu_keyboard, admin_quick_menu, staff_quick_menu
 from keyboards.admin import admin_main_menu, staff_main_menu
+from states.resend_receipt_states import ResendReceiptStates
 from database.repositories import users as users_repo
 from database.repositories import admins as admins_repo
+from database.repositories import reservations as reservations_repo
+from database.repositories import logs as logs_repo
 from services import settings_service, reservation_service
 
 router = Router(name="common")
@@ -92,7 +96,7 @@ async def my_reservations(message: Message) -> None:
             r["people"],
             r.get("reservation_code"),
         )
-        if r["status"] in ("pending_payment", "pending_review", "waiting"):
+        if r["status"] in ("pending_payment", "pending_review", "needs_correction", "waiting"):
             waiting.append(line)
         elif r["status"] == "approved" and r["session_date"] >= today:
             upcoming.append(line)
@@ -112,3 +116,53 @@ async def my_reservations(message: Message) -> None:
         blocks.append(fa.MY_RES_SECTION_OTHER + "\n" + "\n".join(other))
 
     await message.answer("\n\n".join(blocks))
+
+    # A needs_correction reservation gets its own follow-up message with an
+    # actual action button — the block above is plain summary text, no
+    # buttons, and this is the one status here that needs the buyer to DO
+    # something (resubmit a fixed receipt) rather than just wait.
+    from keyboards.booking import resubmit_correction_keyboard
+    for r in rows:
+        if r["status"] != "needs_correction":
+            continue
+        await message.answer(
+            fa.needs_correction_note(r.get("admin_note") or ""),
+            reply_markup=resubmit_correction_keyboard(r["id"]),
+        )
+
+
+@router.callback_query(F.data.startswith("resubmit_correction:"))
+async def start_resubmit_correction(callback: CallbackQuery, state: FSMContext) -> None:
+    reservation_id = int(callback.data.split(":")[1])
+    reservation = reservations_repo.get_reservation(reservation_id)
+    if not reservation or reservation["status"] != "needs_correction":
+        await callback.answer(fa.RESUBMIT_RECEIPT_NOT_FOUND, show_alert=True)
+        return
+
+    await state.update_data(correction_resubmit_reservation_id=reservation_id)
+    await state.set_state(ResendReceiptStates.awaiting_correction_receipt)
+    await callback.message.answer(fa.ASK_RESUBMIT_RECEIPT)
+    await callback.answer()
+
+
+@router.message(ResendReceiptStates.awaiting_correction_receipt, F.photo)
+async def receive_resubmitted_correction(message: Message, state: FSMContext, bot: Bot) -> None:
+    data = await state.get_data()
+    reservation_id = data["correction_resubmit_reservation_id"]
+    await state.clear()
+
+    file_id = message.photo[-1].file_id
+    ok = reservation_service.submit_receipt(reservation_id, file_id)
+    if not ok:
+        await message.answer(fa.RESUBMIT_RECEIPT_NOT_FOUND)
+        return
+
+    logs_repo.record("receipt_resubmitted_after_correction", message.from_user.id,
+                      f"reservation_id={reservation_id}",
+                      target_type="reservation", target_id=reservation_id)
+    await message.answer(fa.RESUBMIT_RECEIPT_RECEIVED)
+
+
+@router.message(ResendReceiptStates.awaiting_correction_receipt)
+async def resubmit_correction_wrong_type(message: Message) -> None:
+    await message.answer(fa.RECEIPT_MUST_BE_PHOTO)

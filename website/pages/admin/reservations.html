@@ -32,7 +32,7 @@ let events = [];
 let allReservations = [];
 // Same status vocabulary the bot's state machine uses — see
 // bot/services/reservation_service.py.
-const statusLabels = { pending_payment:'در انتظار پرداخت', pending_review:'رسید ارسال شده — منتظر تأیید', awaiting_buyer_confirmation:'در انتظار پاسخ خریدار (رد شده)', approved:'تأیید شده', rejected:'رد شده', cancelled:'لغو شده', expired:'منقضی شده', used:'استفاده شده', waiting:'لیست انتظار' };
+const statusLabels = { pending_payment:'در انتظار پرداخت', pending_review:'رسید ارسال شده — منتظر تأیید', needs_correction:'نیازمند اصلاح ✏️', awaiting_buyer_confirmation:'در انتظار پاسخ خریدار (رد شده)', approved:'تأیید شده', rejected:'رد شده', cancelled:'لغو شده', expired:'منقضی شده', used:'استفاده شده', waiting:'لیست انتظار' };
 const STATUS_ORDER = Object.keys(statusLabels);
 async function init(){
   await API.init(); events = API.events.all();
@@ -75,11 +75,12 @@ function render(){
       <td dir="ltr" style="font-size:12px">${esc(r.attendee_phone || r.buyer_phone || '—')}</td>
       <td>${esc(r.event_title || r.event_id)}<br><span style="font-size:10.5px;color:var(--text-muted)" dir="ltr">${esc(r.session_date || '')} ${esc(r.session_time || '')}</span></td>
       <td>${r.people}</td><td>${Number(r.total_price || 0).toLocaleString('fa-IR')}</td>
-      <td><span class="badge">${statusLabels[r.status] || r.status}</span></td>
+      <td><span class="badge">${statusLabels[r.status] || r.status}</span>${r.status === 'needs_correction' && r.admin_note ? `<br><span style="font-size:10px;color:var(--text-muted)">${esc(r.admin_note)}</span>` : ''}</td>
       <td>${hasReceipt ? `<button class="btn btn--outline btn--sm" style="font-size:10.5px;padding:4px 10px" onclick="viewReceipt(${r.id})">👁️ مشاهده</button>` : '<span style="font-size:11px;color:var(--text-muted)">—</span>'}</td>
       <td style="white-space:nowrap">
         ${canDecide ? `<button class="btn btn--gold" style="font-size:10.5px;padding:4px 10px" onclick="approve(${r.id})">تأیید</button>
-        <button class="btn btn--outline" style="font-size:10.5px;padding:4px 10px;color:#c44" onclick="reject(${r.id})">رد</button>` : '<span style="font-size:11px;color:var(--text-muted)">—</span>'}
+        <button class="btn btn--outline" style="font-size:10.5px;padding:4px 10px;color:#c44" onclick="reject(${r.id})">رد</button>
+        <button class="btn btn--outline" style="font-size:10.5px;padding:4px 10px" onclick="needsCorrection(${r.id})">نیازمند اصلاح</button>` : '<span style="font-size:11px;color:var(--text-muted)">—</span>'}
       </td></tr>`;
   }).join('') || '<tr><td colspan="10">رزروی یافت نشد.</td></tr>';
   updateSelection();
@@ -137,6 +138,22 @@ async function reject(id){
   try {
     await API.reservations.reject(id, reason);
     await reload(); toast('رد شد');
+  } catch (err) {
+    alert('خطا — ' + (err.details || err.message));
+  }
+}
+async function needsCorrection(id){
+  // Third action besides approve/reject — for a receipt the admin can't
+  // approve as-is (wrong amount, unreadable photo...) but doesn't want to
+  // reject outright. The message is required — it's what gets emailed
+  // (and DM'd, if the buyer has Telegram) to the buyer, so there must be
+  // something concrete to send. No time limit applies once here — see
+  // reservation_service.request_correction()'s docstring.
+  const message = prompt('توضیح برای خریدار — چه چیزی باید اصلاح شود؟');
+  if (!message || !message.trim()) return;
+  try {
+    await API.reservations.requestCorrection(id, message.trim());
+    await reload(); toast('درخواست اصلاح برای خریدار ارسال شد');
   } catch (err) {
     alert('خطا — ' + (err.details || err.message));
   }

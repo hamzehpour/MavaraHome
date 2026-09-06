@@ -137,14 +137,23 @@ def submit_receipt(reservation_id: int, receipt_file_id: str, receipt_source: st
     _notify_admin_channel_new_request() below takes care of when it
     builds the channel alert's photo_ref.
 
-    Returns False (and does nothing) if the reservation has already moved
-    past pending_payment — e.g. the buyer sent a second photo right after
-    the first. Without this, a duplicate send would notify every admin a
-    second time for the same reservation.
+    Accepts a receipt from two starting states: the normal first-time
+    'pending_payment' (buyer just booked), or 'needs_correction' (admin
+    used the "نیازمند اصلاح" action — see request_correction() below —
+    and the buyer is resubmitting a fixed receipt; no time limit applies
+    there, so this can fire any time after that). Either way it lands on
+    'pending_review'. Returns False (and does nothing) if the reservation
+    is in neither state — e.g. the buyer sent a second photo right after
+    the first, or resubmitted after it was already re-reviewed. Without
+    this, a duplicate send would notify every admin a second time for the
+    same reservation.
     """
     from database.repositories import payments as payments_repo
 
-    transitioned = reservations_repo.set_status_if(reservation_id, "pending_payment", "pending_review")
+    reservation = reservations_repo.get_reservation(reservation_id)
+    if not reservation or reservation["status"] not in ("pending_payment", "needs_correction"):
+        return False
+    transitioned = reservations_repo.set_status_if(reservation_id, reservation["status"], "pending_review")
     if not transitioned:
         return False
 
@@ -157,6 +166,111 @@ def submit_receipt(reservation_id: int, receipt_file_id: str, receipt_source: st
     )
     _notify_admin_channel_new_request(reservation, receipt_file_id, receipt_source)
     return True
+
+
+def request_correction(reservation_id: int, reviewed_by: int, message: str) -> bool:
+    """Third admin action alongside approve/reject, for a reservation the
+    admin can't approve as-is (wrong receipt, wrong amount, illegible
+    photo...) but doesn't want to reject outright either — sends the
+    buyer `message` (both by email and, if they have a linked Telegram
+    account, a DM) explaining what to fix, and waits: unlike
+    'pending_payment', 'needs_correction' has NO time limit (see
+    reservations_repo.list_expired_pending — it only ever matches
+    'pending_payment') and never auto-expires. The buyer resubmits
+    through the exact same receipt-upload path as the first time (see
+    submit_receipt() above, which now accepts 'needs_correction' as a
+    starting status too), landing back on 'pending_review' for the admin
+    to make a final call.
+
+    Returns False (does nothing) if the reservation isn't currently
+    'pending_review' — e.g. a double-tap, or it was already resolved by
+    another admin in the meantime."""
+    from database.repositories import payments as payments_repo
+    from database.repositories import users as users_repo
+
+    transitioned = reservations_repo.set_status_if(
+        reservation_id, "pending_review", "needs_correction", admin_note=message,
+    )
+    if not transitioned:
+        return False
+
+    payment = payments_repo.get_latest_payment(reservation_id)
+    if payment:
+        payments_repo.set_payment_status(payment["id"], "needs_correction", reviewed_by)
+
+    reservation = reservations_repo.get_reservation(reservation_id)
+    ctx = _email_context_for_reservation(reservation)
+    subject, body = settings_service.render_email(
+        "needs_correction", event_title=ctx["event_title"], correction_message=message,
+    )
+    _notify_customer_by_email(reservation, subject=subject, body=body)
+
+    user = users_repo.get_by_id(reservation["user_id"])
+    if user and user.get("telegram_id"):
+        from database.repositories import bot_outbox as outbox_repo
+        outbox_repo.enqueue(
+            user["telegram_id"],
+            f"✏️ رزرو شما نیاز به اصلاح دارد:\n\n{message}\n\n"
+            "لطفاً از طریق منوی «رزروهای من» رسید اصلاح‌شده را دوباره ارسال کنید.",
+        )
+    return True
+
+
+def send_payment_reminders() -> int:
+    """Reservations still sitting in 'pending_payment' past
+    `payment_reminder_minutes` since they were created (but not expired
+    yet) get a one-time email nudging the buyer that the clock is
+    running out. Runs from BOTH the async bot loop and the sync API-
+    process loop (see utils/scheduler.py) since it's plain email — no
+    live aiogram Bot instance needed the way a Telegram DM would be, so
+    unlike the bot-only chores in run_expiry_loop this one works even
+    when bot.py isn't running. Dedup via the `logs` table (one row per
+    reservation, checked before sending) rather than a new column — a
+    single one-time nudge, not a repeating alarm, so nothing else needs
+    tracking. Returns how many were actually sent, for the caller to log."""
+    from database.connection import get_connection
+    from database.repositories import settings as settings_repo
+
+    remind_after = settings_repo.get_int("payment_reminder_minutes", 5)
+    expiry_minutes = settings_repo.get_int("payment_expiry_minutes", 10)
+    minutes_remaining = str(max(1, expiry_minutes - remind_after))
+
+    sent = 0
+    with get_connection() as conn:
+        # created_at is stored via SQLite's own datetime('now') (space-
+        # separated, no offset) — comparing it against a Python-side
+        # isoformat() cutoff ("...T...+00:00") silently never matches
+        # (different string shapes sort differently), so the cutoff has
+        # to be computed with SQLite's own datetime() too, the same way
+        # both sides end up in the same format.
+        due = conn.execute(
+            "SELECT id FROM reservations WHERE status = 'pending_payment' "
+            "AND created_at < datetime('now', ?)",
+            (f"-{remind_after} minutes",),
+        ).fetchall()
+
+        for row in due:
+            already = conn.execute(
+                "SELECT 1 FROM logs WHERE action = 'payment_reminder_sent' AND details = ? LIMIT 1",
+                (str(row["id"]),),
+            ).fetchone()
+            if already:
+                continue
+
+            reservation = reservations_repo.get_reservation(row["id"])
+            if not reservation or reservation["status"] != "pending_payment":
+                continue
+            ctx = _email_context_for_reservation(reservation)
+            subject, body = settings_service.render_email(
+                "payment_reminder", event_title=ctx["event_title"], minutes_remaining=minutes_remaining,
+            )
+            if _notify_customer_by_email(reservation, subject=subject, body=body):
+                conn.execute(
+                    "INSERT INTO logs(action, telegram_id, details) VALUES ('payment_reminder_sent', NULL, ?)",
+                    (str(row["id"]),),
+                )
+                sent += 1
+    return sent
 
 
 def _email_context_for_reservation(reservation: dict) -> dict:

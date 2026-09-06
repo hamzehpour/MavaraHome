@@ -4,6 +4,7 @@ from aiogram.fsm.state import State, StatesGroup
 class AdminReviewStates(StatesGroup):
     awaiting_reject_reason = State()
     awaiting_approve_note = State()
+    awaiting_correction_message = State()
 
 
 class AdminEventStates(StatesGroup):

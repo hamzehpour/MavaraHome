@@ -206,6 +206,16 @@ def _reservation_public(r: dict) -> dict:
         "status": r["status"], "source": r.get("source"),
         "attendee_name": r.get("attendee_name"), "attendee_phone": r.get("attendee_phone"),
         "created_at": r.get("created_at"),
+        # The real capacity-lock deadline (pending_payment only — NULL once
+        # a receipt is uploaded) — the booking flow's step 3 shows this so
+        # the "X minutes left" countdown always matches the actual server-
+        # side deadline instead of a guessed/hardcoded number that could
+        # drift from whatever an admin has set payment_expiry_minutes to.
+        "expires_at": r.get("expires_at"),
+        # Repurposed per status: rejection reason when rejected, the
+        # admin's "نیازمند اصلاح" message when needs_correction — see
+        # reservation_service.request_correction()'s docstring.
+        "admin_note": r.get("admin_note"),
         # Only present on the admin listing (list_recent's join) — the
         # per-customer lookup (list_for_user) doesn't need to tell a user
         # their own name/phone back.
@@ -591,11 +601,16 @@ class Handler(BaseHTTPRequestHandler):
                 # show the buyer — same active card the bot itself uses, so
                 # there's only ever one place this is configured.
                 from database.repositories import bank_cards as bank_cards_repo
+                from database.repositories import settings as settings_repo
                 card = bank_cards_repo.get_active_card()
                 return self._send_json(200, {"data": {
                     "card_number": card["card_number"] if card else None,
                     "card_holder": card["card_holder"] if card else None,
                     "bank_name": card["bank_name"] if card else None,
+                    # Booking flow's step 3 ("۱۰ دقیقه فرصت دارید") reads
+                    # this instead of a hardcoded number, so it can never
+                    # drift from what an admin actually configured.
+                    "payment_expiry_minutes": settings_repo.get_int("payment_expiry_minutes", 10),
                 }})
 
             # ---------------- Phase 4: customer account ----------------
@@ -831,6 +846,31 @@ class Handler(BaseHTTPRequestHandler):
                 body = self._read_json_body()
                 reason = body.get("reason", "")
                 reservation_service.reject_reservation(reservation_id, reviewed_by=admin_payload["admin_id"], reason=reason)
+                reservation = reservations_repo.get_reservation(reservation_id)
+                return self._send_json(200, {"data": _reservation_public(reservation)})
+
+            m = re.match(r"^/api/v1/admin/reservations/(\d+)/needs-correction$", path)
+            if m:
+                admin_payload = self._get_admin_payload()
+                if not admin_payload:
+                    return self._send_json(401, {"error": "unauthorized"})
+                reservation_id = int(m.group(1))
+                body = self._read_json_body()
+                message = (body.get("message") or "").strip()
+                if not message:
+                    return self._send_json(400, {"error": "validation", "details": "message is required"})
+                # Same reservation_service.request_correction() the Telegram
+                # admin's "نیازمند اصلاح" button calls — third action besides
+                # approve/reject, for a receipt the admin can't approve as-is
+                # but doesn't want to reject outright (wrong amount, unreadable
+                # photo...). No time limit applies once here (see the
+                # function's own docstring) — the admin waits for the buyer
+                # to resubmit.
+                ok = reservation_service.request_correction(
+                    reservation_id, reviewed_by=admin_payload["admin_id"], message=message,
+                )
+                if not ok:
+                    return self._send_json(409, {"error": "already_processed"})
                 reservation = reservations_repo.get_reservation(reservation_id)
                 return self._send_json(200, {"data": _reservation_public(reservation)})
 

@@ -24,7 +24,8 @@ loadHeader('account.html'); loadFooter();
 
 const STATUS_FA = {
   pending_payment: 'در انتظار پرداخت', pending_review: 'در انتظار بررسی', approved: 'تأییدشده',
-  rejected: 'رد شده', awaiting_buyer_confirmation: 'در انتظار تأیید شما', expired: 'منقضی‌شده', cancelled: 'لغوشده',
+  rejected: 'رد شده', needs_correction: 'نیازمند اصلاح رسید', awaiting_buyer_confirmation: 'در انتظار تأیید شما',
+  expired: 'منقضی‌شده', cancelled: 'لغوشده',
 };
 
 function renderLogin() {
@@ -90,8 +91,9 @@ async function renderDashboard() {
 
 function reservationCard(r) {
   const status = STATUS_FA[r.status] || r.status;
-  const statusColor = r.status === 'approved' ? '#1e9e5a' : (r.status === 'rejected' ? '#c44' : 'var(--text-muted)');
+  const statusColor = r.status === 'approved' ? '#1e9e5a' : (r.status === 'rejected' ? '#c44' : (r.status === 'needs_correction' ? '#c48a1e' : 'var(--text-muted)'));
   const canDownload = r.status === 'approved' && r.reservation_code;
+  const needsCorrection = r.status === 'needs_correction';
   return `<div class="res-card">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
       <div>
@@ -104,7 +106,42 @@ function reservationCard(r) {
     </div>
     ${r.reservation_code ? `<div style="font-family:monospace;font-size:12.5px;margin-top:8px;color:var(--text-muted)" dir="ltr">${esc(r.reservation_code)}</div>` : ''}
     ${canDownload ? `<button class="btn btn--outline" style="font-size:12px;margin-top:10px" onclick="downloadTicket(${Number(r.id)}, '${esc(r.reservation_code)}')">📄 دانلود بلیت PDF</button>` : ''}
+    ${needsCorrection ? `
+      <div style="margin-top:10px;padding:10px 12px;background:var(--bg-soft);border-radius:var(--radius-sm);font-size:13px">
+        ${r.admin_note ? `<div style="margin-bottom:8px">✏️ ${esc(r.admin_note)}</div>` : ''}
+        <label class="btn btn--outline" style="font-size:12px;display:inline-block;cursor:pointer">
+          📎 ارسال رسید جدید
+          <input type="file" accept="image/*" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)" onchange="resubmitReceipt(${Number(r.id)}, this)">
+        </label>
+        <span id="resubmitStatus_${Number(r.id)}" style="font-size:12px;color:var(--text-muted);margin-inline-start:8px"></span>
+      </div>` : ''}
   </div>`;
+}
+
+// Self-service resubmission for a reservation the admin marked
+// "needs_correction" — same receipt-upload endpoint the booking flow's
+// own step 4 uses (API.receipts.submit), just triggered from here instead
+// of the booking modal. Reads the file straight to a data URL client-side
+// (same technique as settings.uploadMedia in app.js) — no separate
+// multipart upload path needed.
+async function resubmitReceipt(reservationId, input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById(`resubmitStatus_${reservationId}`);
+  if (statusEl) statusEl.textContent = 'در حال ارسال...';
+  try {
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    await API.receipts.submit(reservationId, dataUrl);
+    await renderDashboard();
+  } catch (err) {
+    if (statusEl) statusEl.textContent = '';
+    alert('ارسال رسید ناموفق بود — دوباره تلاش کنید.');
+  }
 }
 
 // The ticket endpoint requires a Bearer token (customer JWT) — a plain

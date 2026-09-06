@@ -7,7 +7,7 @@ import asyncio
 
 from aiogram import Bot
 
-from services.reservation_service import expire_stale_reservations
+from services.reservation_service import expire_stale_reservations, send_payment_reminders
 from database.repositories import logs as logs_repo
 from utils.logger import get_logger
 
@@ -41,6 +41,10 @@ async def run_expiry_loop(bot: Bot) -> None:
                     logger.exception("Failed to refresh channel board after expiry")
             if expired:
                 logger.info("Expired %d stale reservation(s)", len(expired))
+
+            reminded = send_payment_reminders()
+            if reminded:
+                logger.info("Sent %d payment reminder email(s)", reminded)
 
             await _maybe_rotate_bank_card()
             await _process_owner_removals(bot)
@@ -199,17 +203,22 @@ async def run_backup_loop() -> None:
 # database was never backed up either. These two run as plain threads
 # inside api/server.py itself, so both work regardless of whether bot.py
 # is up. Deliberately NOT a port of the async run_expiry_loop above: this
-# skips the Telegram-notification / bank-card-rotation / review-reminder /
-# owner-removal chores bundled into that one (all genuinely need `bot`,
-# none are correctness-critical the way freeing a seat is) — if bot.py
-# IS also running, both loops end up doing the same expiry pass twice on
+# skips the Telegram-notification / bank-card-rotation / owner-removal
+# chores bundled into that one (all genuinely need `bot`, none are
+# correctness-critical the way freeing a seat is) — if bot.py IS also
+# running, both loops end up doing the same expiry pass twice on
 # occasion, which is harmless (expire_stale_reservations() only acts on
 # rows still in pending_payment, so a reservation already expired by one
-# loop is simply not picked up by the other).
+# loop is simply not picked up by the other). The payment-reminder email
+# is the one exception kept in BOTH loops: it's plain SMTP, needs no live
+# aiogram Bot instance, and must still fire even when bot.py isn't
+# running — same "harmless if both loops send it" reasoning applies,
+# since send_payment_reminders() dedupes via the logs table itself.
 def run_expiry_loop_sync(interval_seconds: int = CHECK_INTERVAL_SECONDS) -> None:
     """Blocking; call via threading.Thread(daemon=True). Frees capacity for
-    reservations whose payment deadline has passed. No Telegram side
-    effects — see the module note above for why."""
+    reservations whose payment deadline has passed, and sends payment-
+    reminder emails. No Telegram side effects — see the module note above
+    for why."""
     import time
 
     while True:
@@ -221,6 +230,10 @@ def run_expiry_loop_sync(interval_seconds: int = CHECK_INTERVAL_SECONDS) -> None
                 )
             if expired:
                 logger.info("Expired %d stale reservation(s) (sync/API-process loop)", len(expired))
+
+            reminded = send_payment_reminders()
+            if reminded:
+                logger.info("Sent %d payment reminder email(s) (sync/API-process loop)", reminded)
         except Exception:
             logger.exception("Error while running the sync reservation-expiry job")
 

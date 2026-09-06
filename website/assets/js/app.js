@@ -178,6 +178,14 @@ const API = {
     async reject(id, reason) {
       return apiFetchAdmin(`/admin/reservations/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason: reason || '' }) });
     },
+    // Third admin action besides approve/reject — for a receipt the admin
+    // can't approve as-is (wrong amount, unreadable photo...) but doesn't
+    // want to reject outright. `message` is emailed (and DM'd over
+    // Telegram, if linked) to the buyer verbatim — see
+    // reservation_service.request_correction()'s docstring.
+    async requestCorrection(id, message) {
+      return apiFetchAdmin(`/admin/reservations/${id}/needs-correction`, { method: 'POST', body: JSON.stringify({ message }) });
+    },
     async bulkApprove(ids) {
       return apiFetchAdmin('/admin/reservations/bulk-approve', { method: 'POST', body: JSON.stringify({ ids }) });
     },

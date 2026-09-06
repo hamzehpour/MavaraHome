@@ -11,7 +11,11 @@ EDITABLE_SETTINGS = {
     "max_tickets_per_person": "حداکثر بلیت هر نفر",
     "rules_text": "متن قوانین",
     "support_contact": "شماره/آیدی پشتیبانی",
-    "payment_expiry_minutes": "مهلت ارسال رسید توسط خریدار (دقیقه)",
+    "payment_expiry_minutes": "مهلت ارسال رسید توسط خریدار (دقیقه) — قفل ظرفیت تا این مدت باقی می‌ماند",
+    "payment_reminder_minutes": (
+        "بعد از چند دقیقه از ایجاد رزرو، در صورت عدم ارسال رسید، ایمیل یادآوری ارسال شود "
+        "(باید کمتر از «مهلت ارسال رسید» باشد)"
+    ),
     "tmpl_payment_instructions": (
         "متن راهنمای پرداخت — متغیرها: {people} {unit_price} {total_price} {card_number} {card_holder}"
     ),
@@ -35,6 +39,18 @@ EDITABLE_SETTINGS = {
     "tmpl_email_rejected_body": "متن ایمیل رد رزرو — متغیرها: {event_title} {session_date} {reason_block} {brand_name}",
     "tmpl_email_waitlist_rejected_subject": "موضوع ایمیل «ظرفیتی آزاد نشد» (لیست انتظار) — متغیرها: {brand_name}",
     "tmpl_email_waitlist_rejected_body": "متن ایمیل «ظرفیتی آزاد نشد» (لیست انتظار) — متغیرها: {brand_name}",
+    "tmpl_email_payment_reminder_subject": (
+        "موضوع ایمیل یادآوری پرداخت (وقتی رسید هنوز ارسال نشده) — متغیرها: {event_title} {brand_name}"
+    ),
+    "tmpl_email_payment_reminder_body": (
+        "متن ایمیل یادآوری پرداخت — متغیرها: {event_title} {minutes_remaining} {brand_name}"
+    ),
+    "tmpl_email_needs_correction_subject": (
+        "موضوع ایمیل «نیاز به اصلاح رسید» — متغیرها: {event_title} {brand_name}"
+    ),
+    "tmpl_email_needs_correction_body": (
+        "متن ایمیل «نیاز به اصلاح رسید» — متغیرها: {event_title} {correction_message} {brand_name}"
+    ),
     "ticket_template_title": "عنوان بالای بلیت PDF (مثلاً نام مجموعه)",
     "ticket_template_subtitle": "زیرعنوان بالای بلیت PDF (مثلاً «بلیت الکترونیک»)",
     "ticket_template_footer": "متن پایین بلیت PDF (زیر QR)",
@@ -224,6 +240,7 @@ SETTINGS_FIELD_TYPES: dict[str, str] = {
     "rules_text": "textarea",
     "support_contact": "text",
     "payment_expiry_minutes": "int",
+    "payment_reminder_minutes": "int",
     "tmpl_payment_instructions": "textarea",
     "tmpl_receipt_received": "textarea",
     "tmpl_ticket_confirmed": "textarea",
@@ -240,6 +257,10 @@ SETTINGS_FIELD_TYPES: dict[str, str] = {
     "tmpl_email_rejected_body": "textarea",
     "tmpl_email_waitlist_rejected_subject": "text",
     "tmpl_email_waitlist_rejected_body": "textarea",
+    "tmpl_email_payment_reminder_subject": "text",
+    "tmpl_email_payment_reminder_body": "textarea",
+    "tmpl_email_needs_correction_subject": "text",
+    "tmpl_email_needs_correction_body": "textarea",
     "content_hero_tagline": "text",
     "content_quotes": "textarea",
     "content_mansour_bio": "textarea",
@@ -258,6 +279,7 @@ SETTINGS_INT_RANGE: dict[str, tuple[int, int]] = {
     "ticket_price": (0, 1_000_000_000),
     "max_tickets_per_person": (1, 100),
     "payment_expiry_minutes": (1, 60 * 24 * 7),
+    "payment_reminder_minutes": (1, 60 * 24 * 7),
 }
 _MAX_LEN_BY_TYPE = {"text": 300, "textarea": 4000}
 

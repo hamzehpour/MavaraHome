@@ -94,6 +94,15 @@ def name_step_keyboard() -> InlineKeyboardMarkup:
     ])
 
 
+def resubmit_correction_keyboard(reservation_id: int) -> InlineKeyboardMarkup:
+    """Shown next to a needs_correction reservation in "رزروهای من" — lets
+    the buyer jump straight into sending the fixed receipt instead of
+    having to remember how they submitted it the first time."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=fa.RESUBMIT_RECEIPT_BUTTON, callback_data=f"resubmit_correction:{reservation_id}")],
+    ])
+
+
 def reuse_contact_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="✅ همین اطلاعات درست است", callback_data="reuse_contact:yes")],

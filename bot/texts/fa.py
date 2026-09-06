@@ -121,6 +121,7 @@ STATUS_LABELS = {
     "awaiting_buyer_confirmation": "در انتظار پاسخ خریدار به رد پرداخت",
     "approved": "تأیید شده ✅",
     "rejected": "رد شده ❌",
+    "needs_correction": "نیازمند اصلاح ✏️",
     "cancelled": "لغو شده",
     "expired": "منقضی شده",
     "used": "استفاده شده",
@@ -152,9 +153,20 @@ def admin_reservation_card(res: dict) -> str:
 
 APPROVE_BUTTON = "✅ تأیید پرداخت"
 REJECT_BUTTON = "❌ رد پرداخت"
+CORRECTION_BUTTON = "✏️ نیازمند اصلاح"
 ASK_REJECT_REASON = "لطفاً دلیل رد پرداخت را بنویسید (یا بنویسید «-» برای بدون دلیل):"
 RESERVATION_APPROVED_ADMIN_SIDE = "✅ رزرو تأیید و بلیت برای کاربر ارسال شد."
 RESERVATION_REJECTED_ADMIN_SIDE = "❌ رزرو رد شد و به کاربر اطلاع داده شد."
+
+# ---------- admin: "needs correction" action (third option besides approve/reject) ----------
+ASK_CORRECTION_MESSAGE = (
+    "لطفاً توضیح دهید خریدار چه چیزی را باید اصلاح کند (مثلاً «مبلغ واریزی درست نیست» یا "
+    "«تصویر رسید خوانا نیست») — همین متن برای او ارسال می‌شود:"
+)
+RESERVATION_NEEDS_CORRECTION_ADMIN_SIDE = (
+    "✏️ درخواست اصلاح برای خریدار ارسال شد. این رزرو زمان‌بندی محدودی ندارد و "
+    "با ارسال رسید جدید دوباره برای بررسی نزد شما می‌آید."
+)
 
 # ---------- admin: events/sessions ----------
 EVENTS_MENU_TITLE = "🎭 مدیریت رویدادها:"
@@ -280,6 +292,16 @@ def my_reservation_line(event_title: str, session_date_fa: str, session_time: st
                           people: int, code: str | None) -> str:
     code_part = f" — کد: {code}" if code else ""
     return f"🎭 {event_title} | {session_date_fa} — {session_time} | {people} نفر{code_part}"
+
+# ---------- "my reservations" — needs_correction resubmission ----------
+def needs_correction_note(admin_note: str) -> str:
+    note = f"\n✏️ توضیح ادمین: {admin_note}" if admin_note else ""
+    return f"این رزرو نیازمند اصلاح رسید پرداخت است.{note}"
+
+RESUBMIT_RECEIPT_BUTTON = "📎 ارسال رسید جدید"
+ASK_RESUBMIT_RECEIPT = "لطفاً عکس رسید پرداخت اصلاح‌شده را ارسال کنید:"
+RESUBMIT_RECEIPT_NOT_FOUND = "این رزرو دیگر نیازمند اصلاح نیست — احتمالاً قبلاً رسیدگی شده."
+RESUBMIT_RECEIPT_RECEIVED = "✅ رسید جدید دریافت شد و برای بررسی مجدد ارسال شد."
 
 # ---------- booking for someone else ----------
 ASK_FOR_WHOM = "🎫 این بلیت برای خودتان است یا شخص دیگری؟"

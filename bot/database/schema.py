@@ -442,7 +442,8 @@ DEFAULT_SETTINGS = {
     "max_tickets_per_person": "10",
     "rules_text": "",
     "support_contact": "",
-    "payment_expiry_minutes": "15",
+    "payment_expiry_minutes": "10",
+    "payment_reminder_minutes": "5",
     "auto_rotate_cards": "0",
     "card_rotation_last_date": "",
     "owner_passcode_hash": "",
@@ -526,6 +527,31 @@ DEFAULT_SETTINGS = {
     "tmpl_email_waitlist_rejected_body": (
         "متاسفانه برای این سانس ظرفیتی آزاد نشد.\n\n"
         "می‌تونی سانس دیگری از همین رویداد را رزرو کنی، یا از طریق تلگرام {brand_name} با ما در تماس باشی."
+    ),
+    # Sent once, `payment_reminder_minutes` after the reservation is
+    # created, if the buyer still hasn't uploaded a receipt — a nudge, not
+    # a scare tactic: says how long is actually left against the real
+    # capacity lock (`payment_expiry_minutes`), not a vague "hurry up".
+    "tmpl_email_payment_reminder_subject": "یادآوری: ظرفیت شما برای {event_title} در حال قفل شدن است",
+    "tmpl_email_payment_reminder_body": (
+        "سلام 👋\n\n"
+        "ظرفیت شما برای «{event_title}» رزرو شده، ولی هنوز رسید پرداخت را برایمان نفرستاده‌اید.\n\n"
+        "حدود {minutes_remaining} دقیقه دیگر فرصت دارید تا رسید را ارسال کنید — بعد از آن، این ظرفیت "
+        "آزاد می‌شود تا نفر بعدی بتواند آن را رزرو کند.\n\n"
+        "برای تکمیل رزرو، به سایت {brand_name} برگردید و رسید پرداخت را آپلود کنید."
+    ),
+    # Admin used the "نیازمند اصلاح" action instead of رد/تایید — the
+    # customer isn't rejected, just needs to fix something (wrong receipt,
+    # wrong amount, ...) and try again; no time-limit pressure here since
+    # request_correction() removes the payment lock entirely.
+    "tmpl_email_needs_correction_subject": "نیاز به اصلاح رسید پرداخت — {event_title}",
+    "tmpl_email_needs_correction_body": (
+        "سلام 👋\n\n"
+        "رسید پرداختی که برای «{event_title}» ارسال کرده‌اید نیاز به اصلاح دارد:\n\n"
+        "«{correction_message}»\n\n"
+        "لطفاً با توجه به توضیح بالا، رسید درست را دوباره ارسال کنید تا رزروتان بررسی و تایید شود. "
+        "برای این رزرو محدودیت زمانی وجود ندارد.\n\n"
+        "برای ارسال رسید جدید، به سایت {brand_name} برگردید."
     ),
 
     # ---- PDF ticket template (admin-editable from the website's
