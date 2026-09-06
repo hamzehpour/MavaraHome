@@ -5,6 +5,42 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Split the admin alerts channel from the sales-monitoring channel
+
+**Why:** reported, live — the monitoring channel (silent per-day board,
+`services/channel_service.py`) and the new-request alerts (fresh
+message + approve/reject buttons, added earlier this week) were
+sharing one setting, `monitoring_channel_id`. The alerts feature was
+built by reusing whatever channel the admin had already configured for
+monitoring, since it existed and was already tested — but that meant
+once an admin actually set monitoring up, every reservation produced
+*two* messages in the same channel: one silently edited into the
+board (no notification), one fresh actionable alert (does notify) —
+easy to mistake for a duplicate/bug rather than two different features
+that happened to collide.
+
+- New setting `admin_alerts_channel_id`, independent from
+  `monitoring_channel_id` — `settings_service.notify_admin_channel()`/
+  `notify_admin_channel_with_receipt()` now read this one instead.
+- `handlers/channel_setup.py`'s `_configure_monitoring_chat()`
+  generalized into `_configure_channel()` (takes the setting key, log
+  action, and whether to trigger the board backfill — only the
+  monitoring channel has a board to backfill), used by both setups.
+- New parallel setup flow for the alerts channel: a
+  "🔔 راه‌اندازی کانال هشدار رزرو" menu button (forward-a-message, same
+  as monitoring) and a `/setalertsgroup` command (for a group, same
+  reasoning as `/setgroup` — forwarding an ordinary group message
+  never carries the group's own chat id, only the sender's).
+- An admin can still point both settings at the same channel if they
+  want everything in one feed — this makes it a deliberate choice
+  instead of the only option.
+
+Verified locally: `notify_admin_channel()` now reads and delivers to
+`admin_alerts_channel_id` specifically (confirmed against a different
+value than `monitoring_channel_id` in the same test), and
+`channel_service.py`'s board is confirmed unchanged, still reading
+only `monitoring_channel_id`.
+
 ## Removed: the repeating "رزرو همچنان منتظر بررسی است" staff reminder
 
 **Why:** requested — disable it entirely.

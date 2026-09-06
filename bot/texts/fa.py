@@ -458,6 +458,36 @@ GROUP_SETUP_FAILED = (
 )
 GROUP_SETUP_SUCCESS = "✅ این گروه به‌عنوان کانال مانیتورینگ تنظیم شد و یک پیام آزمایشی ارسال شد."
 
+# ---------- admin alerts channel setup (separate from monitoring above:
+# monitoring is a silent live board with no action buttons; this channel
+# gets a fresh message per new reservation/waitlist entry — with the
+# receipt + approve/reject buttons for reservations — so the two can be
+# two different channels/groups instead of interleaving in one) ----------
+ASK_FORWARD_ALERTS_CHANNEL_MESSAGE = (
+    "برای راه‌اندازی کانال هشدار رزرو (پیام جدید + دکمه تایید/رد برای هر رزرو/لیست انتظار جدید):\n\n"
+    "۱. ربات را در آن کانال ادمین کنید (با دسترسی ارسال پیام)\n"
+    "۲. یک پیام از همان کانال را همین‌جا برای من فوروارد کنید\n\n"
+    "اگر به‌جای کانال از یک گروه استفاده می‌کنید: به‌جای فوروارد، ربات را به آن گروه اضافه کنید "
+    "و دستور /setalertsgroup را مستقیماً داخل همان گروه بفرستید.\n\n"
+    "این کانال با «کانال مانیتورینگ» فرق دارد — می‌توانید همان کانال قبلی یا یک کانال/گروه جداگانه انتخاب کنید."
+)
+ALERTS_CHANNEL_SETUP_NOT_A_FORWARD = (
+    "❌ این یک پیام فوروارد‌شده از کانال نبود. لطفاً دوباره تلاش کنید.\n\n"
+    "اگر می‌خواهید از یک گروه (نه کانال) استفاده کنید، فوروارد کار نمی‌کند — "
+    "به‌جایش ربات را به آن گروه اضافه کنید و دستور /setalertsgroup را همان‌جا داخل گروه بفرستید."
+)
+ALERTS_CHANNEL_SETUP_SUCCESS = "✅ کانال هشدار رزرو تنظیم شد و یک پیام آزمایشی ارسال شد."
+ALERTS_CHANNEL_SETUP_FAILED = (
+    "❌ نتوانستم در آن کانال پیام بفرستم — مطمئن شوید ربات را با دسترسی ارسال پیام "
+    "به آن کانال اضافه کرده‌اید."
+)
+ALERTS_CHANNEL_TEST_MESSAGE = "✅ ربات با موفقیت به این کانال وصل شد — از این پس هشدار رزرو/لیست انتظار جدید اینجا ارسال می‌شود."
+ALERTS_GROUP_SETUP_WRONG_CHAT = "❌ دستور /setalertsgroup باید داخل خودِ گروه فرستاده شود، نه اینجا."
+ALERTS_GROUP_SETUP_FAILED = (
+    "❌ نتوانستم داخل این گروه پیام بفرستم — مطمئن شوید ربات عضو این گروه است."
+)
+ALERTS_GROUP_SETUP_SUCCESS = "✅ این گروه به‌عنوان کانال هشدار رزرو تنظیم شد و یک پیام آزمایشی ارسال شد."
+
 # ---------- permission groups (finance/sales/content) ----------
 STAFF_MENU_MANAGE_GROUPS = "🏷 مدیریت گروه‌های دسترسی"
 ASK_PICK_STAFF_FOR_GROUPS = "برای کدام فرد می‌خواهید گروه‌های دسترسی را تنظیم کنید؟"

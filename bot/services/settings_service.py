@@ -155,14 +155,18 @@ def render_email(template_key: str, **values) -> tuple[str, str]:
 
 
 def notify_admin_channel(text: str) -> None:
-    """Best-effort push to the admin "sales monitoring" channel an admin
-    already configures by forwarding a message from it (see
-    handlers/channel_setup.py -> monitoring_channel_id). Reused here for
-    instant new-request alerts (a reservation reaching pending_review, a
-    new waiting-list entry) — channel_service.py's live board only ever
-    EDITS an existing message in place, which Telegram does not push a
-    notification for; a brand-new message here does, which is the whole
-    point of "minimize the lag between request and review".
+    """Best-effort push to the admin ALERTS channel — a destination
+    deliberately separate from the "sales monitoring" channel
+    (monitoring_channel_id, see handlers/channel_setup.py). Those two
+    used to share one setting, since the alerts feature was added later
+    and reused whatever channel was already configured — an admin who
+    pointed both at the same real channel then got every reservation
+    twice: once silently edited into the monitoring board (channel_
+    service.py — no notification, Telegram doesn't push one for an
+    edit), once as this fresh message (which DOES notify). Splitting
+    the setting means an admin can still point both at the same channel
+    if they want everything in one place, or split them — either way
+    it's a deliberate choice, not two features colliding by accident.
 
     Enqueued through bot_outbox rather than a direct bot.send_message()
     because this is called from reservation_service.py, which runs
@@ -172,7 +176,7 @@ def notify_admin_channel(text: str) -> None:
     delivers this). A no-op, not an error, if no channel is configured
     yet — same "silently does nothing until set up" shape as every other
     optional notification channel in this codebase (email, SMS)."""
-    channel_id = settings_repo.get("monitoring_channel_id", "")
+    channel_id = settings_repo.get("admin_alerts_channel_id", "")
     if not channel_id:
         return
     try:
@@ -191,7 +195,7 @@ def notify_admin_channel_with_receipt(text: str, reservation_id: int, photo_ref:
     reservation elsewhere. `photo_ref` is "tg:<file_id>" or
     "file:<relative path>" — see utils/scheduler._deliver_receipt_review,
     which is what actually resolves it into something Telegram accepts."""
-    channel_id = settings_repo.get("monitoring_channel_id", "")
+    channel_id = settings_repo.get("admin_alerts_channel_id", "")
     if not channel_id:
         return
     try:

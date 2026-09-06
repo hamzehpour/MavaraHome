@@ -92,6 +92,7 @@ def admin_main_menu() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="⚙️ تنظیمات", callback_data="admin:settings")],
         [InlineKeyboardButton(text="💳 مدیریت کارت‌های بانکی", callback_data="admin:bank_cards")],
         [InlineKeyboardButton(text="📡 راه‌اندازی کانال مانیتورینگ", callback_data="admin:channel_setup")],
+        [InlineKeyboardButton(text="🔔 راه‌اندازی کانال هشدار رزرو", callback_data="admin:alerts_channel_setup")],
         [InlineKeyboardButton(text="👥 مدیریت مسئولان", callback_data="admin:staff")],
         [InlineKeyboardButton(text="👑 مدیریت مالکیت", callback_data="admin:owner_management")],
         [InlineKeyboardButton(text="📥 خروجی اکسل رزروها", callback_data="admin:export")],
