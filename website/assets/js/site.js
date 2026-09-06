@@ -40,6 +40,7 @@ const I18N = {
     logo: 'خانه ماورا',
     q1: '«آنچه می‌جویید، شما را می‌جوید.»', q2: '«راه، با نخستین گام آغاز می‌شود.»', q3: '«آرامش از درون می‌آید؛ آن را بیرون نجویید.»', q4: '«بگذار هر چه هست، همان‌گونه که هست بماند.»', q5: '«هر روز، آغازی دوباره است.»', q6: '«شناختن خویش، آغاز همه‌ی شناخت‌هاست.»',
     nav_about: 'درباره ماورا', nav_mansour: 'منصور نصیری', nav_team: 'اعضای خانه ماورا', nav_events: 'رویدادها', nav_podcast: 'پادکست', nav_companion: 'همراهی', nav_contact: 'تماس', nav_account: 'حساب من',
+    nav_account_hint: ' (پیگیری و مشاهده رزروها)',
     hero_eyebrow: 'هنر · آگاهی · زندگی', hero_t1: 'خانه‌ی', hero_t2: 'ماورا',
     hero_tag: 'سفری به سوی خویشتن، از مسیر آگاهی، به یاری هنر',
     cta_events: 'رویدادها', cta_about: 'درباره ماورا',
@@ -129,6 +130,7 @@ const I18N = {
     logo: 'Mavara House',
     q1: '“What you seek is seeking you.”', q2: '“The journey begins with a single step.”', q3: '“Peace comes from within — do not seek it without.”', q4: '“Let things be as they are, just this once.”', q5: '“Every day is a new beginning.”', q6: '“Knowing the self is the beginning of all knowing.”',
     nav_about: 'About Mavara', nav_mansour: 'Mansour Nasiri', nav_team: 'Our Team', nav_events: 'Events', nav_podcast: 'Podcast', nav_companion: 'Companionship', nav_contact: 'Contact', nav_account: 'My Account',
+    nav_account_hint: ' (track & view your reservations)',
     hero_eyebrow: 'Art · Awareness · Life', hero_t1: 'Mavara', hero_t2: 'House',
     hero_tag: 'A journey toward the self — through awareness, by the hand of art.',
     cta_events: 'Events', cta_about: 'About Mavara',
@@ -288,7 +290,16 @@ function loadHeader(active) {
   ];
   el.innerHTML = `<header class="site-header" id="siteHeader"><div class="progress-bar" id="progressBar"></div><div class="header-inner">
     <a class="logo" href="${home}"><img src="${logo}" alt="${T('logo')}">${T('logo')}</a>
-    <nav class="nav-links" id="navLinks">${nav.map((n, i) => `<a href="${pp(n.h)}"${('pages/' + (__activeNav||'')) === n.h ? ' class="active"' : ''} style="--i:${i}">${n.l}</a>`).join('')}</nav>
+    <nav class="nav-links" id="navLinks">${nav.map((n, i) => {
+      // "حساب من" moves to the top of the menu, with a hint of what it's
+      // for, ONLY in the mobile dropdown (see .nav-account-link/.nav-
+      // account-hint in styles.css) — desktop keeps it last, unlabeled,
+      // where it's always been.
+      const isAccount = n.h === 'pages/account.html';
+      const cls = [('pages/' + (__activeNav||'')) === n.h ? 'active' : '', isAccount ? 'nav-account-link' : ''].filter(Boolean).join(' ');
+      const hint = isAccount ? `<span class="nav-account-hint">${T('nav_account_hint')}</span>` : '';
+      return `<a href="${pp(n.h)}"${cls ? ` class="${cls}"` : ''} style="--i:${i}">${n.l}${hint}</a>`;
+    }).join('')}</nav>
     <div style="display:flex;align-items:center">
       <div class="lang-toggle" role="group" aria-label="Language">
         <button type="button" data-lang="fa"${l === 'fa' ? ' class="active"' : ''}>فا</button>

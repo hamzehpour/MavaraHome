@@ -5,6 +5,32 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## "حساب من" first in the mobile menu, with a hint of what it's for
+
+**Why:** requested — on mobile, "حساب من" was the last item in the
+hamburger menu like any other nav link, with no indication it's where a
+buyer tracks their reservations (as opposed to a static info page like
+the rest of the menu). Desktop's order and plain label stay exactly as
+they were — this is mobile-menu-only.
+
+- `loadHeader()` (site.js) tags the account link with a
+  `nav-account-link` class and appends a `nav-account-hint` span —
+  " (پیگیری و مشاهده رزروها)" — inside the anchor, always in the DOM.
+- New CSS: `.nav-account-hint{display:none}` by default (so desktop's
+  `innerText` is plain "حساب من", unchanged); inside the existing
+  `@media(max-width:768px)` block, `display:inline` (hint visible) and
+  `.nav-account-link{order:-1}` (moves it to the front of the mobile
+  menu's flex column — everything else keeps its default order, so
+  their relative order among themselves doesn't change).
+- Real text in the DOM rather than CSS `content` — stays selectable and
+  reachable to assistive tech wherever it's actually shown, rather than
+  being pseudo-element decoration.
+
+Verified with Playwright at both viewport sizes: desktop keeps "حساب
+من" last, unlabeled, at `order:0`; the mobile hamburger menu (screenshot
+checked) shows "حساب من (پیگیری و مشاهده رزروها)" as the first item,
+with the rest of the menu following in its original order.
+
 ## Remove the Telegram-only reject "grace period" — reject is now direct/final everywhere
 
 **Why:** requested — now that "نیازمند اصلاح" exists for "something's

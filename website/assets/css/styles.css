@@ -165,6 +165,10 @@ body::before{
 .nav-links a:hover{transform:translateY(-1px)}
 .nav-links a.active{ text-shadow:0 0 18px rgba(201,162,93,.28)}
 @keyframes navPulse{0%,100%{box-shadow:0 0 0 0 rgba(201,162,93,0)}50%{box-shadow:0 0 0 5px rgba(201,162,93,.08)}}
+/* "حساب من"'s mobile-only hint — real text in the DOM (not CSS-generated
+   content), just hidden on desktop, so it stays selectable/readable to
+   assistive tech wherever it's shown. Desktop keeps the plain label. */
+.nav-account-hint{display:none;font-size:0.85em;color:var(--text-muted)}
 .nav-links a.active::after{animation:navPulse 2.8s ease-in-out infinite}
 .hamburger{display:none;flex-direction:column;gap:5px;padding:8px;z-index:200;border-radius:10px}
 .hamburger span{width:22px;height:2px;background:var(--navy);border-radius:2px;transition:all .35s var(--ease)}
@@ -708,6 +712,12 @@ body::before{
   .nav-links a{opacity:0;transform:translateY(22px);transition:opacity .45s var(--ease),transform .45s var(--ease),color .3s var(--ease);transition-delay:calc(var(--i,0)*55ms)}
   .nav-links.open{transform:translateX(0)}
   .nav-links.open a{opacity:1;transform:none}
+  /* "حساب من" first in the mobile menu only (desktop order — last,
+     unchanged — comes from the nav array itself, not this override),
+     with the hint of what it's for that only makes sense as an
+     always-visible menu item, not a hover-discovered desktop link. */
+  .nav-account-link{order:-1}
+  .nav-account-hint{display:inline}
   .hero{padding:44px 20px 28px}
   .quote-section{padding:34px 20px}
   .quote-photo{width:104px;height:104px}
