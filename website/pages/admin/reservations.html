@@ -62,7 +62,13 @@ function render(){
   const total = rows.filter(r => r.status === 'approved').reduce((s, r) => s + Number(r.total_price || 0), 0);
   document.getElementById('stats').innerHTML = `<span>نمایش: ${rows.length} رزرو</span><span>منتظر تأیید: <strong style="color:var(--gold-deep)">${pending}</strong></span><span>مبلغ تأییدشده: <strong style="color:var(--gold-deep)">${total.toLocaleString('fa-IR')} تومان</strong></span>`;
   document.getElementById('tbody').innerHTML = rows.map(r => {
-    const canDecide = r.status === 'pending_review';
+    // needs_correction is a valid starting point for every action too —
+    // an admin who sent a "نیازمند اصلاح" message can still approve/reject
+    // directly afterwards, or send another correction message, without
+    // waiting on a resubmission first (see reservation_service.
+    // approve_reservation()'s docstring). Losing every action the moment
+    // a reservation left pending_review was the actual bug reported here.
+    const canDecide = r.status === 'pending_review' || r.status === 'needs_correction';
     // A receipt only exists once the buyer actually submitted one
     // (pending_review or later) AND the booking came from the website —
     // a Telegram-submitted receipt is a Telegram file_id, viewed inside

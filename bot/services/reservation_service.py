@@ -182,14 +182,18 @@ def request_correction(reservation_id: int, reviewed_by: int, message: str) -> b
     starting status too), landing back on 'pending_review' for the admin
     to make a final call.
 
-    Returns False (does nothing) if the reservation isn't currently
-    'pending_review' — e.g. a double-tap, or it was already resolved by
-    another admin in the meantime."""
+    Accepts from 'pending_review' OR an existing 'needs_correction' — the
+    latter lets an admin send a second/follow-up correction message (the
+    buyer's resubmission still wasn't right, or they just want to add more
+    detail) without first waiting for a resubmission that moves it back to
+    pending_review. Returns False (does nothing) if the reservation is in
+    neither state — e.g. a double-tap, or it was already resolved
+    (approved/rejected) by another admin in the meantime."""
     from database.repositories import payments as payments_repo
     from database.repositories import users as users_repo
 
-    transitioned = reservations_repo.set_status_if(
-        reservation_id, "pending_review", "needs_correction", admin_note=message,
+    transitioned = reservations_repo.set_status_if_any(
+        reservation_id, ("pending_review", "needs_correction"), "needs_correction", admin_note=message,
     )
     if not transitioned:
         return False
@@ -420,16 +424,22 @@ def _build_ticket_pdf_bytes(reservation: dict) -> list[tuple[str, bytes]]:
 
 
 def approve_reservation(
-    reservation_id: int, reviewed_by: int, expected_status: str = "pending_review"
+    reservation_id: int, reviewed_by: int,
+    expected_status: str | tuple[str, ...] = ("pending_review", "needs_correction"),
 ) -> tuple[str, "io.BytesIO", bool] | None:
     """Returns None if the reservation had already moved past expected_status
     (e.g. a duplicate/double-tap callback) — the caller should treat that
     as 'already handled', not retry.
 
-    expected_status defaults to pending_review (the normal admin-approves-a-
-    fresh-receipt path). The dispute-resolution path — where a buyer
-    disputed an earlier rejection and an admin now approves it after all —
-    starts from awaiting_buyer_confirmation instead; passing that in here
+    expected_status defaults to accepting EITHER pending_review (the normal
+    admin-approves-a-fresh-receipt path) or needs_correction (an admin who
+    sent a "نیازمند اصلاح" message can still approve directly afterwards —
+    e.g. the buyer explained in a DM that the receipt was actually fine —
+    without waiting for a resubmission first; see request_correction()'s
+    docstring for why that status has no time limit to race against here).
+    The dispute-resolution path — where a buyer disputed an earlier
+    rejection and an admin now approves it after all — passes a single
+    string, 'awaiting_buyer_confirmation', instead; passing that in here
     fixed a real bug where approving in that flow always incorrectly
     reported 'already processed' because it was hardcoded to only accept
     pending_review.
@@ -442,7 +452,8 @@ def approve_reservation(
     from database.repositories import payments as payments_repo
     from services.ticket_service import issue_ticket
 
-    transitioned = reservations_repo.set_status_if(reservation_id, expected_status, "approved")
+    expected_statuses = (expected_status,) if isinstance(expected_status, str) else tuple(expected_status)
+    transitioned = reservations_repo.set_status_if_any(reservation_id, expected_statuses, "approved")
     if not transitioned:
         return None
 
@@ -473,11 +484,14 @@ def mark_awaiting_buyer_confirmation(reservation_id: int, admin_note: str) -> bo
     sold twice while a rejection is still being sorted out.
     Uses the same atomic conditional transition as approve_reservation, so
     a double-tapped Reject button (or two admins rejecting at once) can't
-    both succeed. Returns False if the reservation had already moved past
-    pending_review.
+    both succeed. Accepts from pending_review OR needs_correction — same
+    reasoning as approve_reservation's default: an admin who sent a
+    "نیازمند اصلاح" message can still reject outright afterwards instead of
+    waiting on a resubmission. Returns False if the reservation had
+    already moved past either of those.
     """
-    return reservations_repo.set_status_if(reservation_id, "pending_review",
-                                            "awaiting_buyer_confirmation", admin_note=admin_note)
+    return reservations_repo.set_status_if_any(reservation_id, ("pending_review", "needs_correction"),
+                                                "awaiting_buyer_confirmation", admin_note=admin_note)
 
 
 def _notify_rejection_email(reservation_id: int, reason: str) -> None:

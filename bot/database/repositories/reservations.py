@@ -185,6 +185,32 @@ def set_status_if(reservation_id: int, expected_status: str, new_status: str,
         return cur.rowcount > 0
 
 
+def set_status_if_any(reservation_id: int, expected_statuses: tuple[str, ...], new_status: str,
+                       admin_note: str | None = None) -> bool:
+    """
+    Same atomic guarantee as set_status_if() above, but matches ANY of
+    several starting statuses in one statement — needed once a reservation
+    can bounce between 'pending_review' and 'needs_correction' (an admin
+    re-reviewing after a correction, or deciding needs_correction wasn't
+    needed after all and approving/rejecting directly) and every admin
+    action (approve/reject/needs-correction) has to work from either one,
+    not just the original 'pending_review'.
+    """
+    if not expected_statuses:
+        return False
+    placeholders = ",".join("?" for _ in expected_statuses)
+    with get_connection() as conn:
+        cur = conn.execute(
+            f"""
+            UPDATE reservations
+            SET status = ?, admin_note = COALESCE(?, admin_note), updated_at = datetime('now')
+            WHERE id = ? AND status IN ({placeholders})
+            """,
+            (new_status, admin_note, reservation_id, *expected_statuses),
+        )
+        return cur.rowcount > 0
+
+
 def set_status(reservation_id: int, status: str, admin_note: str | None = None) -> None:
     with get_connection() as conn:
         conn.execute(

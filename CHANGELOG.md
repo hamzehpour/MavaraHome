@@ -5,6 +5,79 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Fix two "نیازمند اصلاح" bugs: silent correction messages from the alerts channel, admin locked out afterwards
+
+**Why:** reported, after the "نیازمند اصلاح" action shipped — two separate
+bugs, both real:
+
+**Bug 1 — typing the correction message from the alerts channel silently
+went nowhere.** Tapping "نیازمند اصلاح" on a reservation alert posted in
+the admin ALERTS channel/group (not a private chat) set the FSM state on
+*that chat* and asked the admin to reply there. If the destination is a
+genuine Telegram channel (not a group), a member's typed reply never even
+reaches the bot as a normal message — Telegram delivers it as a
+`channel_post`, attributed to the channel itself with no `from_user` at
+all, which aiogram's `@router.message()` handlers structurally cannot
+see. Even in a group, this was still asking for the reply in the wrong
+place. Fixed by always collecting free-text follow-ups (the correction
+message, and — same bug — a custom typed reject reason, and the optional
+post-approval note) in the admin's own private chat instead, regardless
+of where the button was tapped: `handlers/admin_reservations.py` now
+builds a DM-scoped `FSMContext` via `StorageKey(chat_id=admin_id, ...)`
+(the same pattern `handlers/overflow_requests.py` already used for a
+similar cross-chat case) and prompts with `bot.send_message()` there. A
+small toast on the original button tap ("توضیح اصلاح را در چت خصوصی ربات
+بنویسید") tells the admin where to look; if they've never opened a DM
+with the bot at all, they get a clear alert instead of silence.
+
+**Bug 2 — every action disappeared once a reservation left
+pending_review.** `needs_correction` was only ever a one-way street: once
+set, approve/reject/needs-correction all required `expected_status ==
+'pending_review'` specifically, so nothing else could ever be done with
+that reservation from either Telegram or the website admin panel until
+the buyer resubmitted a receipt — reported as the admin panel's actions
+just vanishing (`canDecide` there was keyed to `pending_review` only).
+Per the corrected design: `needs_correction` should only stop the
+*time-limited* reservation lock (already true — it reuses the
+no-expiry-column-touched status), never the admin's ability to act.
+Fixed by widening every action to accept EITHER starting status:
+- New `reservations_repo.set_status_if_any()` — the same atomic
+  conditional UPDATE as `set_status_if()`, just `WHERE status IN (...)`
+  instead of `= ?`.
+- `approve_reservation()`'s default `expected_status` is now
+  `("pending_review", "needs_correction")` (still overridable — the
+  dispute-resolution path still passes its own single
+  `"awaiting_buyer_confirmation"`).
+- `mark_awaiting_buyer_confirmation()` (Telegram's reject-with-grace-
+  period start) and `request_correction()` both accept the same pair now
+  — the latter meaning an admin can re-issue a *second* correction
+  message (buyer's resubmission still wasn't right, or just more detail)
+  without waiting for anything first.
+- `pages/admin/reservations.html`'s `canDecide` now includes
+  `needs_correction`, restoring all three buttons there.
+- No server.py endpoint changes needed — every endpoint already called
+  through these same service functions.
+
+**Also requested:** the "نیازمند اصلاح" email now asks the buyer to reply
+to that same email with the corrected receipt attached (so an admin can
+review and decide from their inbox), instead of only pointing them back
+to the website — the automated website/Telegram resubmission still works
+and is mentioned as an alternative. Note this is a `DEFAULT_SETTINGS`
+text change — `migrate.py`'s `INSERT OR IGNORE` won't overwrite a row
+that's already been seeded, so an environment that already ran migrate.py
+since the 4-step redesign shipped needs this one template pasted in by
+hand via Settings (Telegram menu or the website settings page) to pick up
+the new wording.
+
+Verified locally: full 49-test suite passes; a dedicated scratch test
+covers re-issuing a correction from `needs_correction`, rejecting
+directly from it, and approving directly from it (previously all three
+would have failed the atomic status check and silently no-op'd). Also
+re-ran the exact sequence over real HTTP against a local `ENV=test`
+server: submit receipt → needs-correction → needs-correction again
+(admin_note updates) → approve directly, and separately submit receipt →
+needs-correction → reject directly — both fully succeeding end to end.
+
 ## Fix: "تکمیل رزرو" button/countdown stayed after successfully completing a resumed reservation
 
 **Why:** reported, right after the resume feature above shipped — after

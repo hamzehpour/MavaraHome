@@ -167,6 +167,14 @@ RESERVATION_NEEDS_CORRECTION_ADMIN_SIDE = (
     "✏️ درخواست اصلاح برای خریدار ارسال شد. این رزرو زمان‌بندی محدودی ندارد و "
     "با ارسال رسید جدید دوباره برای بررسی نزد شما می‌آید."
 )
+# Shown when a text-input follow-up (correction message, typed reject
+# reason) can't be delivered because the admin never opened a private
+# chat with the bot — this happens when they tapped the action from a
+# group/channel, where there's no other way to collect free text from
+# them (see handlers/admin_reservations._admin_dm_state's docstring).
+ADMIN_MUST_START_BOT_DM = (
+    "برای ادامه، لطفاً ابتدا در چت خصوصی با ربات دستور /start را بزنید، سپس دوباره امتحان کنید."
+)
 
 # ---------- admin: events/sessions ----------
 EVENTS_MENU_TITLE = "🎭 مدیریت رویدادها:"

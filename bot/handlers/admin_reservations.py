@@ -1,6 +1,7 @@
-from aiogram import Router, F, Bot
+from aiogram import Router, F, Bot, Dispatcher
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
+from aiogram.fsm.storage.base import StorageKey
 
 from texts import fa
 from filters.admin_filter import IsAdmin
@@ -17,6 +18,25 @@ router.message.filter(IsAdmin())
 router.callback_query.filter(IsAdmin())
 
 logger = get_logger()
+
+
+def _admin_dm_state(dispatcher: Dispatcher, bot: Bot, admin_telegram_id: int) -> FSMContext:
+    """A callback tapped from the alerts channel/group (see handlers/
+    channel_setup.py) carries THAT chat's id, not the admin's own —
+    setting FSM state there would try to match the admin's next reply
+    against the wrong chat. Worse, if it's a genuine Telegram *channel*
+    (not a group), a member's typed reply never even reaches the bot as a
+    normal message at all — Telegram delivers it as a channel_post,
+    attributed to the channel itself (no from_user), which aiogram's
+    @router.message() handlers never see. Every follow-up that needs the
+    admin to type free text is collected in their own DM instead,
+    regardless of where the button was tapped — identical to today's
+    behavior when it's already a DM, and the only way it can work at all
+    when the button was in a channel."""
+    return FSMContext(
+        storage=dispatcher.storage,
+        key=StorageKey(bot_id=bot.id, chat_id=admin_telegram_id, user_id=admin_telegram_id),
+    )
 
 
 @router.callback_query(F.data == "admin:pending")
@@ -129,7 +149,7 @@ async def _send_text_with_fallback(bot: Bot, telegram_id: int, text: str, parse_
 
 
 @router.callback_query(F.data.startswith("review:approve:"))
-async def approve(callback: CallbackQuery, bot: Bot, state: FSMContext) -> None:
+async def approve(callback: CallbackQuery, bot: Bot, dispatcher: Dispatcher) -> None:
     reservation_id = int(callback.data.split(":")[2])
     await callback.answer()
 
@@ -150,8 +170,11 @@ async def approve(callback: CallbackQuery, bot: Bot, state: FSMContext) -> None:
 
     # Fast-path UX check (not the real guarantee — see below) so a normal
     # double-tap shows a friendly message immediately instead of just
-    # silently no-op'ing.
-    if reservation["status"] != "pending_review":
+    # silently no-op'ing. needs_correction is a valid starting point too —
+    # an admin who sent a "نیازمند اصلاح" message can still approve
+    # directly afterwards (see reservation_service.approve_reservation's
+    # docstring) instead of being forced to wait on a resubmission.
+    if reservation["status"] not in ("pending_review", "needs_correction"):
         await callback.answer("این رزرو قبلاً پردازش شده — دوباره پردازش نشد.", show_alert=True)
         return
 
@@ -223,14 +246,24 @@ async def approve(callback: CallbackQuery, bot: Bot, state: FSMContext) -> None:
         )
 
     # Give the admin the option to add a short note for the buyer — e.g.
-    # "برای یک نفر رزرو ثبت شد، مابقی هزینه را جداگانه واریز کنید".
+    # "برای یک نفر رزرو ثبت شد، مابقی هزینه را جداگانه واریز کنید". Prompted
+    # (and collected) in the admin's own DM — see _admin_dm_state()'s
+    # docstring for why this can't just use the callback's own chat.
+    # Best-effort: the ticket itself already went out by this point, so a
+    # failed prompt (admin never started a DM with the bot) isn't worth
+    # surfacing as an error over.
     if delivered:
-        await state.update_data(approve_note_target=reservation.get("user_telegram_id"))
-        await state.set_state(AdminReviewStates.awaiting_approve_note)
-        await callback.message.answer(
-            "می‌خواهید یادداشت کوتاهی هم برای خریدار ارسال کنید؟ (اختیاری)\n"
-            "اگر بله، همین الان بنویسید. اگر نه، «-» ارسال کنید.",
-        )
+        dm_state = _admin_dm_state(dispatcher, bot, callback.from_user.id)
+        await dm_state.update_data(approve_note_target=reservation.get("user_telegram_id"))
+        await dm_state.set_state(AdminReviewStates.awaiting_approve_note)
+        try:
+            await bot.send_message(
+                callback.from_user.id,
+                "می‌خواهید یادداشت کوتاهی هم برای خریدار ارسال کنید؟ (اختیاری)\n"
+                "اگر بله، همین الان بنویسید. اگر نه، «-» ارسال کنید.",
+            )
+        except Exception:
+            pass
 
 
 @router.message(AdminReviewStates.awaiting_approve_note)
@@ -251,12 +284,24 @@ async def finish_approve_note(message: Message, state: FSMContext, bot: Bot) -> 
 
 
 @router.callback_query(F.data.startswith("review:correct:"))
-async def start_correction(callback: CallbackQuery, state: FSMContext) -> None:
+async def start_correction(callback: CallbackQuery, bot: Bot, dispatcher: Dispatcher) -> None:
     reservation_id = int(callback.data.split(":")[2])
-    await state.update_data(correction_reservation_id=reservation_id)
-    await state.set_state(AdminReviewStates.awaiting_correction_message)
-    await callback.message.answer(fa.ASK_CORRECTION_MESSAGE)
-    await callback.answer()
+    dm_state = _admin_dm_state(dispatcher, bot, callback.from_user.id)
+    await dm_state.update_data(correction_reservation_id=reservation_id)
+    await dm_state.set_state(AdminReviewStates.awaiting_correction_message)
+    try:
+        await bot.send_message(callback.from_user.id, fa.ASK_CORRECTION_MESSAGE)
+    except Exception:
+        # Admin never started a private chat with the bot — the only way
+        # this prompt can reach them at all. Reported plainly rather than
+        # silently doing nothing (the bug this whole function replaces).
+        await callback.answer(fa.ADMIN_MUST_START_BOT_DM, show_alert=True)
+        return
+    # Nothing visibly changes on the alert message itself (tapped from a
+    # channel/group, where editing it is deliberately left alone) — this
+    # toast is what tells the admin the tap actually did something and
+    # where to look next.
+    await callback.answer("توضیح اصلاح را در چت خصوصی ربات بنویسید 👇")
 
 
 @router.message(AdminReviewStates.awaiting_correction_message)
@@ -293,14 +338,22 @@ async def start_reject(callback: CallbackQuery, state: FSMContext) -> None:
 
 
 @router.callback_query(F.data.startswith("reject_reason_mode:"))
-async def reject_reason_mode(callback: CallbackQuery, state: FSMContext) -> None:
+async def reject_reason_mode(callback: CallbackQuery, bot: Bot, dispatcher: Dispatcher) -> None:
     _, mode, reservation_id_str = callback.data.split(":")
     reservation_id = int(reservation_id_str)
 
     if mode == "type":
-        await state.set_state(AdminReviewStates.awaiting_reject_reason)
-        await callback.message.answer(fa.ASK_REJECT_REASON)
-        await callback.answer()
+        # Collected in the admin's own DM — see _admin_dm_state()'s
+        # docstring (same reasoning as the "نیازمند اصلاح" message above).
+        dm_state = _admin_dm_state(dispatcher, bot, callback.from_user.id)
+        await dm_state.update_data(reject_reservation_id=reservation_id)
+        await dm_state.set_state(AdminReviewStates.awaiting_reject_reason)
+        try:
+            await bot.send_message(callback.from_user.id, fa.ASK_REJECT_REASON)
+        except Exception:
+            await callback.answer(fa.ADMIN_MUST_START_BOT_DM, show_alert=True)
+            return
+        await callback.answer("دلیل رد را در چت خصوصی ربات بنویسید 👇")
         return
 
     # mode == "receipt" — skip typing, use the preset reason directly.
