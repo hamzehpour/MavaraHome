@@ -28,6 +28,12 @@ const STATUS_FA = {
   expired: 'منقضی‌شده', cancelled: 'لغوشده',
 };
 
+// Populated by renderDashboard(), read by startResume() below — "تکمیل
+// رزرو" buttons pass just an id (see reservationCard()) to keep the
+// onclick attribute simple, this is where the actual reservation object
+// (event_id, session_id, expires_at, ...) comes from.
+let currentReservations = [];
+
 function renderLogin() {
   const root = document.getElementById('accRoot');
   root.innerHTML = `
@@ -78,6 +84,7 @@ async function renderDashboard() {
   root.innerHTML = `<p style="text-align:center;color:var(--text-muted)">در حال بارگذاری رزروها...</p>`;
   let reservations = [];
   try { reservations = await API.account.reservations(); } catch { /* token might be stale; fall through to empty */ }
+  currentReservations = reservations;
 
   root.innerHTML = `
     <section class="hero" style="padding:10px 0 20px;text-align:center">
@@ -87,13 +94,26 @@ async function renderDashboard() {
     </section>
     <h3 style="margin-bottom:10px;color:var(--navy)">رزروهای من</h3>
     <div id="resList">${reservations.length ? reservations.map(reservationCard).join('') : '<p style="color:var(--text-muted)">هنوز رزروی ثبت نکرده‌اید.</p>'}</div>`;
+
+  // One independent countdown per unfinished reservation — startCountdown
+  // (site.js) re-queries its element every tick and self-clears once gone,
+  // so these don't need to be torn down by hand on the next render.
+  reservations.filter(r => r.status === 'pending_payment' && r.expires_at).forEach(r => {
+    startCountdown(`resumeCountdown_${r.id}`, r.expires_at);
+  });
 }
 
 function reservationCard(r) {
   const status = STATUS_FA[r.status] || r.status;
-  const statusColor = r.status === 'approved' ? '#1e9e5a' : (r.status === 'rejected' ? '#c44' : (r.status === 'needs_correction' ? '#c48a1e' : 'var(--text-muted)'));
+  const statusColor = r.status === 'approved' ? '#1e9e5a' : (r.status === 'rejected' ? '#c44' : (r.status === 'needs_correction' || r.status === 'pending_payment' ? '#c48a1e' : 'var(--text-muted)'));
   const canDownload = r.status === 'approved' && r.reservation_code;
   const needsCorrection = r.status === 'needs_correction';
+  // A reservation the buyer created but never finished paying for —
+  // closing the tab mid-payment used to mean starting over from scratch.
+  // "تکمیل رزرو" reopens the booking modal straight at the receipt-upload
+  // step for this exact reservation (see resumeReservationModal() in
+  // site.js), with the same live lock countdown shown right here too.
+  const isIncomplete = r.status === 'pending_payment';
   return `<div class="res-card">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
       <div>
@@ -106,6 +126,11 @@ function reservationCard(r) {
     </div>
     ${r.reservation_code ? `<div style="font-family:monospace;font-size:12.5px;margin-top:8px;color:var(--text-muted)" dir="ltr">${esc(r.reservation_code)}</div>` : ''}
     ${canDownload ? `<button class="btn btn--outline" style="font-size:12px;margin-top:10px" onclick="downloadTicket(${Number(r.id)}, '${esc(r.reservation_code)}')">📄 دانلود بلیت PDF</button>` : ''}
+    ${isIncomplete ? `
+      <div style="margin-top:10px;padding:10px 12px;background:var(--bg-soft);border-radius:var(--radius-sm)">
+        <p style="font-size:12.5px;font-weight:700;color:var(--gold-deep);margin-bottom:8px">⏳ <span id="resumeCountdown_${Number(r.id)}" dir="ltr"></span></p>
+        <button class="btn btn--resume" style="font-size:12px" onclick="startResume(${Number(r.id)})">تکمیل رزرو</button>
+      </div>` : ''}
     ${needsCorrection ? `
       <div style="margin-top:10px;padding:10px 12px;background:var(--bg-soft);border-radius:var(--radius-sm);font-size:13px">
         ${r.admin_note ? `<div style="margin-bottom:8px">✏️ ${esc(r.admin_note)}</div>` : ''}
@@ -116,6 +141,14 @@ function reservationCard(r) {
         <span id="resubmitStatus_${Number(r.id)}" style="font-size:12px;color:var(--text-muted);margin-inline-start:8px"></span>
       </div>` : ''}
   </div>`;
+}
+
+// "تکمیل رزرو" button's onclick just passes the id (keeps the inline
+// attribute simple / avoids escaping a whole object into HTML) —
+// resumeReservationModal() (site.js) needs the full reservation record.
+function startResume(id) {
+  const record = currentReservations.find(r => Number(r.id) === Number(id));
+  if (record) resumeReservationModal(record);
 }
 
 // Self-service resubmission for a reservation the admin marked

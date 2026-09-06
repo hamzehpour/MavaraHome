@@ -632,6 +632,16 @@ class Handler(BaseHTTPRequestHandler):
                     r["event_title"] = ctx["event_title"]
                     r["session_date"] = ctx["session_date_display"]
                     r["session_time"] = ctx["session_time"]
+                    # get_ticket_context() resolves the event internally but
+                    # doesn't return its id (it's built for build_ticket_pdf(),
+                    # which has no use for it) — the booking flow's "resume an
+                    # unfinished reservation" feature needs it client-side
+                    # (site.js matches a customer's pending_payment reservations
+                    # against the event they're currently viewing), so it's
+                    # resolved here too, separately, rather than widening
+                    # get_ticket_context()'s contract for every other caller.
+                    session = sessions_repo.get_session(r["session_id"])
+                    r["event_id"] = session["event_id"] if session else None
                     enriched.append(r)
                 return self._send_json(200, {"data": [_reservation_public(r) for r in enriched]})
 

@@ -86,6 +86,8 @@ const I18N = {
     pay_ok: 'رسید پرداختت هم دریافت شد؛ پس از بررسی ادمین، تاییدیه‌ی نهایی به ایمیلت ارسال می‌شود.',
     pay_fallback: 'اطلاعات کارت هنوز تنظیم نشده — برای دریافت شماره کارت از تلگرام با ما در تماس باش.',
     bk_step2_title: 'اطلاعات رزرو', bk_step2_continue: 'ادامه به پرداخت',
+    bk_resume_button: 'تکمیل رزرو',
+    bk_resume_note: 'رزرو ناتمامی برای این رویداد داری — تا پایان زمان زیر فرصت داری آن را تکمیل کنی.',
     bk_lock_title: 'ظرفیت شما رزرو و قفل شد',
     bk_lock_note: (mm) => `صندلی‌های شما به مدت ${mm} دقیقه برای شما نگه داشته می‌شود — لطفاً مبلغ زیر را واریز کرده و رسید را ارسال کنید تا رزروتان نهایی شود.`,
     bk_lock_expired: 'مهلت قفل ظرفیت به پایان رسید — برای رزرو مجدد، دوباره از دکمه «رزرو بلیت» اقدام کنید.',
@@ -173,6 +175,8 @@ const I18N = {
     pay_ok: "Receipt received too — you'll get a confirmation email once it's reviewed.",
     pay_fallback: 'Card details are not set up yet — message us on Telegram for the card number.',
     bk_step2_title: 'Reservation details', bk_step2_continue: 'Continue to payment',
+    bk_resume_button: 'Complete reservation',
+    bk_resume_note: "You have an unfinished reservation for this event — you have until the time below to complete it.",
     bk_lock_title: 'Your seats are booked and locked',
     bk_lock_note: (mm) => `Your seats are held for ${mm} minutes — please transfer the amount below and upload the receipt to finalize your reservation.`,
     bk_lock_expired: 'The capacity lock has expired — please start a new reservation from the "Book a ticket" button.',
@@ -414,6 +418,22 @@ async function initEventDetail() {
   if (!e) { el.innerHTML = '<div class="empty-state">' + ICON_STAR + '<p>' + T('empty_event') + '</p></div>'; return; }
   document.title = esc(evTitle(e)) + ' | ' + T('logo');
 
+  // A logged-in customer who started a reservation for THIS event and
+  // never finished paying (still 'pending_payment') gets "تکمیل رزرو"
+  // here instead of the normal "رزرو بلیت" CTA — closing the tab mid-
+  // payment and coming back later used to mean re-booking from scratch
+  // (and, worse, occupying a second seat while the first one's lock was
+  // still held). Silently falls back to the normal CTA on any failure
+  // (not logged in, request failed, nothing pending) — this is a nicety
+  // on top of the normal flow, never a blocker to it.
+  let myIncompleteReservation = null;
+  if (API.customerAuth && API.customerAuth.check()) {
+    try {
+      const mine = await API.account.reservations();
+      myIncompleteReservation = mine.find(r => String(r.event_id) === String(e.id) && r.status === 'pending_payment') || null;
+    } catch { /* not logged in / token stale / request failed — fall back below */ }
+  }
+
   const galleryHTML = Array.isArray(e.gallery) && e.gallery.length
     ? `<div style="margin-top:22px"><h3 style="font-weight:700;margin-bottom:10px;color:var(--navy)">${T('gallery_label') || 'گالری تصاویر'}</h3>
        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px">
@@ -432,7 +452,14 @@ async function initEventDetail() {
   // demoted to a low-key "support" line further down the page instead
   // (see supportHTML below), for questions rather than as another way to
   // book.
-  const bookingCta = `<div>
+  const bookingCta = myIncompleteReservation
+    ? `<div>
+      <h3 style="font-weight:700;margin-bottom:10px;color:var(--navy)">${T('reserve_title')}</h3>
+      <p style="font-size:13px;color:var(--text-muted);line-height:1.9;margin-bottom:10px">${T('bk_resume_note')}</p>
+      <p style="font-size:13.5px;font-weight:700;color:var(--gold-deep);margin-bottom:10px">⏳ <span id="bkPageResumeCountdown" dir="ltr"></span></p>
+      <button class="btn btn--resume" type="button" id="bkResumeBtn">${T('bk_resume_button')}</button>
+    </div>`
+    : `<div>
       <h3 style="font-weight:700;margin-bottom:10px;color:var(--navy)">${T('reserve_title')}</h3>
       <button class="btn btn--gold" type="button" id="bkOpenBtn">${T('bk_book_now')}</button>
     </div>`;
@@ -477,8 +504,14 @@ async function initEventDetail() {
     <style>@media (max-width: 760px) { .event-detail-grid { grid-template-columns: 1fr !important; } .event-detail-poster { order: 1 !important; max-width: 380px; margin: 0 auto; } .event-detail-info { order: 2 !important; } }</style>`;
   loadFeedbacks(e.id);
   __bk.eventObj = e;
-  const openBtn = document.getElementById('bkOpenBtn');
-  if (openBtn) openBtn.onclick = () => openBookingModal();
+  if (myIncompleteReservation) {
+    const resumeBtn = document.getElementById('bkResumeBtn');
+    if (resumeBtn) resumeBtn.onclick = () => resumeReservationModal(myIncompleteReservation);
+    startCountdown('bkPageResumeCountdown', myIncompleteReservation.expires_at);
+  } else {
+    const openBtn = document.getElementById('bkOpenBtn');
+    if (openBtn) openBtn.onclick = () => openBookingModal();
+  }
 }
 
 /* ── Booking (same backend the Telegram bot itself uses) ──
@@ -509,12 +542,11 @@ async function initEventDetail() {
 // window to enter.
 const __bk = { eventId: null, dateId: null, sessionId: null, qty: 1, eventObj: null, submitted: false, mode: 'book', record: null, payInfoHTML: '', paymentExpiryMinutes: 10, lockTimer: null };
 
-function openBookingModal() {
-  const e = __bk.eventObj;
-  if (!e) return;
-  __bk.eventId = e.id; __bk.dateId = null; __bk.sessionId = null; __bk.qty = 1; __bk.submitted = false; __bk.mode = 'book';
-  __bk.record = null;
-  if (__bk.lockTimer) { clearInterval(__bk.lockTimer); __bk.lockTimer = null; }
+// Shared by openBookingModal() (fresh booking) and resumeReservationModal()
+// (an existing pending_payment reservation the buyer left mid-way — see
+// below) — both just need the overlay/dialog chrome up before handing off
+// to buildBooking() for the actual step content.
+function _ensureBookingOverlay() {
   let overlay = document.getElementById('bkModalOverlay');
   if (!overlay) {
     overlay = document.createElement('div');
@@ -532,7 +564,42 @@ function openBookingModal() {
   document.getElementById('bkModalClose').onclick = closeBookingModal;
   overlay.classList.add('open');
   document.body.style.overflow = 'hidden';
+}
+function openBookingModal() {
+  const e = __bk.eventObj;
+  if (!e) return;
+  __bk.eventId = e.id; __bk.dateId = null; __bk.sessionId = null; __bk.qty = 1; __bk.submitted = false; __bk.mode = 'book';
+  __bk.record = null;
+  if (__bk.lockTimer) { clearInterval(__bk.lockTimer); __bk.lockTimer = null; }
+  _ensureBookingOverlay();
   buildBooking(e);
+}
+// Re-opens the booking modal for a reservation the buyer already created
+// but never finished paying for (still 'pending_payment') — called from
+// the "تکمیل رزرو" button on account.html (their reservation list) and on
+// event-detail.html (in place of the normal "رزرو بلیت" CTA, when they're
+// logged in and have one for that event; see initEventDetail()). Jumps
+// straight to the receipt-upload step: they've already seen the
+// name/qty/payment-instructions steps once, all that's actually left is
+// sending the receipt — see goToReceiptStep(), which shows the payment
+// card + live countdown again right there as a reminder, so nothing
+// after step 2 needs to be reintroduced from scratch.
+async function resumeReservationModal(record) {
+  const event = API.events.get(record.event_id);
+  if (!event) return;
+  __bk.eventObj = event;
+  __bk.eventId = event.id;
+  __bk.dateId = null;
+  __bk.sessionId = record.session_id;
+  __bk.qty = record.people;
+  __bk.mode = 'book';
+  // The reservation already exists — this must never trigger
+  // createReservationAndLock() into making a second one.
+  __bk.submitted = true;
+  __bk.record = record;
+  if (__bk.lockTimer) { clearInterval(__bk.lockTimer); __bk.lockTimer = null; }
+  _ensureBookingOverlay();
+  await buildBooking(event, { resume: true });
 }
 function closeBookingModal() {
   const overlay = document.getElementById('bkModalOverlay');
@@ -542,7 +609,8 @@ function closeBookingModal() {
   document.body.style.overflow = '';
 }
 
-async function buildBooking(e) {
+async function buildBooking(e, opts) {
+  const resuming = !!(opts && opts.resume);
   const box = document.getElementById('bookingWidget');
   if (!box) return;
   box.innerHTML = `<p style="font-size:13px;color:var(--text-muted)">…</p>`;
@@ -561,7 +629,12 @@ async function buildBooking(e) {
   // whatever an admin has actually set payment_expiry_minutes to.
   __bk.paymentExpiryMinutes = (paymentInfo && Number(paymentInfo.payment_expiry_minutes)) || 10;
   const dates = API.dates.forEvent(e.id);
-  if (!dates.length) {
+  // Resuming an existing reservation skips the picker entirely (see the
+  // tail of this function) — its session doesn't need to still be in the
+  // "bookable" list (it could since have sold out or gone inactive; that
+  // has nothing to do with a seat the buyer already holds), so an empty
+  // `dates` must not bail out here the way a fresh booking attempt would.
+  if (!dates.length && !resuming) {
     box.innerHTML = `<p class="bk-form-msg bk-form-msg--error">${T('bk_no_sessions')}</p>`;
     return;
   }
@@ -628,6 +701,10 @@ async function buildBooking(e) {
     </div>
     <form id="bkReceiptBlock" style="display:none">
       <div class="bk-label">${T('bk_receipt_step_title')}</div>
+      <div style="background:var(--bg-soft);border-radius:12px;padding:14px;margin-bottom:14px">
+        <p id="bkReceiptPayInfo" style="font-size:13px;line-height:2;margin-bottom:8px"></p>
+        <p style="font-size:13px;font-weight:700;color:var(--gold-deep)">⏳ <span id="bkReceiptCountdown" dir="ltr"></span></p>
+      </div>
       <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:8px">${T('pay_upload_label')}</label>
       <div class="bk-file-picker" id="bkFileWrap">
         <input type="file" id="bkReceipt" class="bk-file-input" accept="image/*">
@@ -663,7 +740,14 @@ async function buildBooking(e) {
   box.querySelectorAll('.bk-chip').forEach(chip => chip.onclick = () => selectDate(chip.dataset.date, chip));
   document.getElementById('bkMinus').onclick = () => stepQty(-1);
   document.getElementById('bkPlus').onclick = () => stepQty(1);
-  selectDate(dates[0].id, box.querySelector('.bk-chip') || null);
+  if (resuming) {
+    // Everything up through payment instructions was already shown once
+    // when this reservation was first created — jump straight to the one
+    // thing actually left to do.
+    goToReceiptStep();
+  } else {
+    selectDate(dates[0].id, box.querySelector('.bk-chip') || null);
+  }
 }
 // Shows exactly one step-block, hides the rest — bkLoading isn't in this
 // list since it's toggled separately by its own callers (reached from
@@ -868,37 +952,60 @@ function renderLock() {
   document.getElementById('bkLockSummary').innerHTML =
     `${esc(evTitle(event))}<br>${T('bk_qty')}: ${__bk.qty} · <strong style="color:var(--gold-deep)">${T('bk_total')}: ${total.toLocaleString(lang() === 'en' ? 'en-US' : 'fa-IR')} ${currencyLabel}</strong>`;
   document.getElementById('bkLockNote').textContent = T('bk_lock_note')(__bk.paymentExpiryMinutes);
-  startLockCountdown(__bk.record && __bk.record.expires_at);
+  _startModalCountdown('bkLockCountdown', __bk.record && __bk.record.expires_at);
 }
-// A live mm:ss countdown against the real server-side deadline — purely
+// A live mm:ss countdown against a real server-side deadline — purely
 // informational (the actual enforcement is server-side: submit_receipt()
 // only accepts a still-pending_payment reservation, and expire_stale_
 // reservations() flips it to 'expired' once the deadline passes), but
 // showing a ticking clock is what makes "۱۰ دقیقه فرصت دارید" feel real
-// instead of just a one-time notice easy to forget.
-function startLockCountdown(expiresAtIso) {
-  if (__bk.lockTimer) { clearInterval(__bk.lockTimer); __bk.lockTimer = null; }
-  const el = document.getElementById('bkLockCountdown');
-  if (!el || !expiresAtIso) return;
+// instead of just a one-time notice easy to forget. Generic and re-
+// entrant by design: it re-queries `elId` on every tick (rather than
+// closing over the element once) and self-clears the moment that element
+// is gone, so several of these can run at once for different reservations
+// — needed for account.html's "رزروهای ناتمام" list, which can show more
+// than one countdown on screen simultaneously; the single-slot version
+// this replaced could only ever track one.
+function startCountdown(elId, expiresAtIso) {
+  if (!expiresAtIso) return null;
   const deadline = new Date(expiresAtIso).getTime();
-  const tick = () => {
+  const render = () => {
+    const el = document.getElementById(elId);
+    if (!el) { clearInterval(timer); return; }
     const remainMs = deadline - Date.now();
-    if (remainMs <= 0) {
-      el.textContent = T('bk_lock_expired');
-      clearInterval(__bk.lockTimer);
-      __bk.lockTimer = null;
-      return;
-    }
+    if (remainMs <= 0) { el.textContent = T('bk_lock_expired'); clearInterval(timer); return; }
     const mm = Math.floor(remainMs / 60000);
     const ss = Math.floor((remainMs % 60000) / 1000);
     el.textContent = `${mm}:${String(ss).padStart(2, '0')}`;
   };
-  tick();
-  __bk.lockTimer = setInterval(tick, 1000);
+  const timer = setInterval(render, 1000);
+  render();
+  return timer;
 }
-// Step 3 → step 4.
+// The booking modal only ever shows one countdown at a time (step 3's
+// bkLockCountdown, then step 4's bkReceiptCountdown) — this just tracks
+// that one timer in __bk.lockTimer so closeBookingModal()/showResult()
+// can clear it, and makes sure switching from one to the other never
+// leaves the previous interval running behind the scenes.
+function _startModalCountdown(elId, expiresAtIso) {
+  if (__bk.lockTimer) { clearInterval(__bk.lockTimer); __bk.lockTimer = null; }
+  __bk.lockTimer = startCountdown(elId, expiresAtIso);
+}
+// Step 3 → step 4 (also the direct entry point when resuming an existing
+// reservation — see resumeReservationModal()). Re-shows the amount due
+// and payment card as a reminder right where the receipt is actually
+// uploaded, since a resumed reservation may land here without ever
+// having shown step 3 in this page load.
 function goToReceiptStep() {
   _showBookingStep('bkReceiptBlock');
+  const payInfoEl = document.getElementById('bkReceiptPayInfo');
+  if (payInfoEl) {
+    const totalPrice = __bk.record ? Number(__bk.record.total_price || 0) : 0;
+    const event = API.events.get(__bk.eventId);
+    const currencyLabel = lang() === 'en' ? 'T' : ((event && event.currency) || 'تومان');
+    payInfoEl.innerHTML = `${T('bk_total')}: <strong style="color:var(--gold-deep)">${totalPrice.toLocaleString(lang() === 'en' ? 'en-US' : 'fa-IR')} ${currencyLabel}</strong><br>${__bk.payInfoHTML}`;
+  }
+  _startModalCountdown('bkReceiptCountdown', __bk.record && __bk.record.expires_at);
 }
 // Step 4 submit — the mandatory receipt upload. Unlike the old single-
 // step flow, a failure here does NOT lose the reservation (it already

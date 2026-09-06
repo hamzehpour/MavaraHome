@@ -5,6 +5,59 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Resume an unfinished reservation instead of starting over
+
+**Why:** requested, right after the 4-step redesign above shipped — a
+buyer who closes the tab mid-payment (goes to their banking app, gets
+interrupted, whatever) had no way back to that exact reservation. They'd
+either abandon it (fine — it expires on its own) or start a brand new
+one, which is the thing the capacity lock exists to prevent duplicates
+of.
+
+- `pages/account.html`: a `pending_payment` reservation in "رزروهای من"
+  now shows a live countdown (against its real `expires_at`) and a
+  "تکمیل رزرو" button, styled with a new `.btn--resume` amber accent —
+  distinct from the gold "book" button and the navy outline "details"
+  button, so it visibly reads as "you have something waiting."
+- `pages/event-detail.html`: a logged-in customer with an unfinished
+  reservation for *that* event sees the same "تکمیل رزرو" button + live
+  countdown in place of the normal "رزرو بلیت" CTA — falls back to the
+  normal CTA silently if they're not logged in or the check fails, so
+  this is only ever additive.
+- Both call the same new `resumeReservationModal(record)` (site.js):
+  reopens the booking modal for that exact reservation and jumps
+  straight to the receipt-upload step (step 4) — everything before that
+  (session, buyer info, payment instructions) was already shown once
+  when the reservation was first created, so only the actual missing
+  piece is asked for again. The amount due and payment card are repeated
+  as a compact reminder right there, since a resumed session may never
+  have shown step 3 on this page load.
+- The countdown itself (`startCountdown()`) was generalized from a
+  single-slot modal-only timer into something reusable — needed since
+  account.html can show more than one unfinished reservation, each
+  ticking down independently, which the old single-timer version
+  couldn't do at all.
+
+**Bug fixed along the way:** `GET /account/reservations` never actually
+included `event_id` on any row — `list_for_user()`'s raw query has no
+such column (it only has `session_id`), and `get_ticket_context()`
+(built for the ticket PDF, which never needed the id) doesn't resolve or
+return one either. Both new "resume" entry points depend on matching a
+reservation to its event, so this would have silently done nothing
+(every match failing against `undefined`) without a session lookup added
+to the endpoint's own enrichment step — caught by the first end-to-end
+Playwright run of the account.html path, which showed the dashboard
+correctly but the "تکمیل رزرو" flow going nowhere.
+
+Verified locally: full 49-test suite still passes. Playwright drove both
+new entry points end-to-end against a local `ENV=test` server — logged
+in, saw the live countdown and resume button on account.html, resumed
+straight into the receipt step with the correct amount/card shown,
+uploaded a receipt, and got the normal success screen; separately,
+loaded event-detail.html while logged in with an unfinished reservation
+for that event and confirmed the amber "تکمیل رزرو" CTA (not the normal
+gold one) with its own live countdown, resuming the same way from there.
+
 ## Booking-flow redesign: real 4-step flow, capacity lock actually works again, "نیازمند اصلاح" admin action
 
 **Why:** requested — the capacity lock (`payment_expiry_minutes`) had been
