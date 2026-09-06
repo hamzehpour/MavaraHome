@@ -494,16 +494,16 @@ def mark_awaiting_buyer_confirmation(reservation_id: int, admin_note: str) -> bo
                                                 "awaiting_buyer_confirmation", admin_note=admin_note)
 
 
-def _notify_rejection_email(reservation_id: int, reason: str) -> None:
+def _notify_rejection_email(reservation_id: int, reason: str) -> bool:
     reservation = reservations_repo.get_reservation(reservation_id)
     if not reservation:
-        return
+        return False
     ctx = _email_context_for_reservation(reservation)
     reason_block = f"\n\nدلیل: {reason}" if reason else ""
     subject, body = settings_service.render_email(
         "rejected", event_title=ctx["event_title"], session_date=ctx["session_date"], reason_block=reason_block,
     )
-    _notify_customer_by_email(reservation, subject=subject, body=body)
+    return _notify_customer_by_email(reservation, subject=subject, body=body)
 
 
 def finalize_rejection_if(reservation_id: int, expected_status: str, reviewed_by: int, reason: str) -> bool:
@@ -527,7 +527,20 @@ def finalize_rejection(reservation_id: int, reviewed_by: int, reason: str) -> No
     reject_reservation(reservation_id, reviewed_by, reason)
 
 
-def reject_reservation(reservation_id: int, reviewed_by: int, reason: str) -> None:
+def reject_reservation(reservation_id: int, reviewed_by: int, reason: str) -> bool:
+    """Direct, final rejection — no grace period, no dispute button (that's
+    handlers/admin_reservations.py's Telegram-only flow via
+    mark_awaiting_buyer_confirmation(), which needs a live chat for its
+    accept/dispute buttons to mean anything). Used by the website admin
+    panel's reject action, and by the Telegram reject flow specifically
+    for a buyer with no telegram_id — there's no interactive flow to hold
+    that reservation open for, so it's rejected outright instead of
+    parking it in awaiting_buyer_confirmation forever waiting for a button
+    click that can never come.
+
+    Returns whether the rejection email actually went out — see
+    _notify_customer_by_email()'s docstring for why this can't be assumed
+    just because the buyer has an email on file."""
     from database.repositories import payments as payments_repo
 
     payment = payments_repo.get_latest_payment(reservation_id)
@@ -535,7 +548,7 @@ def reject_reservation(reservation_id: int, reviewed_by: int, reason: str) -> No
         payments_repo.set_payment_status(payment["id"], "rejected", reviewed_by)
 
     reservations_repo.set_status(reservation_id, "rejected", admin_note=reason)
-    _notify_rejection_email(reservation_id, reason)
+    return _notify_rejection_email(reservation_id, reason)
 
 
 def expire_stale_reservations() -> list[dict]:

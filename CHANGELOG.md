@@ -5,6 +5,38 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Fix: rejecting via Telegram left a website-only buyer stuck, never notified
+
+**Why:** reported — rejecting a reservation from Telegram showed "⚠️ رزرو
+رد شد ولی ارسال پیام به خریدار ناموفق بود (آیدی تلگرام: None)" and the
+buyer never heard anything, by email or otherwise. Telegram's reject flow
+(`mark_awaiting_buyer_confirmation()`) is a grace period on purpose: the
+seat stays held while the buyer gets an interactive DM with "می‌پذیرم" /
+"توضیح می‌دهم" (dispute) buttons, and only their tap resolves it. That's
+meaningless for a website-only buyer with no Telegram account — there's
+no chat to put those buttons in, so the reservation was silently stuck in
+`awaiting_buyer_confirmation` forever, waiting on a button click that
+could never come, and the buyer got nothing at all (this flow never sent
+email, unlike the website admin panel's own reject action).
+
+- `handlers/admin_reservations.py`'s `_apply_rejection()` now checks for
+  a `telegram_id` FIRST: if the buyer has one, the existing grace-period/
+  dispute flow is unchanged; if not, it rejects the reservation directly
+  and finally — same shape as the website admin panel's reject action —
+  and emails them the reason instead.
+- `reservation_service.reject_reservation()` now returns whether the
+  rejection email actually went out (previously `-> None`, silently
+  assumed), so the Telegram admin sees the real outcome instead of
+  guessing — same pattern `approve_reservation()` already used.
+- Approve was already correct for this case (checked, per request) — it's
+  emailed a website-only buyer their confirmation since an earlier fix
+  this session; nothing to change there.
+
+Verified locally: full 49-test suite passes; a dedicated scratch test
+confirms `reject_reservation()` on a website-only (no telegram_id) buyer
+rejects immediately (not `awaiting_buyer_confirmation`) and reports the
+real email-send outcome.
+
 ## Fix two "نیازمند اصلاح" bugs: silent correction messages from the alerts channel, admin locked out afterwards
 
 **Why:** reported, after the "نیازمند اصلاح" action shipped — two separate
