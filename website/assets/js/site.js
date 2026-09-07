@@ -58,7 +58,6 @@ const I18N = {
     b_details: 'جزئیات', b_book: 'جزئیات و رزرو',
     empty_up: 'رویداد پیش‌رویی ثبت نشده — به‌زودی اینجا می‌بینمت.',
     empty_cat: 'رویدادی در این دسته ثبت نشده.', empty_event: 'رویداد پیدا نشد.',
-    gal_eyebrow: 'گالری', gal_title: 'از نگاه من', gal_link: 'فایل رزومه',
     events_eyebrow: 'تقویم', events_title: 'رویدادهای خانه ماورا', events_sub: 'همین حالا، به‌زودی، و آنچه گذشت', tag_all: 'همه',
     info_label: 'اطلاعات', loc_label: 'مکان', date_label: 'تاریخ', book_tg: 'رزرو از تلگرام',
     reserve_title: 'رزرو این رویداد', reserve_name: 'نام و نام خانوادگی', reserve_phone: 'شماره موبایل', reserve_email: 'ایمیل (برای پیگیری رزرو و دریافت بلیت)',
@@ -149,7 +148,6 @@ const I18N = {
     b_details: 'Details', b_book: 'Details & booking',
     empty_up: 'No upcoming events yet — see you here soon.',
     empty_cat: 'No events in this category yet.', empty_event: 'Event not found.',
-    gal_eyebrow: 'Gallery', gal_title: 'Through my lens', gal_link: 'Résumé',
     events_eyebrow: 'Calendar', events_title: 'Mavara events', events_sub: 'Now, soon, and what has passed', tag_all: 'All',
     info_label: 'Details', loc_label: 'Location', date_label: 'Date', book_tg: 'Book on Telegram',
     reserve_title: 'Reserve this event', reserve_name: 'Full name', reserve_phone: 'Mobile number', reserve_email: 'Email (to track your reservation and get your ticket)',
@@ -1181,45 +1179,6 @@ function loadFeedbacks(eventId) {
   el.innerHTML = items.length ? items.map(f => `<div class="feedback-item"><div class="author">${esc(f.author)}</div><div class="text">${esc(f.text)}</div></div>`).join('') : '<p style="font-size:13px;color:var(--text-muted)">' + T('empty_comment') + '</p>';
 }
 
-/* ── Gallery (flip cards) ──
-   عکسهای جدید خودت را اینجا اضافه کن:
-   { img: 'assets/images/mansour/photo.jpg',
-     title: { fa: 'عنوان فارسی', en: 'English title' },
-     desc:  { fa: 'این عکس کجاست / چیست', en: 'Where / what it is' },
-     link:  'pages/about-mansour.html' } */
-const GALLERY = [
-  { img: 'assets/images/mansour/m1.jpg', title: { fa: 'در نور صحنه', en: 'In the stage light' }, desc: { fa: 'لحظه‌ای از تمرین و اجرا — تهران', en: 'A moment from rehearsal & performance — Tehran' }, link: 'pages/about-mansour.html' },
-  { img: 'assets/images/mansour/m2.jpg', title: { fa: 'بین نقش‌ها', en: 'Between roles' }, desc: { fa: 'پشت صحنه و لحظه‌های شخصی', en: 'Behind the scenes & personal moments' }, link: 'pages/about-mansour.html' },
-  { img: 'assets/images/mansour/m3.jpg', title: { fa: 'پرتره', en: 'Portrait' }, desc: { fa: 'پرتره‌ای از منصور نصیری', en: 'A portrait of Mansour Nasiri' }, link: 'pages/about-mansour.html' }
-];
-
-function initGallery() {
-  const wrap = document.getElementById('galleryGrid');
-  if (!wrap) return;
-  const l = lang();
-  wrap.innerHTML = GALLERY.map((g, i) => `
-    <div class="g-card" id="gcard${i}" data-reveal style="--d:${i % 5}">
-      <div class="g-inner">
-        <div class="g-face g-front"><img src="${pp(g.img)}" alt="${esc(g.title[l])}" loading="lazy"></div>
-        <div class="g-face g-back">
-          <h4>${esc(g.title[l])}</h4>
-          <p>${esc(g.desc[l])}</p>
-          <a href="${pp(g.link)}">${T('gal_link')}</a>
-          <button type="button" class="g-return">${l === 'en' ? 'Flip back' : 'بازگشت به عکس'}</button>
-        </div>
-      </div>
-    </div>`).join('');
-  wrap.querySelectorAll('.g-card').forEach(card => {
-    card.onclick = (event) => {
-      if (event.target.closest('a')) return;
-      if (event.target.closest('.g-return')) { card.classList.remove('flipped'); return; }
-      card.classList.toggle('flipped');
-    };
-  });
-  // re-reveal
-  if (window.__mvReveal) window.__mvReveal();
-}
-
 // ── Quote ribbon: one thought, fading every 10s ──
 let __quoteIdx = 0;
 function initQuotes() {
@@ -1341,7 +1300,7 @@ async function loadSiteContent() {
 // ── Init dispatch ──
 function dispatchPage() {
   const page = document.body.dataset.page;
-  if (page === 'home') { initQuotes(); initSlider(); initEventsPreview(); initGallery(); }
+  if (page === 'home') { initQuotes(); initSlider(); initEventsPreview(); }
   if (page === 'events') initEventsPage();
   if (page === 'event-detail') initEventDetail();
 }

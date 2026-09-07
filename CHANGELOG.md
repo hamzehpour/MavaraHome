@@ -5,6 +5,23 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Remove the gallery section from the home page
+
+**Why:** requested — the "از نگاه من" flip-card photo gallery on the
+homepage is no longer wanted.
+
+- Removed the `<section>` (and its `#galleryGrid` container) from
+  `index.html`.
+- Removed the now-unused `GALLERY` data array, `initGallery()`, and its
+  call from the home-page dispatcher in `assets/js/site.js`, plus the
+  `gal_eyebrow`/`gal_title`/`gal_link` i18n strings (fa + en) — nothing
+  else referenced them.
+- Removed the matching `.gallery-grid`/`.g-card`/`.g-inner`/`.g-face`/
+  `.g-front`/`.g-back` CSS block (including its two mobile breakpoints)
+  from `styles.css` — dead weight once the section is gone.
+- The photos themselves (`assets/images/mansour/m1–m3.jpg`) are untouched
+  — still used by `pages/about-mansour.html`.
+
 ## Fix production crash: booking failed with a generic error for some buyers
 
 **Why:** reported — "ثبت رزرو با خطا مواجه شد" on the website, no more
