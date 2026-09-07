@@ -5,6 +5,39 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Fix production crash: booking failed with a generic error for some buyers
+
+**Why:** reported — "ثبت رزرو با خطا مواجه شد" on the website, no more
+detail than that. Production logs showed the real cause: a 500 crash
+inside `get_or_create_customer()` (`database/repositories/users.py`),
+`sqlite3.IntegrityError: UNIQUE constraint failed: users.phone`. Pre-
+existing bug, unrelated to anything from this session's other work —
+just never triggered before.
+
+The function's own documented rule is "never overwrite a non-empty
+phone/email, only fill a blank in" — but it never checked whether the
+value it was about to fill in was already claimed by a *different* row.
+Concretely: buyer is matched by email to an existing row that has no
+phone yet; the phone they typed this time already belongs to some other
+row entirely (an old Telegram-only signup, a shared household number,
+...). The backfill `UPDATE users SET phone = ?` then collided with
+`users.phone`'s UNIQUE constraint and raised — taking the whole
+reservation attempt down with a 500, and every retry hit the exact same
+conflict and failed the same way (matches the log: two crashes, 23
+seconds apart, almost certainly the same person retrying).
+
+- `get_or_create_customer()` now checks for that conflict before each
+  backfill (email and phone, symmetrically) and simply skips it if the
+  value belongs to someone else — the row matched by the other
+  identifier is still correct to use, it just won't also gain an
+  identifier that's genuinely a different person's.
+
+Verified locally: reproduced the exact crash first (confirmed root
+cause), then confirmed the fix resolves it without crashing, returns the
+correct row, and does not steal the identifier from its real owner. Full
+49-test suite passes, including a new permanent regression test for this
+exact scenario.
+
 ## Emphasize accurate phone/email in the booking form
 
 **Why:** requested — the phone/email step had no reminder that these are

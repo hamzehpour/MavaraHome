@@ -52,10 +52,35 @@ def get_or_create_customer(email: str | None = None, phone: str | None = None,
         if row:
             row = dict(row)
             updates, params = [], []
+            # Bug fix (reported, real production crash — 500 on every
+            # booking attempt for the affected buyer): backfilling email/
+            # phone onto the row found by the OTHER identifier used to
+            # assume the value being filled in was never claimed anywhere
+            # else, and just UPDATEd it straight in — but `email`/`phone`
+            # are both UNIQUE columns, so if this buyer's phone (or email)
+            # already belongs to a DIFFERENT row (e.g. an old Telegram-only
+            # row with no email, or a second person who happens to share a
+            # household phone), the UPDATE raised sqlite3.IntegrityError
+            # and the entire reservation attempt crashed with a 500 —
+            # every retry hit the exact same conflict and failed the same
+            # way. Now: check for that conflict first and simply skip the
+            # backfill if it exists, matching the function's own stated
+            # intent ("never overwrites... only fills a blank") — this row
+            # (matched by the OTHER identifier) is still the correct,
+            # existing customer to book under, it just won't also gain an
+            # identifier that's genuinely someone/something else's.
             if email and not row.get("email"):
-                updates.append("email = ?"); params.append(email); row["email"] = email
+                conflict = conn.execute(
+                    "SELECT 1 FROM users WHERE email = ? AND id != ?", (email, row["id"])
+                ).fetchone()
+                if not conflict:
+                    updates.append("email = ?"); params.append(email); row["email"] = email
             if phone and not row.get("phone"):
-                updates.append("phone = ?"); params.append(phone); row["phone"] = phone
+                conflict = conn.execute(
+                    "SELECT 1 FROM users WHERE phone = ? AND id != ?", (phone, row["id"])
+                ).fetchone()
+                if not conflict:
+                    updates.append("phone = ?"); params.append(phone); row["phone"] = phone
             if full_name and not row.get("full_name"):
                 updates.append("full_name = ?"); params.append(full_name); row["full_name"] = full_name
             if updates:

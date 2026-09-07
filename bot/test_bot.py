@@ -746,6 +746,30 @@ def _t():
     assert a["id"] != b["id"]
 
 
+@test("Regression: backfilling a phone/email already claimed by a DIFFERENT row must not crash")
+def _t():
+    # Real production crash (500 on every retry): a row matched by email
+    # had no phone yet, and the phone this booking supplied already
+    # belonged to a completely different row (an old Telegram-only
+    # customer, say) — the backfill UPDATE hit users.phone's UNIQUE
+    # constraint and raised, taking the whole reservation attempt down
+    # with it. Must now silently skip the backfill instead: the
+    # email-matched row is still the right one to use, it just doesn't
+    # also steal an identifier that genuinely belongs to someone else.
+    owner_of_phone = users_repo.get_or_create_customer(phone="09120000091", full_name="صاحب شماره")
+    target = users_repo.get_or_create_customer(email="conflict@example.com", full_name="هدف")
+
+    result = users_repo.get_or_create_customer(
+        email="conflict@example.com", phone="09120000091", full_name="هدف",
+    )
+    assert result["id"] == target["id"], "must still resolve to the email-matched row"
+    assert result["phone"] is None, "must NOT steal the phone from its real owner"
+
+    # The other row is untouched.
+    still_owner = users_repo.get_or_create_customer(phone="09120000091")
+    assert still_owner["id"] == owner_of_phone["id"]
+
+
 @test("Phase 2: OTP channel picker defaults to email-only, phone is a clean not-yet-supported error")
 def _t():
     from services import settings_service, customer_auth_service
