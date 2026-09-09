@@ -61,6 +61,7 @@ const I18N = {
     events_eyebrow: 'تقویم', events_title: 'رویدادهای خانه ماورا', events_sub: 'همین حالا، به‌زودی، و آنچه گذشت', tag_all: 'همه',
     info_label: 'اطلاعات', loc_label: 'مکان', date_label: 'تاریخ', book_tg: 'رزرو از تلگرام',
     faq_title: 'پرسش‌های متداول',
+    gallery_label: 'گالری تصاویر', video_label: 'ویدیو',
     reserve_title: 'رزرو این رویداد', reserve_name: 'نام و نام خانوادگی', reserve_phone: 'شماره موبایل', reserve_email: 'ایمیل (برای پیگیری رزرو و دریافت بلیت)',
     bk_contact_accuracy_note: '⚠️ شماره موبایل و ایمیل را با دقت و بدون اشتباه وارد کنید — بلیت، کد پیگیری و هر خبری درباره‌ی این رزرو فقط از همین دو راه به دستتان می‌رسد.',
     bk_book_now: 'رزرو بلیت', bk_close: 'بستن پنجره',
@@ -152,6 +153,7 @@ const I18N = {
     events_eyebrow: 'Calendar', events_title: 'Mavara events', events_sub: 'Now, soon, and what has passed', tag_all: 'All',
     info_label: 'Details', loc_label: 'Location', date_label: 'Date', book_tg: 'Book on Telegram',
     faq_title: 'Frequently Asked Questions',
+    gallery_label: 'Photo Gallery', video_label: 'Video',
     reserve_title: 'Reserve this event', reserve_name: 'Full name', reserve_phone: 'Mobile number', reserve_email: 'Email (to track your reservation and get your ticket)',
     bk_contact_accuracy_note: "⚠️ Double-check your mobile number and email — your ticket, tracking code, and any updates about this reservation are sent only through these two.",
     bk_book_now: 'Book a ticket', bk_close: 'Close',
@@ -250,10 +252,25 @@ function coverFallback(el) {
   el.classList.add('is-fallback');
   el.innerHTML = ICON_STAR + '<span>خانه ماورا</span>';
 }
-function coverHTML(e) {
+// imgId: optional — only the event-detail page's own call site passes
+// one (see initEventDetail()), so the gallery thumbnails there have a
+// single element to swap into. coverHTML() also renders many event CARDS
+// at once (homepage slider, events list) — giving the <img> a fixed id
+// there would duplicate it across the page and break getElementById.
+function coverHTML(e, imgId) {
   const img = e.poster || (Array.isArray(e.gallery) && e.gallery[0]) || null;
+  const idAttr = imgId ? ` id="${imgId}"` : '';
   if (!img) return '<div class="event-cover is-fallback">' + ICON_STAR + '<span>خانه ماورا</span></div>';
-  return '<div class="event-cover"><img src="' + pp(img) + '" alt="' + esc(evTitle(e)) + '" loading="lazy" onerror="coverFallback(this.parentNode)"></div>';
+  return '<div class="event-cover"><img' + idAttr + ' src="' + pp(img) + '" alt="' + esc(evTitle(e)) + '" loading="lazy" onerror="coverFallback(this.parentNode)"></div>';
+}
+// Gallery thumbnail click, event-detail page only (see galleryHTML in
+// initEventDetail()) — swaps the big cover frame's image instead of the
+// previous window.open(src, '_blank'), which just opened a bare new tab
+// with nothing but the image in it (reported as a bug: clicking a
+// thumbnail should show it in the existing big frame, not leave the page).
+function showEventCoverImage(src) {
+  const img = document.getElementById('eventCoverImg');
+  if (img) img.src = src;
 }
 function evTitle(e) { return (lang() === 'en' && e.title_en) ? e.title_en : e.title; }
 function evLoc(e) { return (lang() === 'en' && e.location_en) ? e.location_en : (e.location || ''); }
@@ -448,13 +465,13 @@ async function initEventDetail() {
   }
 
   const galleryHTML = Array.isArray(e.gallery) && e.gallery.length
-    ? `<div style="margin-top:22px"><h3 style="font-weight:700;margin-bottom:10px;color:var(--navy)">${T('gallery_label') || 'گالری تصاویر'}</h3>
+    ? `<div style="margin-top:22px"><h3 style="font-weight:700;margin-bottom:10px;color:var(--navy)">${T('gallery_label')}</h3>
        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px">
-         ${e.gallery.map(src => `<img src="${pp(esc(src))}" loading="lazy" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;cursor:pointer" onclick="window.open('${pp(esc(src))}','_blank')">`).join('')}
+         ${e.gallery.map(src => `<img src="${pp(esc(src))}" loading="lazy" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;cursor:pointer" onclick="showEventCoverImage('${pp(esc(src))}')">`).join('')}
        </div></div>`
     : '';
   const videoHTML = e.video
-    ? `<div style="margin-top:22px"><h3 style="font-weight:700;margin-bottom:10px;color:var(--navy)">${T('video_label') || 'ویدیو'}</h3>
+    ? `<div style="margin-top:22px"><h3 style="font-weight:700;margin-bottom:10px;color:var(--navy)">${T('video_label')}</h3>
        <video controls style="width:100%;border-radius:14px;background:#000" src="${pp(esc(e.video))}"></video></div>`
     : '';
 
@@ -515,7 +532,7 @@ async function initEventDetail() {
     <h1 style="font-size:clamp(1.5rem,3vw,1.95rem);font-weight:700;margin-bottom:6px;color:var(--navy)">${esc(evTitle(e))}</h1>
     <p style="color:var(--text-muted);margin-bottom:24px;line-height:2">${esc(evCtx(e))}</p>
     <div class="event-detail-grid" style="display:grid;grid-template-columns:340px 1fr;gap:32px;align-items:start;max-width:960px;margin:0 auto">
-      <div class="event-detail-poster" style="order:2">${coverHTML(e)}${galleryHTML}${videoHTML}</div>
+      <div class="event-detail-poster" style="order:2">${coverHTML(e, 'eventCoverImg')}${galleryHTML}${videoHTML}</div>
       <div class="event-detail-info" style="order:1;display:grid;gap:18px">
         <div>
           <h3 style="font-weight:700;margin-bottom:10px;color:var(--navy)">${T('info_label')}</h3>

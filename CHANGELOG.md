@@ -5,6 +5,29 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Fix: event-detail gallery — literal "gallery_label" text, thumbnails opening a new tab
+
+**Why:** reported, two separate bugs on the same page:
+
+1. The gallery section's heading literally showed the text
+   `gallery_label` instead of "گالری تصاویر" — the site's `T(key)`
+   helper returns the key itself, unchanged, when a translation is
+   missing (`I18N[lang()][k] ?? I18N.fa[k] ?? k`), so a call site written
+   as `T('gallery_label') || 'گالری تصاویر'` never actually fell back:
+   `T()` already returned a truthy string (`'gallery_label'`, the key),
+   so the `||` never triggered. `video_label` had the exact same latent
+   bug, just never noticed since no event happened to have a video yet.
+   Fixed by adding both as real `I18N.fa`/`I18N.en` keys and dropping the
+   dead `|| '...'` fallbacks.
+2. Clicking a gallery thumbnail opened the image in a bare new browser
+   tab (`window.open(src, '_blank')`) instead of showing it in the
+   existing big cover frame at the top of the page. `coverHTML()` (also
+   used to render many event CARDS at once, e.g. the homepage slider —
+   giving its `<img>` a fixed id there would have duplicated it across
+   the page) now takes an optional `imgId`, passed only by the event-
+   detail page's own call site; each thumbnail's click swaps that
+   element's `src` instead of opening a tab.
+
 ## Fix: adding a FAQ to an event silently didn't save
 
 **Why:** reported — the admin added FAQs (both "create new" and "pick
