@@ -5,33 +5,43 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
-## Fix: blank scrolling gap at the top of every admin panel page
+## Fix: blank ~62px scrolling gap at the top of every admin panel page
 
 **Why:** reported — an empty band at the top of every admin page that
-scrolled along with the rest of the content, on every page in the panel
-(not specific to any one of them). The user's own hunch was right: the
-logout button's `margin-top:auto` (pushing it to the sidebar's bottom)
-assumed the sidebar was pinned to the viewport height — it wasn't.
+scrolled along with the rest of the content, on every page in the
+panel. First pass (below) treated a real but secondary layout issue as
+the cause; the user pinned the actual root cause precisely, with the
+exact pixel count, and it was something else entirely.
 
-Root cause: `.admin-sidebar` had no explicit height, so the flex row's
-default `align-items:stretch` made it (and `.admin-main`) stretch to
-match whichever one's own content was tallest. With ~12 nav items, the
-sidebar's natural content height routinely exceeds 100vh, which pushed
-the whole layout — and the page itself — taller than the viewport just
-to fit the sidebar, instead of the sidebar being its own
-independently-scrolling column pinned to the screen.
+**Real root cause:** the global `body` rule near the top of `styles.
+css` sets `padding-top:62px` — reserved for the public site's own
+FIXED header (`#header`, loaded via `site.js`'s `loadHeader()`), so
+page content never slides under it. Admin pages never load that header
+at all (they use `.admin-layout` instead) — so that 62px just sat
+there as dead space above the sidebar/content, pushing `body`'s
+rendered height exactly 62px past the viewport and forcing that much
+scroll on every single admin page, regardless of how much real content
+was on it. Fixed with `body:has(.admin-layout){padding-top:0}` —
+scopes the reset to pages that actually use the admin layout, without
+having to add a class to every admin page's `<body>` tag by hand.
+`pages/admin/login.html` (centered card, no sidebar, doesn't use
+`.admin-layout`) correctly keeps the original padding — untouched,
+as it should be.
 
-Fixed by pinning `.admin-sidebar` to the viewport height
-(`position:sticky;top:0;height:100vh`, scrolling internally if its own
-content ever exceeds that) and giving `.admin-main` the same explicit
-`height:100vh` — the two no longer stretch each other, and the page
-itself never needs to scroll; only whichever column has more content
-than fits does. Reset back to normal flow in the existing mobile
-breakpoint, where the sidebar becomes a horizontal top bar instead (a
-vertical "pinned to viewport height" sidebar makes no sense there).
-Applies to every admin page uniformly — all of them share these same
-`.admin-layout`/`.admin-sidebar`/`.admin-main` classes (confirmed by
-grep — only `login.html`, which has no sidebar, doesn't).
+Kept the sidebar-height fix from the first pass alongside this, since
+it's a real (if secondary, and no longer the dominant cause once the
+62px is gone) issue on its own: `.admin-sidebar` had no explicit
+height, so the flex row's default `align-items:stretch` made it (and
+`.admin-main`) stretch to match whichever one's own content was
+tallest — with ~12 nav items, that can exceed 100vh on a short/zoomed
+viewport even with the 62px gone. Pinned `.admin-sidebar` to the
+viewport height (`position:sticky;top:0;height:100vh`, scrolling
+internally if its own content ever exceeds that) and gave `.admin-main`
+the same explicit `height:100vh` — neither stretches the other. Reset
+back to normal flow in the mobile breakpoint, where the sidebar is a
+horizontal bar instead. Applies to every admin page uniformly — all of
+them share these same `.admin-layout`/`.admin-sidebar`/`.admin-main`
+classes (confirmed by grep — only `login.html` doesn't).
 
 ## Admin: event create/edit moved from a modal to its own page
 

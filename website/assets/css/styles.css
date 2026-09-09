@@ -605,13 +605,24 @@ body::before{
 @keyframes bkSheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 
 /* ═══════════ ADMIN ═══════════ */
+/* Bug (reported — a blank ~62px gap at the top of every admin page
+   that scrolled along with the content): the global `body` rule near
+   the top of this file sets `padding-top:62px` to leave room for the
+   public site's own FIXED header (`#header`, loaded via
+   site.js's loadHeader()) — admin pages never load that header at all
+   (they use .admin-layout instead), so that 62px just sat there as
+   dead space, pushing body's rendered height 62px past the viewport
+   and forcing exactly that much extra scroll on every admin page.
+   :has() scopes the reset to pages that actually use the admin layout,
+   without needing a class added to every admin page's <body> tag. */
+body:has(.admin-layout){padding-top:0}
 .admin-layout{display:flex;min-height:100vh}
-/* Bug (reported — a blank gap at the top of every admin page that
-   scrolled along with the content): the sidebar had no explicit height,
-   so a flex row's default align-items:stretch made BOTH it and
-   .admin-main stretch to whichever one's own CONTENT was taller — with
-   ~12 nav items, that's routinely more than 100vh, which pushed the
-   whole .admin-layout (and the page itself) taller than the viewport
+/* Separate, smaller issue fixed alongside the one above: the sidebar
+   had no explicit height, so a flex row's default align-items:stretch
+   made BOTH it and .admin-main stretch to whichever one's own CONTENT
+   was taller — with ~12 nav items, that's more than 100vh on a short/
+   zoomed-in viewport, which would push the whole .admin-layout (and
+   the page itself) taller than the viewport
    just to fit the sidebar, instead of the sidebar being its own
    independently-scrolling column pinned to the viewport (the logout
    button's `margin-top:auto` was written assuming exactly that). Fixed
