@@ -69,6 +69,7 @@ from database.repositories import admins as admins_repo  # noqa: E402
 from database.repositories import waitlist as waitlist_repo  # noqa: E402
 from database.repositories import faqs as faqs_repo  # noqa: E402
 from database.repositories import team_members as team_repo  # noqa: E402
+from database.repositories import portfolio as portfolio_repo  # noqa: E402
 from services import reservation_service, event_service, permissions  # noqa: E402
 from utils.jalali import gregorian_to_jalali, jalali_to_gregorian, gregorian_iso_to_jalali_display  # noqa: E402
 from utils.qr_signing import sign_code, verify_signed_code  # noqa: E402
@@ -898,6 +899,84 @@ def _t():
     assert updated["photo"] is None
     assert updated["contact_instagram"] == "@ig", "removing the photo must not touch other fields"
     assert updated["full_name"] == "تست عضو"
+
+
+@test("Schema v18: Mansour Nasiri is backfilled into team_members from the old content_mansour_* settings")
+def _t():
+    # init_db() already ran once (module setup, above) against this
+    # suite's fresh disposable database — the one-time migration fires on
+    # that very first call, so by now the row must already exist.
+    m = team_repo.get_by_slug("mansour-nasiri")
+    assert m is not None, "the schema v18 migration must create a real team_members row for Mansour"
+    assert m["full_name"] == "منصور نصیری"
+    assert m["eyebrow"] == "بازیگر · کارگردان · نویسنده"
+    assert m["photo"] == "assets/images/mansour/m3.jpg"
+    assert m["status"] == "active", "his own page must stay publicly reachable"
+    assert m["hide_from_list"], "he must NOT also show up in the general team grid (about-mansour.html is his own nav entry)"
+    assert isinstance(m["links"], list) and len(m["links"]) == 2
+    assert {l["label"] for l in m["links"]} == {"Instagram", "IMDb"}
+
+    # Calling init_db() again must be a true no-op for this row (idempotent
+    # migration guard) — not create a duplicate or silently overwrite
+    # whatever an admin has since edited.
+    team_repo.update(m["id"], bio_fa="متن ویرایش‌شده توسط ادمین")
+    init_db()
+    m2 = team_repo.get_by_slug("mansour-nasiri")
+    assert m2["id"] == m["id"]
+    assert m2["bio_fa"] == "متن ویرایش‌شده توسط ادمین", "re-running the migration must not clobber admin edits"
+
+
+@test("Schema v18: portfolio.list_for_member() scopes and orders resume projects per team member")
+def _t():
+    a = team_repo.create(full_name="عضو تست الف")
+    b = team_repo.create(full_name="عضو تست ب")
+    p1 = portfolio_repo.create(title_fa="پروژه ۱", category="THEATER", year="1400", sort_order=1, team_member_id=a)
+    p2 = portfolio_repo.create(title_fa="پروژه ۲", category="CINEMA", year="1401", sort_order=0, team_member_id=a)
+    portfolio_repo.create(title_fa="پروژه‌ی عضو دیگر", category="CINEMA", year="1400", team_member_id=b)
+
+    ids_a = [p["id"] for p in portfolio_repo.list_for_member(a)]
+    assert ids_a == [p2, p1], "must be scoped to member a, ordered by sort_order"
+    assert len(portfolio_repo.list_for_member(b)) == 1
+
+
+@test("Schema v18: team_members.links JSON round-trips through create/update")
+def _t():
+    member_id = team_repo.create(
+        full_name="عضو تست لینک",
+        links=[{"label": "Instagram", "url": "https://instagram.com/x"}],
+    )
+    row = team_repo.get(member_id)
+    assert row["links"] == [{"label": "Instagram", "url": "https://instagram.com/x"}]
+
+    updated = team_repo.update(member_id, links=[{"label": "Telegram", "url": "https://t.me/x"}])
+    assert updated["links"] == [{"label": "Telegram", "url": "https://t.me/x"}]
+    assert updated["full_name"] == "عضو تست لینک", "updating links must not touch unrelated fields"
+
+    cleared = team_repo.update(member_id, links=[])
+    assert cleared["links"] == []
+
+
+@test("Schema v18: _team_public() embeds a member's resume projects, correctly ordered")
+def _t():
+    from api.server import _team_public
+
+    member_id = team_repo.create(full_name="عضو تست embed")
+    p1 = portfolio_repo.create(title_fa="اول", category="THEATER", sort_order=1, team_member_id=member_id)
+    p2 = portfolio_repo.create(title_fa="دوم", category="THEATER", sort_order=0, team_member_id=member_id)
+
+    public = _team_public(team_repo.get(member_id))
+    assert [p["id"] for p in public["portfolio"]] == [p2, p1]
+    assert "contact_telegram" not in public, "contact_telegram/contact_instagram are retired from the public payload"
+    assert "contact_instagram" not in public
+
+
+@test("Schema v18: deleting a team member cascades to their resume projects (ON DELETE CASCADE)")
+def _t():
+    member_id = team_repo.create(full_name="عضو تست حذف")
+    p1 = portfolio_repo.create(title_fa="پروژه‌ی محکوم به حذف", category="THEATER", team_member_id=member_id)
+
+    team_repo.delete(member_id)
+    assert portfolio_repo.get(p1) is None, "portfolio rows must not survive their owner's deletion"
 
 
 def main() -> None:

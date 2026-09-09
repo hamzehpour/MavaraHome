@@ -1,13 +1,16 @@
-"""Repository for the `portfolio` table — Mansour's resume/CV entries.
-Unrelated to reservations; kept on the same shared backend/database
-instead of a third separate data store (see schema.py comment)."""
+"""Repository for the `portfolio` table — resume/CV entries, one row per
+project, each belonging to a `team_members` row via team_member_id
+(schema v18 — see schema.py comment; Mansour Nasiri is now a regular
+team_members row too, not a special case). Unrelated to reservations;
+kept on the same shared backend/database instead of a third separate
+data store (see schema.py comment)."""
 import json
 from database.connection import get_connection
 
 _FIELDS = (
     "title_fa", "title_en", "year", "category", "director", "director_en",
     "role", "role_en", "festival", "festival_en", "poster", "video",
-    "desc_fa", "desc_en", "status", "sort_order",
+    "desc_fa", "desc_en", "status", "sort_order", "team_member_id",
 )
 
 
@@ -35,6 +38,18 @@ def get(item_id: int) -> dict | None:
     with get_connection() as conn:
         row = conn.execute("SELECT * FROM portfolio WHERE id = ?", (item_id,)).fetchone()
         return _row_to_dict(row) if row else None
+
+
+def list_for_member(team_member_id: int) -> list[dict]:
+    """Resume projects belonging to one team member, in public display
+    order — mirrors faqs.py's list_for_event() naming/shape."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT * FROM portfolio WHERE team_member_id = ? "
+            "ORDER BY sort_order, year DESC, id",
+            (team_member_id,),
+        ).fetchall()
+        return [_row_to_dict(r) for r in rows]
 
 
 def create(**fields) -> int:

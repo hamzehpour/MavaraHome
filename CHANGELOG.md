@@ -5,6 +5,78 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Unified resume/profile module: Mansour Nasiri's page and every team member's page now share one system (schema v18)
+
+**Why:** requested — the "درباره‌ی منصور نصیری" page's resume-building,
+profile-editing and gallery/viewer capabilities were entirely bespoke to
+Mansour (a global, unscoped `portfolio` table + `content_mansour_*`
+settings rows), while "اعضای خانه ماورا" (`team_members`) had none of
+that at all. Wanted: turn Mansour's system into one shared module — admin
+create/edit and public display/use — for both his page and every team
+member's page.
+
+- **Mansour is now a real `team_members` row** (`slug='mansour-nasiri'`),
+  not a permanently-separate settings singleton. A one-time schema v18
+  migration (`database/schema.py`'s `init_db()`, same placement/guard
+  style as the pre-existing `bank_cards` one-time carry-over) creates
+  that row from the old `content_mansour_*` settings values and backfills
+  every existing `portfolio` row's new `team_member_id` to point at it.
+  His public URL/nav entry (`pages/about-mansour.html`) is unchanged —
+  it now just fetches `team/mansour-nasiri` instead of `site-content`.
+- `team_members` gained `eyebrow`/`eyebrow_en` (the short badge line
+  above the name), `bio_full_fa`/`bio_full_en` (the expandable "بیشتر"
+  continuation), and `links` (a JSON list of `{label,url}` link buttons —
+  replaces the old fixed `contact_telegram`/`contact_instagram` fields
+  for every member, Mansour included; those two columns stay in the DB,
+  unread, for safety). `hide_from_list` lets a member's own page stay
+  public while excluding them from the general "اعضای خانه ماورا" grid —
+  needed for Mansour, whose about page has always been its own separate
+  nav entry, not a normal directory listing.
+- `portfolio` gained `team_member_id` (FK, `ON DELETE CASCADE` — a resume
+  project has no independent meaning once its owner is gone, unlike the
+  genuinely shared FAQ bank). Every resume project now belongs to a
+  specific team member; `POST /api/v1/admin/portfolio` requires it.
+- New shared JS module `assets/js/resume.js` (`MavaraResume`) — the
+  category-grouped resume list (سینما/نمایش خانگی/فیلم کوتاه/تئاتر,
+  identical for everyone), project detail modal, fullscreen gallery
+  viewer with prev/next, and samples tab, all ported from
+  `about-mansour.html`'s old inline script and generalized to take a
+  `member` object (profile fields + embedded `portfolio` array — same
+  formatter, `_team_public()`, now embeds a member's resume the same way
+  `_event_public()` already embeds an event's FAQs) instead of being
+  hardwired to Mansour's data. Both `about-mansour.html` (fixed to his
+  slug) and `pages/team.html`'s `?slug=` detail view carry the same `mv*`
+  HTML skeleton and call `MavaraResume.mount(member)`.
+- Admin: `pages/admin/team.html` is now list-only (same modal→page
+  pattern as this session's earlier `events.html`→`event-edit.html`
+  move); new `pages/admin/team-edit.html` holds profile fields, the
+  links editor, and a resume-project grid scoped to `team_member_id`
+  (shown once the member is saved — same "belongs to an already-saved
+  parent" pattern as `event-edit.html`'s sessions/FAQ boxes; a new
+  member redirects to `team-edit.html?id=<new>` after its first save so
+  a resume can be added in the same sitting). The old
+  `pages/admin/portfolio.html` (Mansour-only) is deleted; its sidebar
+  link removed from every other admin page.
+- `content_mansour_*` settings keys removed from `EDITABLE_SETTINGS`/
+  `CONTENT_KEYS`/`SETTINGS_FIELD_TYPES` (kept in `DEFAULT_SETTINGS` only
+  as the migration's one-time seed source) and from `site.js`'s
+  `SITE_CONTENT_MAP`. Upload kind `"mansour"` retired — his photo now
+  uploads as `kind="team"` like everyone else; already-uploaded files
+  under `media/mansour/...` keep resolving unchanged (`GET /media/<path>`
+  is subfolder-agnostic, only the DB path pointer was carried over).
+- Verified locally: full automated suite, 59/59 (5 new tests — Mansour
+  backfill + idempotent re-migration, `portfolio.list_for_member()`
+  scoping/ordering, `links` JSON round-trip, `_team_public()` resume
+  embedding, cascade delete). Live HTTP smoke test against a fresh
+  disposable DB: Mansour backfilled correctly and excluded from
+  `GET /api/v1/team`'s list but reachable at `/api/v1/team/mansour-nasiri`;
+  created a new team member + resume project through the real admin
+  endpoints (`team_member_id`-missing request correctly rejected with
+  400); confirmed `/api/v1/site-content` no longer serves any
+  `content_mansour_*` key. All new/changed HTML pages checked for valid
+  inline JS syntax (`node -c`) and all changed Python files
+  byte-compiled cleanly.
+
 ## Fix: blank ~62px scrolling gap at the top of every admin panel page
 
 **Why:** reported — an empty band at the top of every admin page that

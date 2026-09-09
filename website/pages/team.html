@@ -23,6 +23,7 @@
 <div id="footer"></div>
 <script src="../assets/js/app.js"></script>
 <script src="../assets/js/site.js"></script>
+<script src="../assets/js/resume.js"></script>
 <script>
 loadHeader('team.html'); loadFooter();
 
@@ -37,21 +38,52 @@ async function renderTeam() {
     try {
       const m = await API.team.bySlug(slug);
       const isEn = lang() === 'en';
-      const name = isEn && m.full_name_en ? m.full_name_en : m.full_name;
-      const role = isEn && m.role_title_en ? m.role_title_en : m.role_title;
-      const bio = isEn && m.bio_en ? m.bio_en : m.bio_fa;
+      // Schema v18: this branch now carries the same "mv*"-id skeleton
+      // about-mansour.html uses, rendered by the shared MavaraResume
+      // module (assets/js/resume.js) — profile + links list (replacing
+      // the old fixed telegram/instagram buttons) + category-grouped
+      // resume + samples tab + project modal + fullscreen gallery viewer.
       root.innerHTML = `
-        <div class="team-detail">
-          <a href="team.html" style="display:inline-block;margin-bottom:18px;color:var(--gold,#c8a24a)">${isEn ? '← Back to team' : '← بازگشت به اعضا'}</a>
-          ${m.photo ? `<img src="/${m.photo}" alt="${esc(name)}">` : `<div class="ph-fallback" style="width:150px;height:150px;font-size:42px;margin:0 auto 16px">${esc((name||'?')[0])}</div>`}
-          <h1 style="margin-bottom:4px">${esc(name)}</h1>
-          ${role ? `<p style="color:var(--text-muted);margin-bottom:16px">${esc(role)}</p>` : ''}
-          ${bio ? `<p style="line-height:2;text-align:${isEn ? 'left' : 'right'}">${esc(bio)}</p>` : ''}
-          ${(m.contact_telegram || m.contact_instagram || m.contact_phone) ? `<div style="margin-top:20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-            ${m.contact_telegram ? `<a class="btn btn--outline" href="https://t.me/${esc(m.contact_telegram.replace('@',''))}" target="_blank" rel="noopener" style="font-size:12px">تلگرام</a>` : ''}
-            ${m.contact_instagram ? `<a class="btn btn--outline" href="https://instagram.com/${esc(m.contact_instagram.replace('@',''))}" target="_blank" rel="noopener" style="font-size:12px">اینستاگرام</a>` : ''}
-          </div>` : ''}
+        <a href="team.html" style="display:inline-block;margin-bottom:18px;color:var(--gold,#c8a24a)">${isEn ? '← Back to team' : '← بازگشت به اعضا'}</a>
+        <section class="resume-container resume-profile-section">
+          <div class="resume-bio" data-reveal>
+            <div class="resume-bio-photo-wrap"><img id="mvProfilePhoto" src="" alt="" loading="lazy"></div>
+            <div class="resume-bio-text" id="mvBioText">
+              <p class="eyebrow" id="mvEyebrow"></p>
+              <h1 id="mvTitle"></h1>
+              <p class="role" id="mvSub"></p>
+              <p id="mvBioP"></p>
+              <button class="bio-more" id="mvBioMore" type="button" aria-expanded="false"><span data-i18n="bio_more">بیشتر</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+              <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap" id="mvLinksProfile"></div>
+            </div>
+          </div>
+        </section>
+        <div class="divider"></div>
+        <section class="resume-container" id="mvResumeList"></section>
+        <div class="divider"></div>
+        <section class="section">
+          <div class="section-head"><h2 class="section-title" data-i18n="samples_title">نمونه کارها</h2></div>
+          <div class="samples-tabs" id="mvSamplesTabs">
+            <button class="samples-tab-btn active" data-tab="all" data-i18n="tab_all">همه</button>
+            <button class="samples-tab-btn" data-tab="photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg><span data-i18n="tab_photo">عکس</span></button>
+            <button class="samples-tab-btn" data-tab="video"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.5"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 7h5M17 17h5"/></svg><span data-i18n="tab_video">ویدیو</span></button>
+          </div>
+          <div class="samples-gallery" id="mvSamplesGallery"></div>
+        </section>
+        <div class="modal-overlay" id="mvModal" style="display:none">
+          <div class="modal">
+            <div class="modal-header"><h3 id="mvModalTitle"></h3><button class="modal-close" onclick="MavaraResume.closeModal()" aria-label="close">✕</button></div>
+            <div class="modal-body" id="mvModalBody"></div>
+          </div>
+        </div>
+        <div class="viewer-overlay" id="mvViewer" style="display:none" onclick="this.style.display='none'">
+          <button type="button" id="mvViewerPrev" class="viewer-nav viewer-nav--prev" onclick="event.stopPropagation(); MavaraResume.viewerStep(-1)" aria-label="previous" style="display:none">‹</button>
+          <img id="mvViewerImg" src="" alt="" style="display:none">
+          <video id="mvViewerVideo" controls style="display:none"></video>
+          <button type="button" id="mvViewerNext" class="viewer-nav viewer-nav--next" onclick="event.stopPropagation(); MavaraResume.viewerStep(1)" aria-label="next" style="display:none">›</button>
         </div>`;
+      applyLang(); // translate the data-i18n labels just injected (bio_more, samples_title, ...)
+      MavaraResume.mount(m);
     } catch {
       root.innerHTML = `<p style="text-align:center">این عضو یافت نشد. <a href="team.html">بازگشت</a></p>`;
     }

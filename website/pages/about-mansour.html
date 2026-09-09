@@ -11,18 +11,24 @@
 
     <div id="header"></div>
 
+    <!-- Schema v18: this page's data now comes from the team API (fixed
+         slug 'mansour-nasiri' — Mansour is a real team_members row, see
+         CHANGELOG.md), rendered by the shared MavaraResume module
+         (assets/js/resume.js). The "mv*" ids below are the same skeleton
+         team.html's ?slug= detail view uses — MavaraResume.mount() only
+         fills them in, this page owns the markup. -->
     <main>
         <!-- One compact profile bio — the primary introduction -->
         <section class="resume-container resume-profile-section">
             <div class="resume-bio" data-reveal>
-                <div class="resume-bio-photo-wrap"><img id="mansourPhotoImg" src="../assets/images/mansour/m3.jpg" alt="منصور نصیری" loading="lazy"></div>
-                <div class="resume-bio-text" id="resumeBioText">
-                    <p class="eyebrow" data-i18n="mansour_eyebrow">بازیگر · کارگردان · نویسنده</p>
-                    <h1 data-i18n="mansour_title">منصور نصیری</h1>
-                    <p class="role" data-i18n="mansour_sub">بازیگر، کارگردان و نویسنده — مؤسس خانه ماورا</p>
-                    <p><span data-i18n="mansour_bio">متولد ۱۳۶۶ در تهران. فعالیت هنری را از تئاتر آغاز کرد و پس از تحصیل در آکادمی سمندریان، مسیرش را در سینما و سریال ادامه داد. برای او بازیگری راهی برای شناخت عمیق‌تر انسان است.</span><span class="resume-bio-full" data-i18n="mansour_bio_full"> او در کنار بازیگری، به آموزش، پادکست و ساختن فضاهایی برای گفت‌وگوی صادقانه و خودشناسی می‌پردازد. خانه ماورا ادامه‌ی همین مسیر است: پیوند هنر با دیدن دقیق‌تر زندگی.</span></p>
-                    <button class="bio-more" id="resumeBioMore" type="button" aria-expanded="false"><span data-i18n="bio_more">بیشتر</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
-                    <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap" id="mansourLinksProfile"></div>
+                <div class="resume-bio-photo-wrap"><img id="mvProfilePhoto" src="../assets/images/mansour/m3.jpg" alt="منصور نصیری" loading="lazy"></div>
+                <div class="resume-bio-text" id="mvBioText">
+                    <p class="eyebrow" id="mvEyebrow"></p>
+                    <h1 id="mvTitle"></h1>
+                    <p class="role" id="mvSub"></p>
+                    <p id="mvBioP"></p>
+                    <button class="bio-more" id="mvBioMore" type="button" aria-expanded="false"><span data-i18n="bio_more">بیشتر</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+                    <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap" id="mvLinksProfile"></div>
                 </div>
             </div>
         </section>
@@ -30,7 +36,7 @@
         <div class="divider"></div>
 
         <!-- Resume List (clickable rows) -->
-        <section class="resume-container" id="resumeList"></section>
+        <section class="resume-container" id="mvResumeList"></section>
 
         <!-- Samples Tab -->
         <div class="divider"></div>
@@ -38,31 +44,31 @@
             <div class="section-head">
                 <h2 class="section-title" data-i18n="samples_title">نمونه کارها</h2>
             </div>
-            <div class="samples-tabs" id="samplesTabs">
+            <div class="samples-tabs" id="mvSamplesTabs">
                 <button class="samples-tab-btn active" data-tab="all" data-i18n="tab_all">همه</button>
                 <button class="samples-tab-btn" data-tab="photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg><span data-i18n="tab_photo">عکس</span></button>
                 <button class="samples-tab-btn" data-tab="video"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.5"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 7h5M17 17h5"/></svg><span data-i18n="tab_video">ویدیو</span></button>
             </div>
-            <div class="samples-gallery" id="samplesGallery"></div>
+            <div class="samples-gallery" id="mvSamplesGallery"></div>
         </section>
 
         <p class="resume-footer-text" data-i18n="resume_footer">با افتخار، برای دوستداران هنر</p>
     </main>
 
     <!-- Popup Modal -->
-    <div class="modal-overlay" id="modal" style="display:none">
+    <div class="modal-overlay" id="mvModal" style="display:none">
         <div class="modal">
-            <div class="modal-header"><h3 id="modalTitle"></h3><button class="modal-close" onclick="closeModal()" aria-label="close">✕</button></div>
-            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-header"><h3 id="mvModalTitle"></h3><button class="modal-close" onclick="MavaraResume.closeModal()" aria-label="close">✕</button></div>
+            <div class="modal-body" id="mvModalBody"></div>
         </div>
     </div>
 
     <!-- Fullscreen Viewer -->
-    <div class="viewer-overlay" id="viewer" style="display:none" onclick="this.style.display='none'">
-        <button type="button" id="viewerPrev" class="viewer-nav viewer-nav--prev" onclick="event.stopPropagation(); viewerStep(-1)" aria-label="previous" style="display:none">‹</button>
-        <img id="viewerImg" src="" alt="" style="display:none">
-        <video id="viewerVideo" controls style="display:none"></video>
-        <button type="button" id="viewerNext" class="viewer-nav viewer-nav--next" onclick="event.stopPropagation(); viewerStep(1)" aria-label="next" style="display:none">›</button>
+    <div class="viewer-overlay" id="mvViewer" style="display:none" onclick="this.style.display='none'">
+        <button type="button" id="mvViewerPrev" class="viewer-nav viewer-nav--prev" onclick="event.stopPropagation(); MavaraResume.viewerStep(-1)" aria-label="previous" style="display:none">‹</button>
+        <img id="mvViewerImg" src="" alt="" style="display:none">
+        <video id="mvViewerVideo" controls style="display:none"></video>
+        <button type="button" id="mvViewerNext" class="viewer-nav viewer-nav--next" onclick="event.stopPropagation(); MavaraResume.viewerStep(1)" aria-label="next" style="display:none">›</button>
     </div>
 
     <div id="footer"></div>
@@ -72,234 +78,23 @@
          real backend content (see api/server.py's portfolio endpoints and
          seed_portfolio.py), fully admin-editable instead of hardcoded JS. -->
     <script src="../assets/js/site.js"></script>
+    <script src="../assets/js/resume.js"></script>
     <script>
-    const CATS = [
-        { key:'CINEMA', fa:'سینما', en:'Cinema', highlight:false },
-        { key:'SERIES', fa:'نمایش خانگی', en:'Series', highlight:false },
-        { key:'SHORT', fa:'فیلم کوتاه', en:'Short films', highlight:true },
-        { key:'THEATER', fa:'تئاتر', en:'Theater', highlight:false }
-    ];
-    const pfTitle = p => (lang() === 'en' && p.title_en) ? p.title_en : p.title_fa;
-    const pfDirector = p => (lang() === 'en' && p.director_en) ? p.director_en : p.director;
-    const pfRole = p => (lang() === 'en' && p.role_en) ? p.role_en : p.role;
-    const pfFestival = p => (lang() === 'en' && p.festival_en) ? p.festival_en : p.festival;
-    const pfDesc = p => (lang() === 'en' && p.desc_en) ? p.desc_en : p.desc_fa;
-    // Year: Jalali in FA, Gregorian in EN (year-only; exact conversion needs full dates).
-    const FA_D = '۰۱۲۳۴۵۶۷۸۹';
-    const toFa = n => String(n).replace(/\d/g, d => FA_D[d]);
-    const pfYear = p => lang() === 'en' ? String(p.year || '') : toFa((Number(p.year) || 0) - 621);
-    const isLive = p => p.status === 'now_showing' || p.status === 'NOW_SHOWING' || p.nowShowing === true;
-    const livePill = () => `<span class="live-pill"><i class="live-dot"></i>${T('live_pill')}</span>`;
-    // Requested: when a resume item is currently running (isLive), clicking
-    // through to it should offer a direct path to reserve a ticket — not
-    // just a poster/gallery to look at. Matches by title against the
-    // active/ongoing events list rather than requiring a new data field,
-    // since there is currently exactly one live production (حُباب) and its
-    // resume title matches its event title exactly.
-    function reserveButtonHTML(p) {
-        if (!isLive(p)) return '';
-        const activeEvents = (typeof API !== 'undefined' && API.events && API.events.active) ? API.events.active() : [];
-        const matched = activeEvents.find(e => e.title === p.title_fa || e.title_en === p.title_en);
-        if (!matched) return '';
-        return `<a class="btn btn--gold" href="event-detail.html?id=${encodeURIComponent(matched.id)}" style="display:block;text-align:center;margin-top:12px">${T('b_book') || 'رزرو بلیت'}</a>`;
-    }
-
+    // Mansour Nasiri is a fixed, known team member (slug='mansour-nasiri',
+    // backfilled from his old content_mansour_* settings by the schema v18
+    // migration — see schema.py) — this page always points at that one
+    // slug, unlike team.html's ?slug= detail view.
     async function init() {
         loadHeader('about-mansour.html'); loadFooter();
         await API.init();
-        await loadMansourContent();
-        renderResume();
-        renderSamples(currentTab);
-        setupSamplesTabs();
-        initResumeBio();
-        window.addEventListener('mv-lang', () => { renderResume(); renderSamples(currentTab); initResumeBio(); if (activeProject) renderModal(); });
-    }
-
-    // Profile photo + link buttons (requested follow-up — these used to
-    // be hardcoded HTML: a fixed <img src>, and exactly two <a> tags for
-    // Instagram/IMDb). A raw fetch() here rather than going through
-    // site.js's own loadSiteContent(), same reasoning that function's own
-    // comment gives for using one itself: this page-specific data (an
-    // image path, a whole list of links) isn't a plain I18N text swap
-    // like every key in SITE_CONTENT_MAP, so it needs its own handling
-    // rather than forcing that shared function to know about this one
-    // page's DOM. mansourLinks keeps its two hardcoded defaults as a
-    // fallback — same value content_mansour_links is seeded with — so a
-    // failed/slow fetch never leaves the page with no links at all.
-    let mansourLinks = [
-        { label: 'Instagram', url: 'https://instagram.com/mansournasirii' },
-        { label: 'IMDb', url: 'https://www.imdb.com/name/nm11240651/' },
-    ];
-    function mansourLinksHTML() {
-        return mansourLinks.map(l => `<a class="btn btn--outline" href="${esc(l.url)}" target="_blank" rel="noopener" style="font-size:12px">${esc(l.label)}</a>`).join('');
-    }
-    async function loadMansourContent() {
-        let data;
         try {
-            const base = window.MAAVARA_API_BASE || '';
-            const res = await fetch(`${base}/api/v1/site-content`);
-            const body = await res.json();
-            if (!res.ok || !body.data) return;
-            data = body.data;
-        } catch { return; }
-        if (data.content_mansour_photo) {
-            const img = document.getElementById('mansourPhotoImg');
-            if (img) img.src = pp(data.content_mansour_photo);
+            const res = await API.team.bySlug('mansour-nasiri');
+            MavaraResume.mount(res);
+        } catch {
+            document.getElementById('mvResumeList').innerHTML =
+                '<p style="text-align:center;color:var(--text-muted)">این صفحه در دسترس نیست.</p>';
         }
-        if (typeof data.content_mansour_links === 'string' && data.content_mansour_links.trim()) {
-            try {
-                const parsed = JSON.parse(data.content_mansour_links);
-                if (Array.isArray(parsed) && parsed.length) mansourLinks = parsed;
-            } catch { /* malformed — keep the defaults above */ }
-        }
-        const profileBox = document.getElementById('mansourLinksProfile');
-        if (profileBox) profileBox.innerHTML = mansourLinksHTML();
     }
-
-    let currentTab = 'all';
-    function initResumeBio() {
-        const box = document.getElementById('resumeBioText'); const btn = document.getElementById('resumeBioMore');
-        if (!box || !btn || btn.dataset.bound === '1') return;
-        btn.dataset.bound = '1';
-        btn.onclick = () => { const expanded = box.classList.toggle('expanded'); btn.setAttribute('aria-expanded', expanded); };
-    }
-
-    function renderResume() {
-        const root = document.getElementById('resumeList');
-        if (!root) return;
-        root.innerHTML = '';
-        CATS.forEach(cat => {
-            const items = API.portfolio.byCat(cat.key);
-            if (!items.length) return;
-            const div = document.createElement('div');
-            div.className = 'resume-cat' + (cat.highlight ? ' resume-cat--highlight' : '');
-            div.innerHTML = `<div class="resume-cat-title"><span class="fa">${lang() === 'en' ? cat.en : cat.fa}</span><span class="en">${lang() === 'en' ? cat.fa : cat.en}</span></div>`;
-            const list = document.createElement('div');
-            list.className = cat.highlight ? 'resume-grid-2' : '';
-            items.forEach(p => {
-                const row = document.createElement('div');
-                row.className = 'resume-row';
-                row.onclick = () => openModal(p);
-                const thumb = p.poster ? `<img class="row-poster" src="${pp(p.poster)}" alt="" loading="lazy">` : '';
-                if (cat.highlight) {
-                    row.innerHTML = `${thumb}<div class="title">${esc(pfTitle(p))}${isLive(p) ? livePill() : ''}<span class="role-tag">(${esc(pfDirector(p))})</span></div><div class="festival"><span class="year">${esc(pfYear(p))}</span>${pfFestival(p) ? ' · ' + esc(pfFestival(p)) : ''}</div>`;
-                } else {
-                    row.innerHTML = `${thumb}<div class="title">${esc(pfTitle(p))}${isLive(p) ? livePill() : ''}<span class="role-tag">(${esc(pfRole(p))})</span></div><div class="meta"><span class="year">${esc(pfYear(p))}</span> — ${esc(pfDirector(p))}</div>`;
-                }
-                list.appendChild(row);
-            });
-            div.appendChild(list);
-            root.appendChild(div);
-        });
-    }
-
-    let activeProject = null;
-    function openModal(p) {
-        activeProject = p;
-        renderModal();
-        document.getElementById('modal').style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-    }
-    function renderModal() {
-        const p = activeProject; if (!p) return;
-        document.getElementById('modalTitle').innerHTML = esc(pfTitle(p)) + ' (' + esc(pfYear(p)) + ')' + (isLive(p) ? livePill() : '');
-        const header = document.querySelector('#modal .modal-header');
-        header.querySelector('.modal-language')?.remove();
-        const toggle = document.createElement('div'); toggle.className = 'modal-language lang-toggle';
-        toggle.innerHTML = `<button type="button" class="${lang() === 'fa' ? 'active' : ''}" onclick="setLang('fa')">فا</button><button type="button" class="${lang() === 'en' ? 'active' : ''}" onclick="setLang('en')">EN</button>`;
-        header.insertBefore(toggle, header.querySelector('.modal-close'));
-        const body = document.getElementById('modalBody');
-        // __viewerImages is what openViewer()/viewerStep() browse — see
-        // those functions below (fullscreen viewer prev/next, requested:
-        // clicking a gallery thumbnail could only ever see that one image,
-        // no way to move to the next/previous one from inside the viewer).
-        __viewerImages = (p.gallery || []).map(pp);
-        body.innerHTML = `
-            ${p.poster ? `<img class="modal-poster" src="${pp(p.poster)}" alt="${esc(pfTitle(p))}" loading="lazy">` : ''}
-            <dl class="modal-meta">
-                <dt>${T('m_en_title')}</dt><dd>${esc(lang() === 'en' ? (p.title_fa || '—') : (p.title_en || '—'))}</dd>
-                <dt>${T('m_year')}</dt><dd>${esc(p.year)}</dd>
-                <dt>${T('m_director')}</dt><dd>${esc(pfDirector(p) || '—')}</dd>
-                <dt>${T('m_role')}</dt><dd>${esc(pfRole(p) || '—')}</dd>
-                ${pfFestival(p) ? `<dt>${T('m_festival')}</dt><dd>${esc(pfFestival(p))}</dd>` : ''}
-                ${pfDesc(p) ? `<dt>${T('m_desc')}</dt><dd>${esc(pfDesc(p))}</dd>` : ''}
-            </dl>
-            ${p.video ? `<video controls src="${pp(p.video)}" style="width:100%;border-radius:var(--radius-sm)"></video>` : ''}
-            ${__viewerImages.length ? `<div class="modal-gallery">${__viewerImages.map((img, i) => `<img src="${img}" alt="" loading="lazy" onclick="openViewer(${i})">`).join('')}</div>` : ''}
-            ${reserveButtonHTML(p)}
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${mansourLinksHTML()}</div>`;
-    }
-
-    function closeModal() {
-        document.getElementById('modal').style.display = 'none';
-        document.body.style.overflow = '';
-    }
-
-    // Fullscreen gallery viewer — requested: clicking a resume gallery
-    // thumbnail used to only ever show that one image, no way to move to
-    // the next/previous one without closing the viewer and clicking a
-    // different thumbnail. __viewerImages is set by renderModal() (the
-    // current project's gallery, already run through pp()); __viewerIndex
-    // is which one the viewer is currently showing.
-    let __viewerImages = [];
-    let __viewerIndex = 0;
-    function openViewer(index) {
-        __viewerIndex = index;
-        renderViewerImage();
-        document.getElementById('viewer').style.display = 'flex';
-    }
-    function renderViewerImage() {
-        const img = document.getElementById('viewerImg');
-        img.src = __viewerImages[__viewerIndex];
-        img.style.display = 'block';
-        document.getElementById('viewerVideo').style.display = 'none';
-        const multi = __viewerImages.length > 1;
-        document.getElementById('viewerPrev').style.display = multi ? 'flex' : 'none';
-        document.getElementById('viewerNext').style.display = multi ? 'flex' : 'none';
-    }
-    function viewerStep(dir) {
-        if (__viewerImages.length < 2) return;
-        __viewerIndex = (__viewerIndex + dir + __viewerImages.length) % __viewerImages.length;
-        renderViewerImage();
-    }
-
-    // ── Samples Tab ──
-    function renderSamples(tab) {
-        const all = API.portfolio.all();
-        const withMedia = all.filter(p => p.poster || p.video || (p.gallery || []).length);
-        const filtered = tab === 'photo'
-            ? withMedia.filter(p => p.poster && !p.video)
-            : tab === 'video'
-            ? withMedia.filter(p => p.video)
-            : withMedia;
-
-        document.getElementById('samplesGallery').innerHTML = filtered.map(p => `
-            <div class="sample-card" onclick="openModal(API.portfolio.get(${p.id}))">
-                ${p.video ? `<video src="${pp(p.video)}" muted loop preload="metadata"></video><div class="play-icon">▶</div>` : p.poster ? `<img src="${pp(p.poster)}" alt="${esc(pfTitle(p))}" loading="lazy">` : ''}
-                <div class="sample-label">${esc(pfTitle(p))}</div>
-            </div>
-        `).join('') || '<p style="text-align:center;grid-column:1/-1;color:var(--text-muted);padding:40px">' + T('empty_sample') + '</p>';
-    }
-
-    function setupSamplesTabs() {
-        document.querySelectorAll('.samples-tab-btn').forEach(btn => {
-            btn.onclick = () => {
-                document.querySelectorAll('.samples-tab-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentTab = btn.dataset.tab;
-                renderSamples(currentTab);
-            };
-        });
-    }
-
-    document.addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') { closeModal(); document.getElementById('viewer').style.display = 'none'; }
-        if (document.getElementById('viewer').style.display === 'flex') {
-            if (e.key === 'ArrowLeft') viewerStep(-1);
-            if (e.key === 'ArrowRight') viewerStep(1);
-        }
-    });
 
     document.addEventListener('DOMContentLoaded', init);
     </script>

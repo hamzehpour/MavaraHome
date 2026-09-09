@@ -64,21 +64,14 @@ EDITABLE_SETTINGS = {
     # site.js's loadSiteContent()).
     "content_hero_tagline": "شعار زیر عنوان اصلی صفحه اول",
     "content_quotes": "نقل‌قول‌های چرخشی صفحه اول — هر نقل‌قول در یک خط (حداکثر ۶ خط)",
-    "content_mansour_bio": "متن معرفی منصور نصیری (صفحه «منصور نصیری») — بخش اول",
-    "content_mansour_bio_full": "متن معرفی منصور نصیری — ادامه (بعد از «بیشتر»)",
-    # These five are written from the dedicated "محتوای صفحه رزومه" box on
-    # pages/admin/portfolio.html, not the generic settings-page renderer
-    # below (content_mansour_photo/content_mansour_links need bespoke
-    # widgets — a file upload, an add/remove link list — the generic
-    # text/textarea renderer has no concept of) — still listed here since
-    # every write, from wherever it comes, goes through the same
-    # PATCH /api/v1/admin/settings + validate_setting_value() path.
-    "content_mansour_photo": "عکس پروفایل صفحه «منصور نصیری»",
-    "content_mansour_eyebrow": "زیرعنوان بالای نام (صفحه «منصور نصیری»)",
-    "content_mansour_title": "نام نمایش‌داده‌شده (صفحه «منصور نصیری»)",
-    "content_mansour_sub": "توضیح زیر نام (صفحه «منصور نصیری»)",
-    "content_resume_footer": "متن پایین صفحه‌ی رزومه",
-    "content_mansour_links": "دکمه‌های لینک صفحه «منصور نصیری» (اینستاگرام، IMDb، ...) — JSON، از پنل «رزومه» ویرایش کن",
+    # Schema v18: content_mansour_bio/_bio_full/_photo/_eyebrow/_title/_sub/
+    # _links were retired from here — Mansour Nasiri's profile is now a
+    # regular team_members row (slug='mansour-nasiri'), edited from
+    # pages/admin/team-edit.html like every other member, not this generic
+    # settings mechanism. The keys themselves still exist in schema.py's
+    # DEFAULT_SETTINGS purely as the one-time migration's seed source —
+    # see that file's comment — but are no longer editable/served here.
+    "content_resume_footer": "متن پایین صفحه‌ی رزومه (مشترک بین همه‌ی صفحات رزومه)",
     "content_about_p1": "متن «درباره خانه ماورا» — پاراگراف اول",
     "content_about_p2": "متن «درباره خانه ماورا» — پاراگراف دوم",
     "content_companion_p1": "متن «همراهی» — پاراگراف اول",
@@ -128,9 +121,8 @@ EDITABLE_SETTINGS = {
 # cards...) never has to be reasoned about as "is this safe to expose
 # to anonymous visitors" key by key.
 CONTENT_KEYS = [
-    "content_hero_tagline", "content_quotes", "content_mansour_bio", "content_mansour_bio_full",
-    "content_mansour_photo", "content_mansour_eyebrow", "content_mansour_title", "content_mansour_sub",
-    "content_resume_footer", "content_mansour_links",
+    "content_hero_tagline", "content_quotes",
+    "content_resume_footer",
     "content_about_p1", "content_about_p2",
     "content_companion_p1", "content_companion_p2", "content_companion_eyebrow", "content_companion_title",
     "content_companion_sub", "content_companion_h3", "content_companion_li1", "content_companion_li2",
@@ -317,14 +309,7 @@ SETTINGS_FIELD_TYPES: dict[str, str] = {
     "tmpl_email_needs_correction_body": "textarea",
     "content_hero_tagline": "text",
     "content_quotes": "textarea",
-    "content_mansour_bio": "textarea",
-    "content_mansour_bio_full": "textarea",
-    "content_mansour_photo": "text",
-    "content_mansour_eyebrow": "text",
-    "content_mansour_title": "text",
-    "content_mansour_sub": "text",
     "content_resume_footer": "text",
-    "content_mansour_links": "textarea",
     "content_companion_eyebrow": "text",
     "content_companion_title": "text",
     "content_companion_sub": "text",

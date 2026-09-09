@@ -127,6 +127,10 @@ const API = {
     all() { return cache.portfolio || [] },
     byCat(c) { return this.all().filter(p => p.category === c).sort((a, b) => b.year - a.year) },
     get(id) { return this.all().find(p => String(p.id) === String(id)) },
+    // Schema v18: admin/team-edit.html's resume grid, scoped to whichever
+    // member is being edited — filters the same global cache rather than
+    // needing a dedicated admin-scoped endpoint.
+    forMember(teamMemberId) { return this.all().filter(p => Number(p.team_member_id) === Number(teamMemberId)) },
     async refresh() { cache.portfolio = await apiFetch('/portfolio'); return cache.portfolio; },
     async create(d) {
       const created = await apiFetchAdmin('/admin/portfolio', { method: 'POST', body: JSON.stringify(d) });

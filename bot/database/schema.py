@@ -9,10 +9,12 @@ run in order); an existing install's stored version tells us which
 migrations it still needs — this is what lets a future upgrade apply only
 what's missing instead of guessing from column-already-exists errors.
 """
+import json
+
 from database.connection import get_connection
 from config.settings import BOOTSTRAP_ADMIN_IDS
 
-SCHEMA_VERSION = 17
+SCHEMA_VERSION = 18
 
 SCHEMA_STATEMENTS = [
     # ---- users -------------------------------------------------
@@ -163,10 +165,14 @@ SCHEMA_STATEMENTS = [
     "ON event_reopening_interests(event_id, user_id) WHERE status = 'active'",
     "CREATE INDEX IF NOT EXISTS idx_reopening_interest_event ON event_reopening_interests(event_id)",
 
-    # ---- portfolio (Mansour's resume/CV — unrelated to reservations, but
+    # ---- portfolio (resume/CV entries — unrelated to reservations, but
     # kept on this same shared backend rather than a third separate data
     # store, per "one backend" principle). Admin-editable via the website
-    # panel; the Telegram bot never reads this table.
+    # panel; the Telegram bot never reads this table. Schema v18: gained
+    # team_member_id (ALTER, see the migration loop below) — every row now
+    # belongs to a specific team_members row (Mansour Nasiri included,
+    # after the schema v18 migration below gives him a real row there),
+    # instead of implicitly "belonging" to Mansour by pure convention.
     """
     CREATE TABLE IF NOT EXISTS portfolio (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -361,6 +367,17 @@ SCHEMA_STATEMENTS.append("CREATE INDEX IF NOT EXISTS idx_messages_user ON messag
 # title/bio/photo/gallery/sort_order/status idea) rather than inventing a
 # new shape, since portfolio already solved "admin-editable public bio
 # content with images" once.
+#
+# Schema v18 update: Mansour Nasiri's own resume page (previously a
+# permanently-separate content_mansour_* settings singleton — see the
+# DEFAULT_SETTINGS note below) is now ALSO just a row in this table
+# (slug='mansour-nasiri'), so the resume/profile module is genuinely
+# shared instead of forked. `gallery` (below) predates that unification
+# and is NOT the per-project gallery mechanism — that's `portfolio.gallery`
+# (one row per resume project, many rows per team member via
+# portfolio.team_member_id). This `gallery` column is unused by any
+# current UI; left in place but do not wire it into anything that would
+# collide conceptually with per-project galleries.
 TEAM_MEMBERS_TABLE = """
     CREATE TABLE IF NOT EXISTS team_members (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -651,26 +668,20 @@ DEFAULT_SETTINGS = {
         " او در کنار بازیگری، به آموزش، پادکست و ساختن فضاهایی برای گفت‌وگوی صادقانه و خودشناسی می‌پردازد. "
         "خانه ماورا ادامه‌ی همین مسیر است: پیوند هنر با دیدن دقیق‌تر زندگی."
     ),
-    # Requested follow-up: the "درباره‌ی منصور نصیری" (resume) page's own
-    # profile block — photo, eyebrow/title/role line, footer text, and
-    # the social/IMDb link buttons — was entirely hardcoded HTML/JS
-    # before, unlike its bio text (content_mansour_bio(_full) above,
-    # already admin-editable). Defaults here are exact copies of what was
-    # already hardcoded, so seeding them changes nothing visually until
-    # an admin actually edits one — same rule every other content_* key
-    # in this block already follows.
+    # Schema v18 NOTE: content_mansour_photo/_eyebrow/_title/_sub/_bio/
+    # _bio_full/_links (this one and content_mansour_bio(_full) above) are
+    # kept here ONLY as the one-time seed source for the schema v18
+    # Mansour-Nasiri-becomes-a-team_members-row migration in init_db() —
+    # they are no longer in settings_service.py's EDITABLE_SETTINGS/
+    # CONTENT_KEYS, so they're neither admin-editable nor served via
+    # /api/v1/site-content anymore. Do not remove these entries or the
+    # migration will seed a Mansour row with blank content on any
+    # database that hasn't run it yet.
     "content_mansour_photo": "assets/images/mansour/m3.jpg",
     "content_mansour_eyebrow": "بازیگر · کارگردان · نویسنده",
     "content_mansour_title": "منصور نصیری",
     "content_mansour_sub": "بازیگر، کارگردان و نویسنده — مؤسس خانه ماورا",
     "content_resume_footer": "با افتخار، برای دوستداران هنر",
-    # JSON array of {label, url} — rendered as the resume page's link
-    # buttons (profile section + the project modal), replacing what used
-    # to be two literal <a> tags for Instagram/IMDb with an admin-
-    # editable, addable/removable list (see pages/admin/portfolio.html's
-    # new "لینک‌ها" box). About-mansour.html parses this itself — it
-    # isn't a plain I18N text swap like the keys above (see
-    # SITE_CONTENT_MAP in site.js for which keys ARE handled that way).
     "content_mansour_links": (
         '[{"label": "Instagram", "url": "https://instagram.com/mansournasirii"}, '
         '{"label": "IMDb", "url": "https://www.imdb.com/name/nm11240651/"}]'
@@ -880,6 +891,36 @@ def init_db() -> None:
             # team member's public page, same idea as their existing
             # Telegram one (contact_telegram), which this mirrors exactly.
             "ALTER TABLE team_members ADD COLUMN contact_instagram TEXT",
+            # Schema v18: unify Mansour Nasiri's resume/CV page and the
+            # "اعضای خانه ماورا" team-directory page into one shared
+            # module (requested — see CHANGELOG.md). Mansour becomes a
+            # real team_members row instead of a permanently-separate set
+            # of content_mansour_* settings rows, so every team member
+            # (Mansour included) needs the extra profile fields his page
+            # already had: a short "eyebrow" badge line above the name
+            # (role_title/role_title_en already cover the subtitle line),
+            # an expandable bio continuation, and a free-form add/edit
+            # links list (replacing the old fixed contact_telegram/
+            # contact_instagram fields — those columns stay, just retired
+            # from the public API, see api/server.py). hide_from_list lets
+            # an admin keep a member's own page public while excluding
+            # them from the general team grid — needed for Mansour, whose
+            # about-mansour.html has always been its own separate nav
+            # entry, not a normal team-directory listing.
+            "ALTER TABLE team_members ADD COLUMN eyebrow TEXT",
+            "ALTER TABLE team_members ADD COLUMN eyebrow_en TEXT",
+            "ALTER TABLE team_members ADD COLUMN bio_full_fa TEXT",
+            "ALTER TABLE team_members ADD COLUMN bio_full_en TEXT",
+            "ALTER TABLE team_members ADD COLUMN links TEXT",
+            "ALTER TABLE team_members ADD COLUMN hide_from_list INTEGER NOT NULL DEFAULT 0",
+            # portfolio was previously global/unscoped, implicitly "belonging"
+            # to Mansour by pure convention (no owner column at all). Every
+            # resume project now belongs to a specific team_members row.
+            # ON DELETE CASCADE (not SET NULL): a resume project has no
+            # independent meaning once its owner is gone — unlike faqs,
+            # portfolio was never a genuinely shared/reusable bank.
+            "ALTER TABLE portfolio ADD COLUMN team_member_id INTEGER "
+            "REFERENCES team_members(id) ON DELETE CASCADE",
         ):
             try:
                 conn.execute(alter_sql)
@@ -905,6 +946,9 @@ def init_db() -> None:
             import logging
             logging.getLogger("mavara_bot").warning("Could not create uq_users_email: %s", exc)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_customer_otp_email ON customer_otp(email)")
+        # Schema v18: indexes the team_member_id column added above by the
+        # ALTER loop — same reasoning/placement as idx_customer_otp_email.
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_portfolio_team_member ON portfolio(team_member_id)")
 
         for key, value in DEFAULT_SETTINGS.items():
             conn.execute(
@@ -930,6 +974,72 @@ def init_db() -> None:
                     "INSERT INTO bank_cards(card_number, card_holder, bank_name, is_active) VALUES (?, ?, '', 1)",
                     (old_number["value"], old_holder["value"] if old_holder else ""),
                 )
+
+        # Schema v18, one-time migration (same guard style as the bank_cards
+        # one above — runs every boot, no-op once done): Mansour Nasiri's
+        # resume page used to live entirely in content_mansour_* settings
+        # rows with no team_members row at all. Create his real row from
+        # those values (they're still seeded into DEFAULT_SETTINGS above,
+        # purely to serve as this migration's one-time source — they're no
+        # longer admin-editable/publicly served, see settings_service.py),
+        # then attach every pre-existing portfolio row (his 31 resume
+        # entries, and anything seed_portfolio.py adds) to it.
+        # hide_from_list=1: about-mansour.html keeps its own separate nav
+        # entry/URL — Mansour shouldn't also show up in the general team
+        # grid as if he were just another row in it.
+        mansour_row = conn.execute(
+            "SELECT id FROM team_members WHERE slug = 'mansour-nasiri'"
+        ).fetchone()
+        if not mansour_row:
+            def _setting(key: str, default: str = "") -> str:
+                r = conn.execute("SELECT value FROM settings WHERE key=?", (key,)).fetchone()
+                return r["value"] if r and r["value"] else default
+
+            mansour_id = conn.execute(
+                "INSERT INTO team_members("
+                "slug, full_name, role_title, eyebrow, photo, bio_fa, bio_full_fa, "
+                "links, status, hide_from_list, sort_order"
+                ") VALUES ('mansour-nasiri', ?, ?, ?, ?, ?, ?, ?, 'active', 1, 0)",
+                (
+                    _setting("content_mansour_title", "منصور نصیری"),
+                    _setting("content_mansour_sub"),
+                    _setting("content_mansour_eyebrow"),
+                    _setting("content_mansour_photo"),
+                    _setting("content_mansour_bio"),
+                    _setting("content_mansour_bio_full"),
+                    _setting("content_mansour_links", "[]"),
+                ),
+            ).lastrowid
+            conn.execute(
+                "UPDATE portfolio SET team_member_id = ? WHERE team_member_id IS NULL",
+                (mansour_id,),
+            )
+
+        # Schema v18, one-time migration: fold existing team members' fixed
+        # contact_telegram/contact_instagram fields into the new free-form
+        # `links` list, so every member (Mansour included, above) manages
+        # links the same way. Guard (links IS NULL) makes this idempotent —
+        # an admin later clearing `links` back to '[]' on purpose won't be
+        # silently re-populated from these columns, since '[]' is not NULL.
+        for row in conn.execute(
+            "SELECT id, contact_telegram, contact_instagram FROM team_members "
+            "WHERE links IS NULL AND (contact_telegram IS NOT NULL OR contact_instagram IS NOT NULL)"
+        ).fetchall():
+            entries = []
+            if row["contact_telegram"]:
+                entries.append({
+                    "label": "تلگرام",
+                    "url": f"https://t.me/{row['contact_telegram'].lstrip('@')}",
+                })
+            if row["contact_instagram"]:
+                entries.append({
+                    "label": "اینستاگرام",
+                    "url": f"https://instagram.com/{row['contact_instagram'].lstrip('@')}",
+                })
+            conn.execute(
+                "UPDATE team_members SET links = ? WHERE id = ?",
+                (json.dumps(entries, ensure_ascii=False), row["id"]),
+            )
 
         # Record the version this database is now at. Future migrations
         # should check `stored_version` (captured above) to decide what

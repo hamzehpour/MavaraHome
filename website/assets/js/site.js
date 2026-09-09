@@ -1287,11 +1287,9 @@ function initGlobal() {
 // footer) that happen to show the same "city, country" text.
 const SITE_CONTENT_MAP = {
   content_hero_tagline: ['hero_tag'],
-  content_mansour_bio: ['mansour_bio'],
-  content_mansour_bio_full: ['mansour_bio_full'],
-  content_mansour_eyebrow: ['mansour_eyebrow'],
-  content_mansour_title: ['mansour_title'],
-  content_mansour_sub: ['mansour_sub'],
+  // Schema v18: content_mansour_* removed — Mansour's profile is now a
+  // team_members row rendered by resume.js's MavaraResume module (data
+  // fields, not a plain I18N text swap), not a /api/v1/site-content key.
   content_resume_footer: ['resume_footer'],
   content_about_p1: ['about_m_p1'],
   content_about_p2: ['about_m_p2'],

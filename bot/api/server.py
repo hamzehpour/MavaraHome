@@ -258,13 +258,24 @@ def _waitlist_public(w: dict) -> dict:
 
 
 def _team_public(m: dict) -> dict:
+    # Schema v18: contact_telegram/contact_instagram are retired from the
+    # public payload (superseded by the free-form `links` list — see
+    # schema.py's migration) but stay in the DB, unread here, for safety.
+    # `portfolio` is embedded exactly like faqs is embedded in
+    # _event_public — every resume project scoped to this member, in
+    # display order — so both GET /api/v1/team (list) and
+    # GET /api/v1/team/<slug> (detail) carry it with no extra route.
     return {
         "id": m["id"], "slug": m["slug"], "full_name": m["full_name"], "full_name_en": m.get("full_name_en"),
-        "role_title": m.get("role_title"), "role_title_en": m.get("role_title_en"), "photo": m.get("photo"),
-        "bio_fa": m.get("bio_fa"), "bio_en": m.get("bio_en"), "gallery": m.get("gallery") or [],
-        "contact_phone": m.get("contact_phone"), "contact_telegram": m.get("contact_telegram"),
-        "contact_instagram": m.get("contact_instagram"),
+        "role_title": m.get("role_title"), "role_title_en": m.get("role_title_en"),
+        "eyebrow": m.get("eyebrow"), "eyebrow_en": m.get("eyebrow_en"), "photo": m.get("photo"),
+        "bio_fa": m.get("bio_fa"), "bio_en": m.get("bio_en"),
+        "bio_full_fa": m.get("bio_full_fa"), "bio_full_en": m.get("bio_full_en"),
+        "gallery": m.get("gallery") or [], "links": m.get("links") or [],
+        "contact_phone": m.get("contact_phone"),
         "status": m.get("status"), "sort_order": m.get("sort_order"),
+        "hide_from_list": bool(m.get("hide_from_list")),
+        "portfolio": portfolio_repo.list_for_member(m["id"]),
     }
 
 
@@ -718,7 +729,18 @@ class Handler(BaseHTTPRequestHandler):
 
             # ---------------- New scope: team directory ----------------
             if path == "/api/v1/team":
-                members = team_repo.list_all() if self._is_admin() else team_repo.list_all(status="active")
+                is_admin = self._is_admin()
+                members = team_repo.list_all() if is_admin else team_repo.list_all(status="active")
+                if not is_admin:
+                    # Schema v18: hide_from_list keeps a member's own page
+                    # public (their slug still resolves below) while
+                    # excluding them from the general team grid — needed
+                    # for Mansour Nasiri, whose about-mansour.html has
+                    # always been its own separate nav entry, not a normal
+                    # team-directory listing. Admins still see everyone
+                    # here, since this same list backs the admin panel's
+                    # member list too.
+                    members = [m for m in members if not m.get("hide_from_list")]
                 return self._send_json(200, {"data": [_team_public(m) for m in members]})
 
             m = re.match(r"^/api/v1/team/([\w%-]+)$", path)
@@ -1057,6 +1079,10 @@ class Handler(BaseHTTPRequestHandler):
                 body = self._read_json_body()
                 if not body.get("title_fa"):
                     return self._send_json(400, {"error": "validation", "details": "title_fa is required"})
+                # Schema v18: every resume project must belong to a team
+                # member — portfolio is no longer implicitly Mansour's.
+                if not body.get("team_member_id"):
+                    return self._send_json(400, {"error": "validation", "details": "team_member_id is required"})
                 item_id = portfolio_repo.create(**body)
                 return self._send_json(201, {"data": portfolio_repo.get(item_id)})
 
@@ -1149,7 +1175,13 @@ class Handler(BaseHTTPRequestHandler):
                     "brand_og_image": ("assets/images/logo/mavara-emblem-640.webp", "image/webp"),
                 }
                 kind = body.get("kind") if body.get("kind") in (
-                    "poster", "gallery", "video", "portfolio", "team", "ticket_logo", "mansour", *BRAND_TARGETS
+                    # Schema v18: "mansour" retired — his profile photo now
+                    # uploads with kind="team" like every other member's
+                    # (media/team/...); already-uploaded files under
+                    # media/mansour/... keep resolving fine since GET
+                    # /media/<path> doesn't care which subfolder a path is
+                    # under, and the DB path pointer was carried over as-is.
+                    "poster", "gallery", "video", "portfolio", "team", "ticket_logo", *BRAND_TARGETS
                 ) else "gallery"
                 if not data_url or not isinstance(data_url, str) or not data_url.startswith("data:"):
                     return self._send_json(400, {"error": "validation", "details": "data must be a base64 data URL"})
