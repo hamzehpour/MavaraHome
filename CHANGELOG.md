@@ -5,6 +5,20 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Admin: remove an image from a resume project's gallery
+
+**Why:** requested — once a gallery photo was uploaded to a resume/
+portfolio project, there was no way to take it back out (`pfGallery`
+only ever grew, via `.push()` on upload) short of deleting the whole
+project and starting over.
+
+- Each gallery thumbnail in the project edit form (`pages/admin/
+  portfolio.html`) now has a small ✕ button that removes it from the
+  in-memory list and re-renders the preview — same as every other field
+  on this form, it takes effect once the admin actually clicks "💾
+  ذخیره", not before (no separate per-image save step, matching how
+  poster/video already behave here).
+
 ## Resume gallery: prev/next navigation in the fullscreen viewer
 
 **Why:** requested — clicking a thumbnail in a resume project's gallery
