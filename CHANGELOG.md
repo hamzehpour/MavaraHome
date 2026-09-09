@@ -5,6 +5,34 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Fix: blank scrolling gap at the top of every admin panel page
+
+**Why:** reported — an empty band at the top of every admin page that
+scrolled along with the rest of the content, on every page in the panel
+(not specific to any one of them). The user's own hunch was right: the
+logout button's `margin-top:auto` (pushing it to the sidebar's bottom)
+assumed the sidebar was pinned to the viewport height — it wasn't.
+
+Root cause: `.admin-sidebar` had no explicit height, so the flex row's
+default `align-items:stretch` made it (and `.admin-main`) stretch to
+match whichever one's own content was tallest. With ~12 nav items, the
+sidebar's natural content height routinely exceeds 100vh, which pushed
+the whole layout — and the page itself — taller than the viewport just
+to fit the sidebar, instead of the sidebar being its own
+independently-scrolling column pinned to the screen.
+
+Fixed by pinning `.admin-sidebar` to the viewport height
+(`position:sticky;top:0;height:100vh`, scrolling internally if its own
+content ever exceeds that) and giving `.admin-main` the same explicit
+`height:100vh` — the two no longer stretch each other, and the page
+itself never needs to scroll; only whichever column has more content
+than fits does. Reset back to normal flow in the existing mobile
+breakpoint, where the sidebar becomes a horizontal top bar instead (a
+vertical "pinned to viewport height" sidebar makes no sense there).
+Applies to every admin page uniformly — all of them share these same
+`.admin-layout`/`.admin-sidebar`/`.admin-main` classes (confirmed by
+grep — only `login.html`, which has no sidebar, doesn't).
+
 ## Admin: event create/edit moved from a modal to its own page
 
 **Why:** requested — the create/edit modal on `pages/admin/events.html`

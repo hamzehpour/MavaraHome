@@ -606,11 +606,25 @@ body::before{
 
 /* ═══════════ ADMIN ═══════════ */
 .admin-layout{display:flex;min-height:100vh}
-.admin-sidebar{width:220px;background:var(--navy);color:#fff;padding:24px 16px;display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+/* Bug (reported — a blank gap at the top of every admin page that
+   scrolled along with the content): the sidebar had no explicit height,
+   so a flex row's default align-items:stretch made BOTH it and
+   .admin-main stretch to whichever one's own CONTENT was taller — with
+   ~12 nav items, that's routinely more than 100vh, which pushed the
+   whole .admin-layout (and the page itself) taller than the viewport
+   just to fit the sidebar, instead of the sidebar being its own
+   independently-scrolling column pinned to the viewport (the logout
+   button's `margin-top:auto` was written assuming exactly that). Fixed
+   by pinning the sidebar to the viewport height and letting IT scroll
+   internally if its own content ever exceeds that, same as .admin-main
+   already does — the two no longer stretch each other.  Reset back to
+   normal flow in the mobile breakpoint below, where the sidebar becomes
+   a horizontal top bar instead. */
+.admin-sidebar{width:220px;background:var(--navy);color:#fff;padding:24px 16px;display:flex;flex-direction:column;gap:6px;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto}
 .admin-sidebar a,.admin-sidebar button{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:var(--radius-sm);font-size:14px;color:rgba(255,255,255,0.7);transition:all .3s var(--ease)}
 .admin-sidebar a:hover,.admin-sidebar a.active{background:rgba(255,255,255,0.08);color:#fff}
 .admin-sidebar a.active{background:var(--gold-grad);color:var(--navy);font-weight:600}
-.admin-main{flex:1;padding:32px;background:var(--bg-soft);overflow-y:auto}
+.admin-main{flex:1;padding:32px;background:var(--bg-soft);height:100vh;overflow-y:auto}
 .admin-login{max-width:360px;margin:110px auto;background:var(--bg-card);padding:44px 40px;border-radius:var(--radius);box-shadow:var(--shadow-lg);text-align:center;border-top:4px solid var(--gold)}
 .admin-login input{width:100%;padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:var(--font);text-align:center;font-size:16px;margin:12px 0}
 .admin-login input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,162,93,0.18)}
@@ -710,7 +724,11 @@ body::before{
   .quote-photo{width:104px;height:104px}
   .lang-toggle{margin-inline-start:6px}
   .admin-layout{flex-direction:column}
-  .admin-sidebar{width:100%;flex-direction:row;overflow-x:auto;padding:12px}
+  /* Undo the desktop sticky/full-height pinning above — here the
+     sidebar is a horizontal top bar, not a vertical column, so "pinned
+     to the viewport height" makes no sense; back to normal flow. */
+  .admin-sidebar{width:100%;flex-direction:row;overflow-x:auto;overflow-y:visible;padding:12px;position:static;height:auto}
+  .admin-main{height:auto;overflow-y:visible}
   .dash-cols{grid-template-columns:1fr !important}
   .admin-sidebar a,.admin-sidebar button{white-space:nowrap;font-size:12px}
   .form-row{grid-template-columns:1fr}
