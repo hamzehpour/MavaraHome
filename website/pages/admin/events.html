@@ -84,11 +84,36 @@ let evFaqIds = [], evFaqCache = {}, faqBank = [];
 
 const STATUS_LABEL = { ongoing: 'در حال اجرا', upcoming: 'به‌زودی', archived: 'آرشیو' };
 
+// Poster/gallery previews, each with a remove button — requested: there
+// was previously no way to take an image back OUT of an event (poster
+// could only be replaced by uploading a new one; gallery only ever grew,
+// via .push() below) short of clearing the whole field by hand. Same
+// convention as the resume page's gallery-remove and the team page's
+// photo-remove: removing here only updates the in-memory evPoster/
+// evGallery + preview, takes effect once the admin clicks "💾 ذخیره".
+function renderEvPosterPreview() {
+    document.getElementById('evPosterPreview').innerHTML = evPoster
+        ? `<div style="display:flex;align-items:center;gap:10px">
+             <img src="/${evPoster}" style="max-width:160px;border-radius:8px">
+             <button type="button" class="btn btn--outline btn--sm" style="font-size:11px;padding:4px 10px;color:#c44" onclick="removeEvPoster()">🗑️ حذف پوستر</button>
+           </div>`
+        : '';
+}
+function removeEvPoster() { evPoster = null; renderEvPosterPreview(); }
+function renderEvGalleryPreview() {
+    document.getElementById('evGalleryPreview').innerHTML = evGallery.map((p, i) => `
+        <div style="position:relative;display:inline-block">
+          <img src="/${p}" style="width:70px;height:70px;object-fit:cover;border-radius:8px">
+          <button type="button" onclick="removeEvGalleryImage(${i})" title="حذف از گالری" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:#c44;color:#fff;border:2px solid var(--bg-card);font-size:12px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">✕</button>
+        </div>`).join('');
+}
+function removeEvGalleryImage(i) { evGallery.splice(i, 1); renderEvGalleryPreview(); }
+
 document.getElementById('evPosterFile').addEventListener('change', async (ev) => {
     const file = ev.target.files[0]; if (!file) return;
     try {
         evPoster = await API.events.uploadMedia(file, 'poster');
-        document.getElementById('evPosterPreview').innerHTML = `<img src="/${evPoster}" style="max-width:160px;border-radius:8px">`;
+        renderEvPosterPreview();
         toast('پوستر آپلود شد');
     } catch { toast('آپلود پوستر ناموفق بود — سرور بک‌اند را بررسی کنید'); }
 });
@@ -98,7 +123,7 @@ document.getElementById('evGalleryFiles').addEventListener('change', async (ev) 
         try {
             const path = await API.events.uploadMedia(file, 'gallery');
             evGallery.push(path);
-            document.getElementById('evGalleryPreview').insertAdjacentHTML('beforeend', `<img src="/${path}" style="width:70px;height:70px;object-fit:cover;border-radius:8px">`);
+            renderEvGalleryPreview();
         } catch { toast('آپلود یکی از عکس‌های گالری ناموفق بود'); }
     }
     toast('گالری به‌روزرسانی شد');
@@ -118,7 +143,7 @@ async function load() {
     document.getElementById('tBody').innerHTML = rows.map(e => `<tr><td><strong>${e.title}</strong></td><td>${e.location || '—'}</td><td><span class="badge ${e.status === 'archived' ? 'badge--ended' : 'badge--active'}">${STATUS_LABEL[e.status] || e.status}</span></td><td style="display:flex;gap:6px"><button class="btn btn--outline btn--sm" onclick="editEv(${e.id})" style="font-size:11px;padding:4px 10px">✏️</button><button class="btn btn--outline btn--sm" onclick="del(${e.id})" style="font-size:11px;padding:4px 10px;color:#c44">🗑️</button></td></tr>`).join('') || '<tr><td colspan="4">رویدادی ثبت نشده.</td></tr>';
 }
 
-function openForm() { editingId = null; evPoster = null; evGallery = []; evVideo = null; evFaqIds = []; evFaqCache = {}; faqBank = []; document.getElementById('modalTitle').textContent = 'رویداد جدید'; document.getElementById('evForm').reset(); document.getElementById('evPosterPreview').innerHTML = ''; document.getElementById('evGalleryPreview').innerHTML = ''; document.getElementById('sessionsBox').style.display = 'none'; document.getElementById('faqBox').style.display = 'none'; document.getElementById('evModal').style.display = 'flex'; }
+function openForm() { editingId = null; evPoster = null; evGallery = []; evVideo = null; evFaqIds = []; evFaqCache = {}; faqBank = []; document.getElementById('modalTitle').textContent = 'رویداد جدید'; document.getElementById('evForm').reset(); renderEvPosterPreview(); renderEvGalleryPreview(); document.getElementById('sessionsBox').style.display = 'none'; document.getElementById('faqBox').style.display = 'none'; document.getElementById('evModal').style.display = 'flex'; }
 
 function editEv(id) {
     const e = API.events.get(id); if (!e) return; editingId = id;
@@ -143,8 +168,8 @@ function editEv(id) {
     evPoster = e.poster || null;
     evGallery = Array.isArray(e.gallery) ? [...e.gallery] : [];
     evVideo = e.video || null;
-    document.getElementById('evPosterPreview').innerHTML = evPoster ? `<img src="/${evPoster}" style="max-width:160px;border-radius:8px">` : '';
-    document.getElementById('evGalleryPreview').innerHTML = evGallery.map(p => `<img src="/${p}" style="width:70px;height:70px;object-fit:cover;border-radius:8px">`).join('');
+    renderEvPosterPreview();
+    renderEvGalleryPreview();
     document.getElementById('evVideoUrl').value = evVideo || '';
     evFaqIds = Array.isArray(e.faqs) ? e.faqs.map(f => f.id) : [];
     evFaqCache = {};

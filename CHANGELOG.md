@@ -5,6 +5,27 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Admin: remove an event's poster or a gallery image
+
+**Why:** requested — same gap as the resume page's gallery and team
+members' photo, just for events: a poster could only be replaced (never
+cleared), and gallery images only ever grew (`.push()` on upload), with
+no way to take one back out short of clearing the whole field by hand.
+
+- `pages/admin/events.html`: the poster preview now has a 🗑️ "حذف
+  پوستر" button; each gallery thumbnail has the same small ✕ button the
+  resume page's gallery already uses. Same convention throughout this
+  session — removing only updates the in-memory `evPoster`/`evGallery`
+  + preview, takes effect once the admin clicks "💾 ذخیره".
+- No backend changes needed — `events_repo.update_event_fields()`
+  already treats an explicit `poster: null` / a shorter `gallery` array
+  as a normal partial update, the same mechanism the FAQ box's
+  `faq_ids` and every other event field already goes through.
+- Verified locally: real HTTP round-trip (create an event with a
+  poster + 2 gallery images, PATCH with `poster: null` and a
+  one-shorter `gallery` array, confirm both took effect). Full 54/54
+  automated suite still green.
+
 ## Team members: remove profile photo, add an Instagram link button
 
 **Why:** requested — no way to remove a team member's profile photo once
