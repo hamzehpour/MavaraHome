@@ -650,6 +650,30 @@ DEFAULT_SETTINGS = {
         " او در کنار بازیگری، به آموزش، پادکست و ساختن فضاهایی برای گفت‌وگوی صادقانه و خودشناسی می‌پردازد. "
         "خانه ماورا ادامه‌ی همین مسیر است: پیوند هنر با دیدن دقیق‌تر زندگی."
     ),
+    # Requested follow-up: the "درباره‌ی منصور نصیری" (resume) page's own
+    # profile block — photo, eyebrow/title/role line, footer text, and
+    # the social/IMDb link buttons — was entirely hardcoded HTML/JS
+    # before, unlike its bio text (content_mansour_bio(_full) above,
+    # already admin-editable). Defaults here are exact copies of what was
+    # already hardcoded, so seeding them changes nothing visually until
+    # an admin actually edits one — same rule every other content_* key
+    # in this block already follows.
+    "content_mansour_photo": "assets/images/mansour/m3.jpg",
+    "content_mansour_eyebrow": "بازیگر · کارگردان · نویسنده",
+    "content_mansour_title": "منصور نصیری",
+    "content_mansour_sub": "بازیگر، کارگردان و نویسنده — مؤسس خانه ماورا",
+    "content_resume_footer": "با افتخار، برای دوستداران هنر",
+    # JSON array of {label, url} — rendered as the resume page's link
+    # buttons (profile section + the project modal), replacing what used
+    # to be two literal <a> tags for Instagram/IMDb with an admin-
+    # editable, addable/removable list (see pages/admin/portfolio.html's
+    # new "لینک‌ها" box). About-mansour.html parses this itself — it
+    # isn't a plain I18N text swap like the keys above (see
+    # SITE_CONTENT_MAP in site.js for which keys ARE handled that way).
+    "content_mansour_links": (
+        '[{"label": "Instagram", "url": "https://instagram.com/mansournasirii"}, '
+        '{"label": "IMDb", "url": "https://www.imdb.com/name/nm11240651/"}]'
+    ),
     "content_about_p1": (
         "خانه ماورا فضایی است برای پیوند هنر، آگاهی و زندگی. این مجموعه به همت منصور نصیری پایه‌گذاری شده و "
         "در مسیرهای گوناگون — تئاتر، پادکست، خودشناسی، شعر، گفتگو، موسیقی و همراهی — میزبان مخاطبان است."

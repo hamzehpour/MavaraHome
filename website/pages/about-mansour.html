@@ -15,17 +15,14 @@
         <!-- One compact profile bio — the primary introduction -->
         <section class="resume-container resume-profile-section">
             <div class="resume-bio" data-reveal>
-                <div class="resume-bio-photo-wrap"><img src="../assets/images/mansour/m3.jpg" alt="منصور نصیری" loading="lazy"></div>
+                <div class="resume-bio-photo-wrap"><img id="mansourPhotoImg" src="../assets/images/mansour/m3.jpg" alt="منصور نصیری" loading="lazy"></div>
                 <div class="resume-bio-text" id="resumeBioText">
                     <p class="eyebrow" data-i18n="mansour_eyebrow">بازیگر · کارگردان · نویسنده</p>
                     <h1 data-i18n="mansour_title">منصور نصیری</h1>
                     <p class="role" data-i18n="mansour_sub">بازیگر، کارگردان و نویسنده — مؤسس خانه ماورا</p>
                     <p><span data-i18n="mansour_bio">متولد ۱۳۶۶ در تهران. فعالیت هنری را از تئاتر آغاز کرد و پس از تحصیل در آکادمی سمندریان، مسیرش را در سینما و سریال ادامه داد. برای او بازیگری راهی برای شناخت عمیق‌تر انسان است.</span><span class="resume-bio-full" data-i18n="mansour_bio_full"> او در کنار بازیگری، به آموزش، پادکست و ساختن فضاهایی برای گفت‌وگوی صادقانه و خودشناسی می‌پردازد. خانه ماورا ادامه‌ی همین مسیر است: پیوند هنر با دیدن دقیق‌تر زندگی.</span></p>
                     <button class="bio-more" id="resumeBioMore" type="button" aria-expanded="false"><span data-i18n="bio_more">بیشتر</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
-                    <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
-                        <a class="btn btn--outline" href="https://instagram.com/mansournasirii" target="_blank" rel="noopener" style="font-size:12px">Instagram</a>
-                        <a class="btn btn--outline" href="https://www.imdb.com/name/nm11240651/" target="_blank" rel="noopener" style="font-size:12px">IMDb</a>
-                    </div>
+                    <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap" id="mansourLinksProfile"></div>
                 </div>
             </div>
         </section>
@@ -110,11 +107,53 @@
     async function init() {
         loadHeader('about-mansour.html'); loadFooter();
         await API.init();
+        await loadMansourContent();
         renderResume();
         renderSamples(currentTab);
         setupSamplesTabs();
         initResumeBio();
         window.addEventListener('mv-lang', () => { renderResume(); renderSamples(currentTab); initResumeBio(); if (activeProject) renderModal(); });
+    }
+
+    // Profile photo + link buttons (requested follow-up — these used to
+    // be hardcoded HTML: a fixed <img src>, and exactly two <a> tags for
+    // Instagram/IMDb). A raw fetch() here rather than going through
+    // site.js's own loadSiteContent(), same reasoning that function's own
+    // comment gives for using one itself: this page-specific data (an
+    // image path, a whole list of links) isn't a plain I18N text swap
+    // like every key in SITE_CONTENT_MAP, so it needs its own handling
+    // rather than forcing that shared function to know about this one
+    // page's DOM. mansourLinks keeps its two hardcoded defaults as a
+    // fallback — same value content_mansour_links is seeded with — so a
+    // failed/slow fetch never leaves the page with no links at all.
+    let mansourLinks = [
+        { label: 'Instagram', url: 'https://instagram.com/mansournasirii' },
+        { label: 'IMDb', url: 'https://www.imdb.com/name/nm11240651/' },
+    ];
+    function mansourLinksHTML() {
+        return mansourLinks.map(l => `<a class="btn btn--outline" href="${esc(l.url)}" target="_blank" rel="noopener" style="font-size:12px">${esc(l.label)}</a>`).join('');
+    }
+    async function loadMansourContent() {
+        let data;
+        try {
+            const base = window.MAAVARA_API_BASE || '';
+            const res = await fetch(`${base}/api/v1/site-content`);
+            const body = await res.json();
+            if (!res.ok || !body.data) return;
+            data = body.data;
+        } catch { return; }
+        if (data.content_mansour_photo) {
+            const img = document.getElementById('mansourPhotoImg');
+            if (img) img.src = pp(data.content_mansour_photo);
+        }
+        if (typeof data.content_mansour_links === 'string' && data.content_mansour_links.trim()) {
+            try {
+                const parsed = JSON.parse(data.content_mansour_links);
+                if (Array.isArray(parsed) && parsed.length) mansourLinks = parsed;
+            } catch { /* malformed — keep the defaults above */ }
+        }
+        const profileBox = document.getElementById('mansourLinksProfile');
+        if (profileBox) profileBox.innerHTML = mansourLinksHTML();
     }
 
     let currentTab = 'all';
@@ -188,10 +227,7 @@
             ${p.video ? `<video controls src="${pp(p.video)}" style="width:100%;border-radius:var(--radius-sm)"></video>` : ''}
             ${__viewerImages.length ? `<div class="modal-gallery">${__viewerImages.map((img, i) => `<img src="${img}" alt="" loading="lazy" onclick="openViewer(${i})">`).join('')}</div>` : ''}
             ${reserveButtonHTML(p)}
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-                <a class="btn btn--outline" href="https://instagram.com/mansournasirii" target="_blank" rel="noopener" style="font-size:12px">Instagram</a>
-                <a class="btn btn--outline" href="https://www.imdb.com/name/nm11240651/" target="_blank" rel="noopener" style="font-size:12px">IMDb</a>
-            </div>`;
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${mansourLinksHTML()}</div>`;
     }
 
     function closeModal() {

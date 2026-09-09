@@ -66,6 +66,19 @@ EDITABLE_SETTINGS = {
     "content_quotes": "نقل‌قول‌های چرخشی صفحه اول — هر نقل‌قول در یک خط (حداکثر ۶ خط)",
     "content_mansour_bio": "متن معرفی منصور نصیری (صفحه «منصور نصیری») — بخش اول",
     "content_mansour_bio_full": "متن معرفی منصور نصیری — ادامه (بعد از «بیشتر»)",
+    # These five are written from the dedicated "محتوای صفحه رزومه" box on
+    # pages/admin/portfolio.html, not the generic settings-page renderer
+    # below (content_mansour_photo/content_mansour_links need bespoke
+    # widgets — a file upload, an add/remove link list — the generic
+    # text/textarea renderer has no concept of) — still listed here since
+    # every write, from wherever it comes, goes through the same
+    # PATCH /api/v1/admin/settings + validate_setting_value() path.
+    "content_mansour_photo": "عکس پروفایل صفحه «منصور نصیری»",
+    "content_mansour_eyebrow": "زیرعنوان بالای نام (صفحه «منصور نصیری»)",
+    "content_mansour_title": "نام نمایش‌داده‌شده (صفحه «منصور نصیری»)",
+    "content_mansour_sub": "توضیح زیر نام (صفحه «منصور نصیری»)",
+    "content_resume_footer": "متن پایین صفحه‌ی رزومه",
+    "content_mansour_links": "دکمه‌های لینک صفحه «منصور نصیری» (اینستاگرام، IMDb، ...) — JSON، از پنل «رزومه» ویرایش کن",
     "content_about_p1": "متن «درباره خانه ماورا» — پاراگراف اول",
     "content_about_p2": "متن «درباره خانه ماورا» — پاراگراف دوم",
     "content_companion_p1": "متن «همراهی» — پاراگراف اول",
@@ -85,6 +98,8 @@ EDITABLE_SETTINGS = {
 # to anonymous visitors" key by key.
 CONTENT_KEYS = [
     "content_hero_tagline", "content_quotes", "content_mansour_bio", "content_mansour_bio_full",
+    "content_mansour_photo", "content_mansour_eyebrow", "content_mansour_title", "content_mansour_sub",
+    "content_resume_footer", "content_mansour_links",
     "content_about_p1", "content_about_p2", "content_companion_p1", "content_companion_p2",
     "content_footer_tagline", "content_footer_copyright", "content_contact_telegram",
     "content_contact_instagram", "content_location",
@@ -265,6 +280,12 @@ SETTINGS_FIELD_TYPES: dict[str, str] = {
     "content_quotes": "textarea",
     "content_mansour_bio": "textarea",
     "content_mansour_bio_full": "textarea",
+    "content_mansour_photo": "text",
+    "content_mansour_eyebrow": "text",
+    "content_mansour_title": "text",
+    "content_mansour_sub": "text",
+    "content_resume_footer": "text",
+    "content_mansour_links": "textarea",
     "content_about_p1": "textarea",
     "content_about_p2": "textarea",
     "content_companion_p1": "textarea",

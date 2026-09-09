@@ -6,7 +6,38 @@
     <aside class="admin-sidebar"><div style="font-weight:700;font-size:15px;padding:8px 14px;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.1)">خانه ماورا</div><a href="dashboard.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>داشبورد</a><a href="events.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M4 5h16"/><path d="M4 5 3 21M20 5l1 16"/><path d="M8 5v16M12 5v16M16 5v16"/></svg>رویدادها</a><a href="reservations.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4Z"/></svg>رزروها</a><a href="waitlist.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>لیست انتظار</a><a href="broadcast.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>اطلاع‌رسانی</a><a href="checkin.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>پذیرش بلیت</a><a href="portfolio.html" class="active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.5"/><path d="M7 2v20M17 2v20M2 12h20"/></svg>رزومه</a><a href="team.html">اعضای خانه ماورا</a><a href="faqs.html">پرسش‌های متداول</a><a href="settings.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>تنظیمات</a><button onclick="MavaraTheme.toggle(); this.textContent = MavaraTheme.get()==='dark' ? '☀️ حالت روشن' : '🌙 حالت تیره'" id="themeToggleBtn" style="margin-top:auto">🌓 تغییر پوسته</button>
         <button onclick="logout()" style="margin-top:auto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>خروج</button></aside>
     <main class="admin-main">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px"><h2>مدیریت رزومه</h2><button class="btn btn--primary" onclick="openPF()" style="font-size:13px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>پروژه جدید</button></div>
+        <h2 style="margin-bottom:4px">مدیریت رزومه</h2>
+        <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">این صفحه هم لیست پروژه‌های رزومه («نمونه کارها») را مدیریت می‌کند، هم محتوای ثابت بالای صفحه‌ی عمومی «درباره‌ی منصور نصیری» (عکس پروفایل، عنوان، توضیح، و دکمه‌های لینک) را.</p>
+
+        <div class="feedback-box" style="margin-bottom:24px">
+            <h4>محتوای صفحه‌ی «درباره‌ی منصور نصیری»</h4>
+            <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">متن معرفی (بیوگرافی) از همین جدول در صفحه‌ی <a href="settings.html">تنظیمات</a> هم قابل ویرایش است — بقیه‌ی موارد فقط همین‌جاست.</p>
+
+            <label style="font-size:12px">عکس پروفایل</label>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                <img id="mansourPhotoPreview" style="width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid var(--border);display:none">
+                <input type="file" id="mansourPhotoFile" accept="image/*">
+            </div>
+
+            <div class="form-row">
+                <div><label style="font-size:12px">زیرعنوان بالای نام</label><input id="mansourEyebrow" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font-family:inherit"></div>
+                <div><label style="font-size:12px">نام نمایش‌داده‌شده</label><input id="mansourTitleField" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font-family:inherit"></div>
+            </div>
+            <label style="font-size:12px">توضیح زیر نام</label>
+            <input id="mansourSub" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font-family:inherit;margin-bottom:10px">
+            <label style="font-size:12px">متن پایین صفحه‌ی رزومه</label>
+            <input id="resumeFooter" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font-family:inherit;margin-bottom:14px">
+
+            <label style="font-size:12px">دکمه‌های لینک (اینستاگرام، IMDb، یا هر لینک دیگری)</label>
+            <p style="font-size:11.5px;color:var(--text-muted);margin:2px 0 8px">این دکمه‌ها هم زیر معرفی بالای صفحه، هم داخل پنجره‌ی جزئیات هر پروژه نشان داده می‌شوند.</p>
+            <div id="mansourLinksEditor" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
+            <button type="button" class="btn btn--outline" style="font-size:12px;padding:8px 14px;margin-bottom:14px" onclick="addMansourLinkRow()">+ افزودن لینک</button>
+
+            <div><button class="btn btn--gold" onclick="saveResumePageContent()">ذخیره‌ی محتوای صفحه</button></div>
+            <p id="resumeContentMsg" style="display:none;font-size:12.5px;margin-top:8px"></p>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px"><h3>پروژه‌های رزومه</h3><button class="btn btn--primary" onclick="openPF()" style="font-size:13px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>پروژه جدید</button></div>
         <table class="admin-table"><thead><tr><th>عنوان</th><th>دسته</th><th>سال</th><th>کارگردان</th><th>نقش</th><th>عملیات</th></tr></thead><tbody id="tb"></tbody></table>
     </main>
 </div>
@@ -35,10 +66,88 @@
 if (!API.auth.check()) window.location.href = 'login.html';
 let pfId = null;
 let pfPoster = null, pfGallery = [], pfVideo = null;
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
 async function load() {
   await API.init();
   document.getElementById('tb').innerHTML = API.portfolio.all().map(p => `<tr><td><strong>${p.title_fa}</strong>${(p.status === 'now_showing') ? ' <span style="color:#2a7a2a;font-size:10px;font-weight:700">● در حال اجرا</span>' : ''}</td><td>${p.category}</td><td>${p.year||'—'}</td><td>${p.director||'—'}</td><td>${p.role||'—'}</td><td style="display:flex;gap:6px"><button class="btn btn--outline btn--sm" onclick="editPF(${p.id})" style="font-size:11px;padding:4px 10px">✏️</button><button class="btn btn--outline btn--sm" onclick="delPF(${p.id})" style="font-size:11px;padding:4px 10px;color:#c44">🗑️</button></td></tr>`).join('') || '<tr><td colspan="6">پروژه‌ای ثبت نشده.</td></tr>';
+}
+
+// ── "درباره‌ی منصور نصیری" page content (photo, title line, footer,
+// link buttons) — requested follow-up. Uses the same generic settings
+// mechanism (content_* keys) every other admin-editable site copy
+// already goes through (see bot/services/settings_service.py's
+// CONTENT_KEYS) — just with a dedicated box here instead of the generic
+// text/textarea list in pages/admin/settings.html, since the photo needs
+// a real upload widget and the links need an add/remove list, neither of
+// which the generic renderer knows how to draw.
+let mansourPhoto = null;
+let mansourLinks = [];
+async function loadResumePageContent() {
+  const list = await API.settings.list();
+  const byKey = Object.fromEntries(list.map(s => [s.key, s.value]));
+  mansourPhoto = byKey.content_mansour_photo || null;
+  document.getElementById('mansourEyebrow').value = byKey.content_mansour_eyebrow || '';
+  document.getElementById('mansourTitleField').value = byKey.content_mansour_title || '';
+  document.getElementById('mansourSub').value = byKey.content_mansour_sub || '';
+  document.getElementById('resumeFooter').value = byKey.content_resume_footer || '';
+  if (mansourPhoto) {
+    const img = document.getElementById('mansourPhotoPreview');
+    img.src = '/' + mansourPhoto; img.style.display = 'block';
+  }
+  try {
+    const parsed = JSON.parse(byKey.content_mansour_links || '[]');
+    mansourLinks = Array.isArray(parsed) ? parsed : [];
+  } catch { mansourLinks = []; }
+  renderMansourLinksEditor();
+}
+function renderMansourLinksEditor() {
+  document.getElementById('mansourLinksEditor').innerHTML = mansourLinks.map((l, i) => `
+    <div style="display:flex;gap:8px;align-items:center">
+      <input value="${esc(l.label)}" placeholder="برچسب دکمه (مثلاً Instagram)" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:inherit" oninput="mansourLinks[${i}].label = this.value">
+      <input value="${esc(l.url)}" placeholder="آدرس لینک" dir="ltr" style="flex:2;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:inherit" oninput="mansourLinks[${i}].url = this.value">
+      <button type="button" onclick="removeMansourLinkRow(${i})" style="width:30px;height:30px;border-radius:50%;background:#c44;color:#fff;border:none;cursor:pointer;flex-shrink:0">✕</button>
+    </div>`).join('') || '<p style="font-size:12px;color:var(--text-muted)">هنوز لینکی اضافه نشده.</p>';
+}
+function addMansourLinkRow() {
+  mansourLinks.push({ label: '', url: '' });
+  renderMansourLinksEditor();
+}
+function removeMansourLinkRow(i) {
+  mansourLinks.splice(i, 1);
+  renderMansourLinksEditor();
+}
+document.getElementById('mansourPhotoFile').addEventListener('change', async (ev) => {
+  const file = ev.target.files[0]; if (!file) return;
+  try {
+    mansourPhoto = await API.settings.uploadMedia(file, 'mansour');
+    const img = document.getElementById('mansourPhotoPreview');
+    img.src = '/' + mansourPhoto; img.style.display = 'block';
+    toast('عکس آپلود شد — برای اعمال، «ذخیره‌ی محتوای صفحه» را بزن');
+  } catch { toast('آپلود عکس ناموفق بود'); }
+});
+async function saveResumePageContent() {
+  const msg = document.getElementById('resumeContentMsg');
+  msg.style.display = 'none';
+  // Drop rows the admin left half-empty (added a row, then changed their
+  // mind, never filled it in) rather than saving a blank/broken button.
+  const links = mansourLinks.filter(l => (l.label || '').trim() && (l.url || '').trim());
+  const values = {
+    content_mansour_eyebrow: document.getElementById('mansourEyebrow').value,
+    content_mansour_title: document.getElementById('mansourTitleField').value,
+    content_mansour_sub: document.getElementById('mansourSub').value,
+    content_resume_footer: document.getElementById('resumeFooter').value,
+    content_mansour_links: JSON.stringify(links),
+  };
+  if (mansourPhoto) values.content_mansour_photo = mansourPhoto;
+  try {
+    await API.settings.update(values);
+    mansourLinks = links;
+    renderMansourLinksEditor();
+    msg.style.display = 'block'; msg.style.color = '#2a7a2a'; msg.textContent = 'ذخیره شد.';
+  } catch (err) {
+    msg.style.display = 'block'; msg.style.color = '#c44'; msg.textContent = 'خطا — ' + (err.details || err.message);
+  }
 }
 function openPF() { pfId = null; pfPoster = null; pfGallery = []; pfVideo = null; document.getElementById('pfTitle').textContent = 'پروژه جدید'; document.getElementById('pfForm').reset(); document.getElementById('pfPosterPreview').innerHTML = ''; renderPfGalleryPreview(); document.getElementById('pfModal').style.display = 'flex'; }
 // Gallery thumbnails, with a remove button on each — requested: there
@@ -123,7 +232,7 @@ document.getElementById('pfGalleryFiles') && document.getElementById('pfGalleryF
     catch { toast('آپلود یکی از عکس‌ها ناموفق بود'); }
   }
 });
-addEventListener('DOMContentLoaded', load);
+addEventListener('DOMContentLoaded', () => { load(); loadResumePageContent(); });
 </script>
 </body>
 </html>

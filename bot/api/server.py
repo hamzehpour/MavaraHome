@@ -609,8 +609,24 @@ class Handler(BaseHTTPRequestHandler):
                 # Public, read-only: what the website's payment step needs to
                 # show the buyer — same active card the bot itself uses, so
                 # there's only ever one place this is configured.
+                #
+                # Bug (found by this feature's own testing — GET /admin/
+                # settings, used way EARLIER in this same do_GET function
+                # at the "/api/v1/admin/settings" branch above, crashed
+                # with "cannot access local variable 'settings_repo'"):
+                # `settings_repo` is already imported at module level
+                # (top of this file) — the local re-import that used to be
+                # here made Python treat the name as local to the WHOLE
+                # do_GET function, which breaks every earlier reference to
+                # the module-level one regardless of which branch actually
+                # runs (a local assignment anywhere in a function shadows
+                # the outer name for the entire function body, even before
+                # the assignment line executes). bank_cards_repo has no
+                # module-level import (it's always imported locally,
+                # consistently, wherever it's used across this whole
+                # file), so that one stays as-is — only settings_repo had
+                # a name collision with an outer import.
                 from database.repositories import bank_cards as bank_cards_repo
-                from database.repositories import settings as settings_repo
                 card = bank_cards_repo.get_active_card()
                 return self._send_json(200, {"data": {
                     "card_number": card["card_number"] if card else None,
@@ -1119,7 +1135,7 @@ class Handler(BaseHTTPRequestHandler):
                     "brand_og_image": ("assets/images/logo/mavara-emblem-640.webp", "image/webp"),
                 }
                 kind = body.get("kind") if body.get("kind") in (
-                    "poster", "gallery", "video", "portfolio", "team", "ticket_logo", *BRAND_TARGETS
+                    "poster", "gallery", "video", "portfolio", "team", "ticket_logo", "mansour", *BRAND_TARGETS
                 ) else "gallery"
                 if not data_url or not isinstance(data_url, str) or not data_url.startswith("data:"):
                     return self._send_json(400, {"error": "validation", "details": "data must be a base64 data URL"})

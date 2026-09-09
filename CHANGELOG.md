@@ -5,6 +5,64 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Admin: edit the resume page's profile content and link buttons
+
+**Why:** requested — the "درباره‌ی منصور نصیری" page's own profile block
+(photo, eyebrow/title/role line, footer text) and its two link buttons
+(Instagram, IMDb) were hardcoded HTML, unlike the bio text next to them
+(already admin-editable via `content_mansour_bio`/`_full`). Wanted:
+edit those same "entities" (photo, title, description, ...), plus add/
+edit an arbitrary list of link buttons, not just the fixed two.
+
+- Schema v16 follow-up (no version bump — additive `settings` rows only,
+  same mechanism as every other `content_*` key): five new keys —
+  `content_mansour_photo`, `content_mansour_eyebrow`, `content_mansour_title`,
+  `content_mansour_sub`, `content_resume_footer` — plus `content_mansour_links`,
+  a JSON array of `{label, url}` replacing the old two-hardcoded-`<a>`-tags
+  approach. Defaults are exact copies of what was already hardcoded, so
+  seeding them changes nothing until an admin edits one.
+- `services/settings_service.py`: added to `EDITABLE_SETTINGS`,
+  `CONTENT_KEYS` (served publicly via `GET /api/v1/site-content`, same
+  as every other content field), and `SETTINGS_FIELD_TYPES`.
+- `api/server.py`'s upload endpoint accepts a new `kind: "mansour"` for
+  the profile photo (saved under `media/mansour/`).
+- New "محتوای صفحه‌ی «درباره‌ی منصور نصیری»" box on `pages/admin/
+  portfolio.html` (photo upload, three text fields, and an add/remove
+  link-row editor) — a dedicated box rather than the generic settings-
+  page renderer, since the photo needs a real upload widget and the
+  links need a structured add/remove list, neither of which the generic
+  text/textarea renderer has a concept of. Saves through the same
+  generic `PATCH /api/v1/admin/settings` batch-update every other
+  settings section already uses.
+- `pages/about-mansour.html`: the profile `<img>` and the two link
+  buttons (now rendered in both the profile section AND the project
+  modal from one shared list) are populated from `GET /api/v1/site-
+  content` on load — a raw `fetch()`, like `site.js`'s own
+  `loadSiteContent()`, rather than routing through that shared function,
+  since a photo path and a whole link list aren't plain I18N text swaps
+  like every other `content_*` key it already handles.
+- Found and fixed a real, unrelated, pre-existing bug while wiring this
+  up (surfaced immediately by testing `GET /admin/settings`): `api/
+  server.py`'s `/api/v1/payment-info` handler had a redundant local
+  `from database.repositories import settings as settings_repo` — since
+  `settings_repo` is already imported once at module level and used
+  directly everywhere else in this file, that local re-import made
+  Python treat the name as local to the *entire* `do_GET` method (a
+  name assigned anywhere in a function is local for the whole function
+  body, regardless of which branch actually runs), which broke every
+  *earlier* reference to the module-level `settings_repo` within
+  `do_GET` — concretely, `GET /api/v1/admin/settings` (the whole admin
+  settings page) and `GET /api/v1/admin/bank-cards`'s auto-rotate flag
+  both crashed with "cannot access local variable 'settings_repo'"
+  regardless of this feature. Removed the redundant local import.
+- Verified locally: real HTTP round-trip against a running `ENV=test`
+  server — confirmed the crash before the fix, confirmed `GET /admin/
+  settings`, `GET /payment-info`, and `GET /admin/bank-cards` all work
+  after it; created a new bank photo upload (`kind=mansour`); PATCHed
+  the new content fields and confirmed the public, unauthenticated
+  `GET /site-content` reflected the change. Full 53/53 automated suite
+  still green.
+
 ## Admin: remove an image from a resume project's gallery
 
 **Why:** requested — once a gallery photo was uploaded to a resume/
