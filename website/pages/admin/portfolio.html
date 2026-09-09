@@ -11,7 +11,7 @@
 
         <div class="feedback-box" style="margin-bottom:24px">
             <h4>محتوای صفحه‌ی «درباره‌ی منصور نصیری»</h4>
-            <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">متن معرفی (بیوگرافی) از همین جدول در صفحه‌ی <a href="settings.html">تنظیمات</a> هم قابل ویرایش است — بقیه‌ی موارد فقط همین‌جاست.</p>
+            <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">همین موارد از صفحه‌ی <a href="settings.html">تنظیمات</a> هم قابل ویرایش‌اند (همان دیتا، دو مسیر ویرایش) — این‌جا فقط برای راحتی، همه‌چیز مربوط به این صفحه‌ی عمومی یک‌جا جمع شده.</p>
 
             <label style="font-size:12px">عکس پروفایل</label>
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
@@ -25,6 +25,10 @@
             </div>
             <label style="font-size:12px">توضیح زیر نام</label>
             <input id="mansourSub" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font-family:inherit;margin-bottom:10px">
+            <label style="font-size:12px">متن معرفی (بخش اول)</label>
+            <textarea id="mansourBio" rows="3" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font-family:inherit;resize:vertical;margin-bottom:10px"></textarea>
+            <label style="font-size:12px">متن معرفی (ادامه، بعد از دکمه‌ی «بیشتر»)</label>
+            <textarea id="mansourBioFull" rows="3" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font-family:inherit;resize:vertical;margin-bottom:10px"></textarea>
             <label style="font-size:12px">متن پایین صفحه‌ی رزومه</label>
             <input id="resumeFooter" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font-family:inherit;margin-bottom:14px">
 
@@ -90,6 +94,8 @@ async function loadResumePageContent() {
   document.getElementById('mansourEyebrow').value = byKey.content_mansour_eyebrow || '';
   document.getElementById('mansourTitleField').value = byKey.content_mansour_title || '';
   document.getElementById('mansourSub').value = byKey.content_mansour_sub || '';
+  document.getElementById('mansourBio').value = byKey.content_mansour_bio || '';
+  document.getElementById('mansourBioFull').value = byKey.content_mansour_bio_full || '';
   document.getElementById('resumeFooter').value = byKey.content_resume_footer || '';
   if (mansourPhoto) {
     const img = document.getElementById('mansourPhotoPreview');
@@ -136,6 +142,8 @@ async function saveResumePageContent() {
     content_mansour_eyebrow: document.getElementById('mansourEyebrow').value,
     content_mansour_title: document.getElementById('mansourTitleField').value,
     content_mansour_sub: document.getElementById('mansourSub').value,
+    content_mansour_bio: document.getElementById('mansourBio').value,
+    content_mansour_bio_full: document.getElementById('mansourBioFull').value,
     content_resume_footer: document.getElementById('resumeFooter').value,
     content_mansour_links: JSON.stringify(links),
   };
