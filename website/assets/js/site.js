@@ -60,6 +60,7 @@ const I18N = {
     empty_cat: 'رویدادی در این دسته ثبت نشده.', empty_event: 'رویداد پیدا نشد.',
     events_eyebrow: 'تقویم', events_title: 'رویدادهای خانه ماورا', events_sub: 'همین حالا، به‌زودی، و آنچه گذشت', tag_all: 'همه',
     info_label: 'اطلاعات', loc_label: 'مکان', date_label: 'تاریخ', book_tg: 'رزرو از تلگرام',
+    faq_title: 'پرسش‌های متداول',
     reserve_title: 'رزرو این رویداد', reserve_name: 'نام و نام خانوادگی', reserve_phone: 'شماره موبایل', reserve_email: 'ایمیل (برای پیگیری رزرو و دریافت بلیت)',
     bk_contact_accuracy_note: '⚠️ شماره موبایل و ایمیل را با دقت و بدون اشتباه وارد کنید — بلیت، کد پیگیری و هر خبری درباره‌ی این رزرو فقط از همین دو راه به دستتان می‌رسد.',
     bk_book_now: 'رزرو بلیت', bk_close: 'بستن پنجره',
@@ -150,6 +151,7 @@ const I18N = {
     empty_cat: 'No events in this category yet.', empty_event: 'Event not found.',
     events_eyebrow: 'Calendar', events_title: 'Mavara events', events_sub: 'Now, soon, and what has passed', tag_all: 'All',
     info_label: 'Details', loc_label: 'Location', date_label: 'Date', book_tg: 'Book on Telegram',
+    faq_title: 'Frequently Asked Questions',
     reserve_title: 'Reserve this event', reserve_name: 'Full name', reserve_phone: 'Mobile number', reserve_email: 'Email (to track your reservation and get your ticket)',
     bk_contact_accuracy_note: "⚠️ Double-check your mobile number and email — your ticket, tracking code, and any updates about this reservation are sent only through these two.",
     bk_book_now: 'Book a ticket', bk_close: 'Close',
@@ -456,6 +458,24 @@ async function initEventDetail() {
        <video controls style="width:100%;border-radius:14px;background:#000" src="${pp(esc(e.video))}"></video></div>`
     : '';
 
+  // Schema v16: this event's FAQ bank items (already in the admin's
+  // chosen order — see api/server.py's _event_public()). Native
+  // <details>/<summary> — an accordion with zero extra JS and free
+  // keyboard/accessibility support. Falls back to the fa text when no
+  // _en pair was filled in for a given item (same rule evTitle()/evLoc()
+  // already apply per-event).
+  const l = lang();
+  const faqHTML = Array.isArray(e.faqs) && e.faqs.length
+    ? `<div style="max-width:640px;margin:24px auto 0">
+       <h3 style="font-weight:700;margin-bottom:10px;color:var(--navy)">${T('faq_title')}</h3>
+       <div style="display:flex;flex-direction:column;gap:8px">
+         ${e.faqs.map(f => `<details style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px 16px">
+           <summary style="cursor:pointer;font-weight:600;color:var(--navy)">${esc((l === 'en' && f.question_en) ? f.question_en : f.question)}</summary>
+           <p style="margin-top:8px;color:var(--text-muted);line-height:1.9;font-size:13.5px">${esc((l === 'en' && f.answer_en) ? f.answer_en : f.answer)}</p>
+         </details>`).join('')}
+       </div></div>`
+    : '';
+
   // Reservation-migration phase 3: booking happens right here now (same
   // backend, same database the Telegram bot itself uses — see
   // buildBooking() below), so Telegram/phone are no longer booking
@@ -507,6 +527,7 @@ async function initEventDetail() {
         ${bookingCta}
       </div>
     </div>
+    ${faqHTML}
     ${supportHTML}
     <div class="feedback-box" id="feedbackBox" style="max-width:640px;margin:24px auto 0"><h4>${T('fb_title')}</h4>
       <div id="feedbackForm"><input id="fbName" placeholder="${T('fb_name_ph')}" maxlength="60"><textarea id="fbText" placeholder="${T('fb_text_ph')}" required maxlength="1000"></textarea><button class="btn btn--gold" onclick="submitFeedback('${esc(e.id)}')" style="font-size:13px">${T('fb_submit')}</button></div>

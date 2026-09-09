@@ -67,6 +67,7 @@ from database.repositories import users as users_repo  # noqa: E402
 from database.repositories import reservations as reservations_repo  # noqa: E402
 from database.repositories import admins as admins_repo  # noqa: E402
 from database.repositories import waitlist as waitlist_repo  # noqa: E402
+from database.repositories import faqs as faqs_repo  # noqa: E402
 from services import reservation_service, event_service, permissions  # noqa: E402
 from utils.jalali import gregorian_to_jalali, jalali_to_gregorian, gregorian_iso_to_jalali_display  # noqa: E402
 from utils.qr_signing import sign_code, verify_signed_code  # noqa: E402
@@ -803,6 +804,80 @@ def _t():
     printed = buf.getvalue()
     assert "notify-me@example.com" in printed, "no email was sent (SMTP unset -> printed) to the customer's address"
     assert "تست اعلان ایمیل" in printed, "the notification must name the actual event, not a placeholder"
+
+
+@test("Schema v16: FAQ bank create/update/delete + bilingual fields round-trip")
+def _t():
+    faq_id = faqs_repo.create("سوال تستی؟", "پاسخ تستی.", question_en="Test question?", answer_en="Test answer.")
+    row = faqs_repo.get(faq_id)
+    assert row["question"] == "سوال تستی؟" and row["answer"] == "پاسخ تستی."
+    assert row["question_en"] == "Test question?" and row["answer_en"] == "Test answer."
+
+    updated = faqs_repo.update(faq_id, answer="پاسخ ویرایش‌شده.")
+    assert updated["answer"] == "پاسخ ویرایش‌شده." and updated["question"] == "سوال تستی؟", \
+        "update() must only touch the fields actually passed"
+
+    faqs_repo.delete(faq_id)
+    assert faqs_repo.get(faq_id) is None
+
+
+@test("Schema v16: an event's FAQ list is a real shared bank reference, not a per-event copy")
+def _t():
+    event_id = events_repo.create_event(title="رویداد تست FAQ")
+    faq_id = faqs_repo.create("چند نفر می‌توانیم بیاییم؟", "حداکثر ۴ نفر با هم.")
+
+    faqs_repo.set_event_faqs(event_id, [faq_id])
+    assert [f["id"] for f in faqs_repo.list_for_event(event_id)] == [faq_id]
+
+    # Editing the bank item (as if from the standalone bank-management
+    # page, or from a second event's edit form) must change what THIS
+    # event sees too — the whole point of a shared reference over a
+    # snapshot copy (explicit product decision, see schema.py's comment).
+    faqs_repo.update(faq_id, question="چند نفر مجازیم بیاییم؟")
+    assert faqs_repo.list_for_event(event_id)[0]["question"] == "چند نفر مجازیم بیاییم؟"
+
+    bank_row = next(f for f in faqs_repo.list_all() if f["id"] == faq_id)
+    assert bank_row["usage_count"] == 1, "usage_count must reflect the one event it's attached to"
+
+
+@test("Schema v16: set_event_faqs() replaces the whole list/order in one call (add/remove/reorder/de-dupe)")
+def _t():
+    event_id = events_repo.create_event(title="رویداد تست ترتیب FAQ")
+    f1 = faqs_repo.create("سوال ۱؟", "پاسخ ۱.")
+    f2 = faqs_repo.create("سوال ۲؟", "پاسخ ۲.")
+    f3 = faqs_repo.create("سوال ۳؟", "پاسخ ۳.")
+
+    faqs_repo.set_event_faqs(event_id, [f1, f2, f3])
+    assert [f["id"] for f in faqs_repo.list_for_event(event_id)] == [f1, f2, f3]
+
+    # Reorder + drop f2, keep f1/f3 — exactly what the admin form's save()
+    # sends: the whole new desired list, not a diff.
+    faqs_repo.set_event_faqs(event_id, [f3, f1])
+    assert [f["id"] for f in faqs_repo.list_for_event(event_id)] == [f3, f1]
+
+    # A duplicate id in the incoming list must not crash (UNIQUE constraint
+    # on event_faqs) and must keep only the first occurrence's position.
+    faqs_repo.set_event_faqs(event_id, [f1, f2, f1])
+    assert [f["id"] for f in faqs_repo.list_for_event(event_id)] == [f1, f2]
+
+    # Deleting the bank item removes it from the event too (ON DELETE
+    # CASCADE), not just from the bank.
+    faqs_repo.delete(f1)
+    assert [f["id"] for f in faqs_repo.list_for_event(event_id)] == [f2]
+
+
+@test("Schema v16: an event's public JSON embeds its FAQs, correctly ordered")
+def _t():
+    from api.server import _event_public
+
+    event_id = events_repo.create_event(title="رویداد تست embed FAQ")
+    f1 = faqs_repo.create("اول؟", "پاسخ اول.")
+    f2 = faqs_repo.create("دوم؟", "پاسخ دوم.")
+    faqs_repo.set_event_faqs(event_id, [f2, f1])
+
+    public = _event_public(events_repo.get_event(event_id))
+    assert [f["id"] for f in public["faqs"]] == [f2, f1]
+    assert public["faqs"][0]["question"] == "دوم؟"
 
 
 def main() -> None:

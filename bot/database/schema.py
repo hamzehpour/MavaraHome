@@ -12,7 +12,7 @@ what's missing instead of guessing from column-already-exists errors.
 from database.connection import get_connection
 from config.settings import BOOTSTRAP_ADMIN_IDS
 
-SCHEMA_VERSION = 15
+SCHEMA_VERSION = 16
 
 SCHEMA_STATEMENTS = [
     # ---- users -------------------------------------------------
@@ -430,6 +430,49 @@ BROADCAST_RECIPIENTS_TABLE = """
 SCHEMA_STATEMENTS.append(BROADCAST_RECIPIENTS_TABLE)
 SCHEMA_STATEMENTS.append("CREATE INDEX IF NOT EXISTS idx_broadcast_recipients_broadcast ON broadcast_recipients(broadcast_id)")
 SCHEMA_STATEMENTS.append("CREATE INDEX IF NOT EXISTS idx_broadcast_recipients_status ON broadcast_recipients(status)")
+
+# ---- Schema v16: per-event FAQs, requested. Two tables rather than a
+# single one, deliberately mirroring the "bank" language of the request
+# itself: `faqs` is the reusable bank an admin builds up over time (bi-
+# lingual, same fa/en pairing every other admin-editable content field in
+# this project uses — title/title_en, description/description_en, ...);
+# `event_faqs` is a many-to-many join that says which bank items appear
+# on which event, and in what order. Editing a bank item's text (from
+# either the standalone bank-management page or from inside an event's
+# edit form) is meant to change it everywhere it's already attached —
+# that's the whole point of a shared bank instead of copying the text
+# onto each event — so the FK is a real reference, never a snapshot.
+FAQS_TABLE = """
+    CREATE TABLE IF NOT EXISTS faqs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        question TEXT NOT NULL,
+        question_en TEXT,
+        answer TEXT NOT NULL,
+        answer_en TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+"""
+SCHEMA_STATEMENTS.append(FAQS_TABLE)
+
+# sort_order: the admin's own drag/reorder of which questions show first
+# on a given event's page — independent of the bank's own (chronological)
+# order, since the same bank item can reasonably belong first on one
+# event's list and fifth on another's. UNIQUE(event_id, faq_id) so the
+# same bank item can't be attached to one event twice.
+EVENT_FAQS_TABLE = """
+    CREATE TABLE IF NOT EXISTS event_faqs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+        faq_id INTEGER NOT NULL REFERENCES faqs(id) ON DELETE CASCADE,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE(event_id, faq_id)
+    )
+"""
+SCHEMA_STATEMENTS.append(EVENT_FAQS_TABLE)
+SCHEMA_STATEMENTS.append("CREATE INDEX IF NOT EXISTS idx_event_faqs_event ON event_faqs(event_id, sort_order)")
+SCHEMA_STATEMENTS.append("CREATE INDEX IF NOT EXISTS idx_event_faqs_faq ON event_faqs(faq_id)")
 
 # Defaults an admin can later change from the panel — never hardcoded
 # in handlers/services again.

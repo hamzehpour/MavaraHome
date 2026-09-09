@@ -464,6 +464,18 @@ const API = {
       return result.path;
     },
   },
+  // Schema v16: the FAQ bank — admin-only (see api/server.py's comment on
+  // GET /api/v1/admin/faqs). Each event's OWN faqs come back embedded on
+  // the event object itself (event.faqs, from API.events.*) rather than
+  // through this namespace — this one is just the reusable bank: the
+  // standalone management page (pages/admin/faqs.html) and the "add an
+  // existing question" picker inside the event edit form both read it.
+  faqs: {
+    async adminAll() { return apiFetchAdmin('/admin/faqs'); },
+    async create(d) { return apiFetchAdmin('/admin/faqs', { method: 'POST', body: JSON.stringify(d) }); },
+    async update(id, d) { return apiFetchAdmin(`/admin/faqs/${id}`, { method: 'PATCH', body: JSON.stringify(d) }); },
+    async delete(id) { return apiFetchAdmin(`/admin/faqs/${id}`, { method: 'DELETE' }); },
+  },
 };
 
 // Dark/Light mode. A UI preference, not application data — safe to keep

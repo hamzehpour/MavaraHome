@@ -45,6 +45,7 @@ from database.repositories import web_admins as web_admins_repo
 from database.repositories import messages as messages_repo
 from database.repositories import team_members as team_repo
 from database.repositories import settings as settings_repo
+from database.repositories import faqs as faqs_repo
 from utils.auth import hash_password, verify_password, create_token, verify_token, ACCESS_TOKEN_TTL_SECONDS, REFRESH_TOKEN_TTL_SECONDS
 from utils.qr_signing import verify_signed_code
 from validators.validators import normalize_phone, is_valid_iranian_mobile, is_valid_full_name, is_valid_email
@@ -176,6 +177,14 @@ def _event_public(e: dict) -> dict:
         # ticket PDFs; ticket_logo optionally overrides the ticket header
         # logo for this event only (see utils/ticket_pdf.py).
         "important_notes": e.get("important_notes"), "ticket_logo": e.get("ticket_logo"),
+        # Schema v16: this event's FAQ bank items, in the admin's chosen
+        # order — embedded directly here (rather than a separate
+        # /events/<id>/faqs endpoint) so both the public event-detail page
+        # AND the admin edit form's prefill get it for free from the same
+        # fetch that already loads everything else about the event. Fine
+        # to run one extra join per event even on the full /events list —
+        # this venue runs a handful of events at a time, not hundreds.
+        "faqs": faqs_repo.list_for_event(e["id"]),
     }
 
 
@@ -702,6 +711,15 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send_json(404, {"error": "not_found"})
                 return self._send_json(200, {"data": _team_public(member)})
 
+            # ---------------- Schema v16: FAQ bank (admin-only — there's
+            # no public "browse every question" page; visitors only ever
+            # see the subset attached to one event, via _event_public()
+            # above) ----------------
+            if path == "/api/v1/admin/faqs":
+                if not self._is_admin():
+                    return self._send_json(401, {"error": "unauthorized"})
+                return self._send_json(200, {"data": faqs_repo.list_all()})
+
             if not path.startswith("/api/v1"):
                 if _serve_static(self, path):
                     return
@@ -1063,6 +1081,15 @@ class Handler(BaseHTTPRequestHandler):
                     if "gallery" in body and isinstance(body["gallery"], list):
                         fields["gallery"] = json.dumps(body["gallery"], ensure_ascii=False)
                     events_repo.update_event_fields(event_id, **fields)
+                # Schema v16: faq_ids, if given, is the whole ordered list
+                # of bank item ids to attach — see faqs_repo.set_event_faqs().
+                # Optional here since a brand-new event's FAQ box only
+                # appears once it already has an id (same UX as sessions,
+                # just below), so this is realistically only ever sent by
+                # the PATCH endpoint — accepted here too for symmetry/any
+                # future caller that creates and attaches in one request.
+                if isinstance(body.get("faq_ids"), list):
+                    faqs_repo.set_event_faqs(event_id, body["faq_ids"])
                 return self._send_json(201, {"data": _event_public(events_repo.get_event(event_id))})
 
             if path == "/api/v1/admin/upload":
@@ -1293,6 +1320,19 @@ class Handler(BaseHTTPRequestHandler):
                 member_id = team_repo.create(**body)
                 return self._send_json(201, {"data": team_repo.get(member_id)})
 
+            # ---------------- Schema v16: FAQ bank (admin write) ----------
+            if path == "/api/v1/admin/faqs":
+                if not self._is_admin():
+                    return self._send_json(401, {"error": "unauthorized"})
+                body = self._read_json_body()
+                question, answer = body.get("question"), body.get("answer")
+                if not question or not answer:
+                    return self._send_json(400, {"error": "validation", "details": "question and answer are required"})
+                faq_id = faqs_repo.create(
+                    question, answer, question_en=body.get("question_en"), answer_en=body.get("answer_en"),
+                )
+                return self._send_json(201, {"data": faqs_repo.get(faq_id)})
+
             # ---------------- Phase 6: ticket verification / check-in ----
             if path == "/api/v1/admin/tickets/verify":
                 if not self._is_admin():
@@ -1359,6 +1399,13 @@ class Handler(BaseHTTPRequestHandler):
                 updated = events_repo.update_event_fields(event_id, **fields)
                 if not updated:
                     return self._send_json(404, {"error": "not_found"})
+                # Schema v16: faq_ids (if present) replaces this event's
+                # whole FAQ list/order — see faqs_repo.set_event_faqs(). Not
+                # part of _UPDATABLE_WEBSITE_FIELDS (it isn't an `events`
+                # column at all, it's the join table), so it's handled here
+                # explicitly rather than folded into `fields` above.
+                if isinstance(fields.get("faq_ids"), list):
+                    faqs_repo.set_event_faqs(event_id, fields["faq_ids"])
                 return self._send_json(200, {"data": _event_public(updated)})
             m = re.match(r"^/api/v1/admin/sessions/(\d+)$", path)
             if m:
@@ -1391,6 +1438,16 @@ class Handler(BaseHTTPRequestHandler):
                 member_id = int(m.group(1))
                 body = self._read_json_body()
                 updated = team_repo.update(member_id, **body)
+                if not updated:
+                    return self._send_json(404, {"error": "not_found"})
+                return self._send_json(200, {"data": updated})
+            m = re.match(r"^/api/v1/admin/faqs/(\d+)$", path)
+            if m:
+                if not self._is_admin():
+                    return self._send_json(401, {"error": "unauthorized"})
+                faq_id = int(m.group(1))
+                body = self._read_json_body()
+                updated = faqs_repo.update(faq_id, **body)
                 if not updated:
                     return self._send_json(404, {"error": "not_found"})
                 return self._send_json(200, {"data": updated})
@@ -1464,6 +1521,12 @@ class Handler(BaseHTTPRequestHandler):
                 if not self._is_admin():
                     return self._send_json(401, {"error": "unauthorized"})
                 team_repo.delete(int(m.group(1)))
+                return self._send_json(200, {"data": {"deleted": True}})
+            m = re.match(r"^/api/v1/admin/faqs/(\d+)$", path)
+            if m:
+                if not self._is_admin():
+                    return self._send_json(401, {"error": "unauthorized"})
+                faqs_repo.delete(int(m.group(1)))
                 return self._send_json(200, {"data": {"deleted": True}})
             m = re.match(r"^/api/v1/admin/bank-cards/(\d+)$", path)
             if m:

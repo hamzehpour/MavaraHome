@@ -5,6 +5,66 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Per-event FAQs, backed by a reusable, admin-managed FAQ bank
+
+**Why:** requested — each event can now show a "پرسش‌های متداول" section;
+admins manage it, visitors only see it.
+
+- Schema v16: two new tables. `faqs` is the bank — bilingual
+  (question/question_en, answer/answer_en), same fa/en pairing every
+  other admin-editable content field already uses. `event_faqs` is a
+  many-to-many join (event_id, faq_id, sort_order) saying which bank
+  items appear on which event, and in what order. Deliberately a real
+  FK reference, not a per-event copy: editing a bank item's text (from
+  either the standalone bank page or from inside an event's own edit
+  form) updates it everywhere it's attached, by design (explicit product
+  decision — the whole point of a shared "bank" over duplicating text).
+- New repo `database/repositories/faqs.py`: bank CRUD (`list_all()`
+  includes a `usage_count` per item, computed live, so the admin can see
+  before deleting something still in use), `list_for_event()`, and
+  `set_event_faqs(event_id, faq_ids)` — replaces an event's whole
+  FAQ list/order in one call, the same "send the whole array back"
+  convention `events.gallery`/`events.tags` already use, rather than
+  incremental add/remove/reorder endpoints.
+- API: `GET/POST /api/v1/admin/faqs` + `PATCH/DELETE /api/v1/admin/faqs/<id>`
+  (admin-only — there's no public "browse every question" page; visitors
+  only ever see the subset attached to one event). The existing admin
+  events `POST`/`PATCH` endpoints now also accept an optional `faq_ids`
+  array. `_event_public()` embeds `"faqs": [...]` directly on every event
+  object (list and single-event alike), so both the public event-detail
+  page and the admin edit form's prefill get it for free from the fetch
+  that already loads everything else about the event — no extra
+  round-trip needed on either side.
+- Admin panel: a new standalone page, `pages/admin/faqs.html` — full bank
+  CRUD, with a delete confirmation that names how many events a question
+  is currently used in. The event edit form (`pages/admin/events.html`)
+  gained a "پرسش‌های متداول" box — shown once an event has been saved
+  (same constraint sessions already have: it belongs to an event_id that
+  doesn't exist yet for a brand-new, unsaved event) — where the admin can
+  reorder/remove the event's current questions, pick an existing bank
+  question to add, or type a brand-new one (which is created in the bank
+  and attached to this event in the same action). Added a sidebar link
+  to all nine admin pages.
+- Public site: `event-detail.html`'s `initEventDetail()` renders the
+  event's FAQs as a plain `<details>/<summary>` accordion (zero extra JS,
+  free keyboard support) — falls back to the fa text when an item has no
+  _en pair, same rule every other bilingual event field already follows.
+- Fixed a real bug this feature's own test suite caught while writing it:
+  `faqs_repo.update()` originally read the row back (`get()`, which opens
+  its own SQLite connection) from *inside* the same `with get_connection()`
+  block that made the write — since each `get_connection()` call is a
+  fresh connection and the write hadn't committed yet, the read-back
+  silently returned the pre-update row every time. Fixed by moving the
+  read-back outside the write's `with` block.
+- Verified locally: full 53/53 automated suite (4 new tests — bank CRUD,
+  shared-reference semantics, `set_event_faqs()`'s add/remove/reorder/
+  de-dupe behavior, and the public JSON embed's ordering) plus a real
+  HTTP round-trip against a running `ENV=test` server (create two bank
+  questions → create an event → PATCH it with a reordered `faq_ids` →
+  confirm the public, unauthenticated `GET /events/<id>` reflects the
+  same order → delete one bank question → confirm it disappears from the
+  event too, via the FK cascade).
+
 ## Remove the gallery section from the home page
 
 **Why:** requested — the "از نگاه من" flip-card photo gallery on the
