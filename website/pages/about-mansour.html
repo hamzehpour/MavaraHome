@@ -139,7 +139,7 @@
                 const row = document.createElement('div');
                 row.className = 'resume-row';
                 row.onclick = () => openModal(p);
-                const thumb = p.poster ? `<img class="row-poster" src="${p.poster}" alt="" loading="lazy">` : '';
+                const thumb = p.poster ? `<img class="row-poster" src="${pp(p.poster)}" alt="" loading="lazy">` : '';
                 if (cat.highlight) {
                     row.innerHTML = `${thumb}<div class="title">${esc(pfTitle(p))}${isLive(p) ? livePill() : ''}<span class="role-tag">(${esc(pfDirector(p))})</span></div><div class="festival"><span class="year">${esc(pfYear(p))}</span>${pfFestival(p) ? ' · ' + esc(pfFestival(p)) : ''}</div>`;
                 } else {
@@ -169,7 +169,7 @@
         header.insertBefore(toggle, header.querySelector('.modal-close'));
         const body = document.getElementById('modalBody');
         body.innerHTML = `
-            ${p.poster ? `<img class="modal-poster" src="${p.poster}" alt="${esc(pfTitle(p))}" loading="lazy">` : ''}
+            ${p.poster ? `<img class="modal-poster" src="${pp(p.poster)}" alt="${esc(pfTitle(p))}" loading="lazy">` : ''}
             <dl class="modal-meta">
                 <dt>${T('m_en_title')}</dt><dd>${esc(lang() === 'en' ? (p.title_fa || '—') : (p.title_en || '—'))}</dd>
                 <dt>${T('m_year')}</dt><dd>${esc(p.year)}</dd>
@@ -178,8 +178,8 @@
                 ${pfFestival(p) ? `<dt>${T('m_festival')}</dt><dd>${esc(pfFestival(p))}</dd>` : ''}
                 ${pfDesc(p) ? `<dt>${T('m_desc')}</dt><dd>${esc(pfDesc(p))}</dd>` : ''}
             </dl>
-            ${p.video ? `<video controls src="${p.video}" style="width:100%;border-radius:var(--radius-sm)"></video>` : ''}
-            ${(p.gallery || []).length ? `<div class="modal-gallery">${p.gallery.map(img => `<img src="${img}" alt="" loading="lazy" onclick="openViewer('${img}','image')">`).join('')}</div>` : ''}
+            ${p.video ? `<video controls src="${pp(p.video)}" style="width:100%;border-radius:var(--radius-sm)"></video>` : ''}
+            ${(p.gallery || []).length ? `<div class="modal-gallery">${p.gallery.map(img => `<img src="${pp(img)}" alt="" loading="lazy" onclick="openViewer('${pp(img)}','image')">`).join('')}</div>` : ''}
             ${reserveButtonHTML(p)}
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
                 <a class="btn btn--outline" href="https://instagram.com/mansournasirii" target="_blank" rel="noopener" style="font-size:12px">Instagram</a>
@@ -217,8 +217,8 @@
             : withMedia;
 
         document.getElementById('samplesGallery').innerHTML = filtered.map(p => `
-            <div class="sample-card" onclick="openModal(${p.id})">
-                ${p.video ? `<video src="${p.video}" muted loop preload="metadata"></video><div class="play-icon">▶</div>` : p.poster ? `<img src="${p.poster}" alt="${esc(pfTitle(p))}" loading="lazy">` : ''}
+            <div class="sample-card" onclick="openModal(API.portfolio.get(${p.id}))">
+                ${p.video ? `<video src="${pp(p.video)}" muted loop preload="metadata"></video><div class="play-icon">▶</div>` : p.poster ? `<img src="${pp(p.poster)}" alt="${esc(pfTitle(p))}" loading="lazy">` : ''}
                 <div class="sample-label">${esc(pfTitle(p))}</div>
             </div>
         `).join('') || '<p style="text-align:center;grid-column:1/-1;color:var(--text-muted);padding:40px">' + T('empty_sample') + '</p>';

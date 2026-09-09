@@ -5,6 +5,35 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Fix: uploaded resume (رزومه) images/video never displayed on the public page
+
+**Why:** reported — images and media uploaded for a resume/portfolio
+entry (poster, gallery, video) never showed up anywhere on the public
+"درباره‌ی منصور نصیری" page (resume list, the click-through modal, or the
+"نمونه کارها" samples tab).
+
+Root cause: uploaded media comes back from the API as a bare relative
+path (`media/portfolio/xxxx.jpg`) — every other page on the site that
+displays this kind of path (events, team) already routes it through the
+site's `pp()` helper, which prefixes it correctly depending on how deep
+the current page is (`pages/about-mansour.html` needs `../media/...`,
+the site root needs `media/...` as-is — see `pp()`'s own comment on this
+exact class of bug, fixed once already for team/event photos). This
+page's resume-rendering code (`pages/about-mansour.html`) was written
+without ever calling `pp()` — poster/gallery/video `<img>`/`<video>` src
+attributes used the raw path directly, which the browser resolved
+against `/pages/` (since this page lives there) instead of the site
+root, and 404'd silently (an `<img>`/`<video>` with a broken src just
+shows nothing, no visible error). Fixed all six such spots (resume list
+thumbnail, modal poster/video/gallery, samples-tab thumbnail/video).
+
+While tracing this, also fixed a second, adjacent bug in the same
+samples tab: clicking a card called `openModal(p.id)` (just the numeric
+id), but `openModal()` expects the whole portfolio object — the modal
+would then try to read `.poster`/`.year`/etc. off a bare number and
+render empty/broken. Now calls `openModal(API.portfolio.get(id))`, same
+as the resume list's own click handler already does correctly.
+
 ## Fix: event-detail gallery — literal "gallery_label" text, thumbnails opening a new tab
 
 **Why:** reported, two separate bugs on the same page:
