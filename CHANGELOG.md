@@ -5,6 +5,40 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Team members: remove profile photo, add an Instagram link button
+
+**Why:** requested — no way to remove a team member's profile photo once
+set (only replace it), and no Instagram link button on their public page
+(only Telegram existed).
+
+- Schema v17: `team_members` gets a new `contact_instagram` column,
+  mirroring the existing `contact_telegram` exactly.
+- `pages/admin/team.html`: new "آیدی اینستاگرام" field; a 🗑️ button next
+  to the photo preview clears it (same "takes effect on the form's own
+  ذخیره" convention as the resume page's gallery-image removal) —
+  previously there was no way to get back to "no photo" once one was
+  uploaded.
+- `pages/team.html` (public): a member's detail page now shows an
+  اینستاگرام button alongside their تلگرام one, same URL convention
+  (`https://instagram.com/<handle without @>`).
+- Found and fixed a real, unrelated, pre-existing bug while testing this
+  (the public detail page 404'd for every team member with a non-ASCII
+  slug — i.e. almost all of them, since `slugify()` keeps Persian
+  letters as-is rather than transliterating): nothing in `api/server.py`
+  ever calls `unquote()` on the request path, so `GET /api/v1/team/
+  <slug>` received the slug still percent-encoded (e.g. `%D8%AA%D8%B3...`)
+  — which the route's old `[\w-]+` pattern didn't even match, let alone
+  which `get_by_slug()` could look up correctly. Every real member's
+  public page was unreachable. Fixed by matching the percent-encoded
+  form and decoding it before the lookup.
+- Verified locally: full 54/54 automated suite (1 new test — Instagram
+  round-trip, and that removing the photo clears only that column) plus
+  a real HTTP round-trip against a running `ENV=test` server — created a
+  member with a Persian name, fetched their public page via a properly
+  percent-encoded URL (confirming the 404 before the fix and success
+  after), removed the photo, confirmed it cleared while
+  `contact_instagram` stayed intact.
+
 ## Admin: edit the "همراهی" and "پادکست" pages' content
 
 **Why:** requested — only the two body paragraphs on `pages/companionship.

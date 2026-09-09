@@ -20,7 +20,9 @@
         <label>بیوگرافی فارسی</label><textarea id="tmBioFa"></textarea>
         <label>بیوگرافی انگلیسی</label><textarea id="tmBioEn"></textarea>
         <div class="form-row"><div><label>تلفن تماس (اختیاری)</label><input id="tmPhone"></div><div><label>آیدی تلگرام (اختیاری)</label><input id="tmTelegram" placeholder="@username"></div></div>
-        <div class="form-row"><div><label>وضعیت</label><select id="tmStatus"><option value="active">فعال (نمایش عمومی)</option><option value="hidden">مخفی</option></select></div><div><label>ترتیب نمایش</label><input id="tmSort" type="number" value="0"></div></div>
+        <label>آیدی اینستاگرام (اختیاری)</label>
+        <input id="tmInstagram" placeholder="@username" dir="ltr" style="text-align:left">
+        <div class="form-row" style="margin-top:12px"><div><label>وضعیت</label><select id="tmStatus"><option value="active">فعال (نمایش عمومی)</option><option value="hidden">مخفی</option></select></div><div><label>ترتیب نمایش</label><input id="tmSort" type="number" value="0"></div></div>
         <label>عکس پروفایل</label>
         <input type="file" id="tmPhotoFile" accept="image/*">
         <div id="tmPhotoPreview" style="margin-top:8px"></div>
@@ -46,8 +48,26 @@ function openTM() {
   tmId = null; tmPhoto = null;
   document.getElementById('tmTitle').textContent = 'عضو جدید';
   document.getElementById('tmForm').reset();
-  document.getElementById('tmPhotoPreview').innerHTML = '';
+  renderTmPhotoPreview();
   document.getElementById('tmModal').style.display = 'flex';
+}
+// Requested: there was previously no way to remove a member's profile
+// photo once set — only replace it with a new upload. Removing here
+// only clears the in-memory tmPhoto/preview, same as every other field
+// on this form — takes effect once the admin clicks "💾 ذخیره" (photo:
+// null in that PATCH/POST body clears the column server-side; see
+// database/repositories/team_members.py's update()).
+function renderTmPhotoPreview() {
+  document.getElementById('tmPhotoPreview').innerHTML = tmPhoto
+    ? `<div style="display:flex;align-items:center;gap:10px">
+         <img src="/${tmPhoto}" style="max-width:120px;border-radius:8px">
+         <button type="button" class="btn btn--outline btn--sm" style="font-size:11px;padding:4px 10px;color:#c44" onclick="removeTmPhoto()">🗑️ حذف عکس</button>
+       </div>`
+    : '';
+}
+function removeTmPhoto() {
+  tmPhoto = null;
+  renderTmPhotoPreview();
 }
 function editTM(id) {
   const m = allMembers.find(x => x.id === id); if (!m) return; tmId = id;
@@ -61,10 +81,11 @@ function editTM(id) {
   document.getElementById('tmBioEn').value = m.bio_en || '';
   document.getElementById('tmPhone').value = m.contact_phone || '';
   document.getElementById('tmTelegram').value = m.contact_telegram || '';
+  document.getElementById('tmInstagram').value = m.contact_instagram || '';
   document.getElementById('tmStatus').value = m.status || 'active';
   document.getElementById('tmSort').value = m.sort_order || 0;
   tmPhoto = m.photo || null;
-  document.getElementById('tmPhotoPreview').innerHTML = tmPhoto ? `<img src="/${tmPhoto}" style="max-width:120px;border-radius:8px">` : '';
+  renderTmPhotoPreview();
   document.getElementById('tmModal').style.display = 'flex';
 }
 async function saveTM(e) {
@@ -74,6 +95,7 @@ async function saveTM(e) {
     role_title: document.getElementById('tmRole').value, role_title_en: document.getElementById('tmRoleEn').value,
     bio_fa: document.getElementById('tmBioFa').value, bio_en: document.getElementById('tmBioEn').value,
     contact_phone: document.getElementById('tmPhone').value, contact_telegram: document.getElementById('tmTelegram').value,
+    contact_instagram: document.getElementById('tmInstagram').value,
     status: document.getElementById('tmStatus').value, sort_order: Number(document.getElementById('tmSort').value) || 0,
     photo: tmPhoto,
   };
@@ -98,7 +120,7 @@ function toast(m) { const t = document.createElement('div'); t.className = 'toas
 
 document.getElementById('tmPhotoFile') && document.getElementById('tmPhotoFile').addEventListener('change', async (ev) => {
   const file = ev.target.files[0]; if (!file) return;
-  try { tmPhoto = await API.team.uploadMedia(file); document.getElementById('tmPhotoPreview').innerHTML = `<img src="/${tmPhoto}" style="max-width:120px;border-radius:8px">`; toast('عکس آپلود شد'); }
+  try { tmPhoto = await API.team.uploadMedia(file); renderTmPhotoPreview(); toast('عکس آپلود شد'); }
   catch { toast('آپلود ناموفق بود'); }
 });
 addEventListener('DOMContentLoaded', load);

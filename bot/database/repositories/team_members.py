@@ -9,7 +9,7 @@ from database.connection import get_connection
 
 _FIELDS = (
     "slug", "full_name", "full_name_en", "role_title", "role_title_en",
-    "photo", "bio_fa", "bio_en", "contact_phone", "contact_telegram",
+    "photo", "bio_fa", "bio_en", "contact_phone", "contact_telegram", "contact_instagram",
     "status", "sort_order",
 )
 

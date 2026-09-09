@@ -29,7 +29,7 @@ import os
 import re
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, unquote
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -263,6 +263,7 @@ def _team_public(m: dict) -> dict:
         "role_title": m.get("role_title"), "role_title_en": m.get("role_title_en"), "photo": m.get("photo"),
         "bio_fa": m.get("bio_fa"), "bio_en": m.get("bio_en"), "gallery": m.get("gallery") or [],
         "contact_phone": m.get("contact_phone"), "contact_telegram": m.get("contact_telegram"),
+        "contact_instagram": m.get("contact_instagram"),
         "status": m.get("status"), "sort_order": m.get("sort_order"),
     }
 
@@ -720,9 +721,22 @@ class Handler(BaseHTTPRequestHandler):
                 members = team_repo.list_all() if self._is_admin() else team_repo.list_all(status="active")
                 return self._send_json(200, {"data": [_team_public(m) for m in members]})
 
-            m = re.match(r"^/api/v1/team/([\w-]+)$", path)
+            m = re.match(r"^/api/v1/team/([\w%-]+)$", path)
             if m:
-                member = team_repo.get_by_slug(m.group(1))
+                # Bug (found by this feature's own testing, unrelated to
+                # what it was actually adding): `path` is the raw request
+                # path — still percent-encoded, since nothing in this
+                # file ever calls unquote() on it — so a slug with any
+                # non-ASCII character (i.e. almost every real team
+                # member's, since slugify() keeps Persian letters as-is
+                # rather than transliterating) arrived here as e.g.
+                # "%D8%AA%D8%B3%D8%AA", which the old `[\w-]+` pattern
+                # didn't even match (no `%`), let alone which get_by_slug()
+                # could look up correctly — every real member's public
+                # page 404'd. `[\w%-]+` lets the percent-encoded form
+                # through the regex; unquote() decodes it back before the
+                # actual database lookup.
+                member = team_repo.get_by_slug(unquote(m.group(1)))
                 if not member or (member["status"] != "active" and not self._is_admin()):
                     return self._send_json(404, {"error": "not_found"})
                 return self._send_json(200, {"data": _team_public(member)})

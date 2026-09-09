@@ -47,8 +47,9 @@ async function renderTeam() {
           <h1 style="margin-bottom:4px">${esc(name)}</h1>
           ${role ? `<p style="color:var(--text-muted);margin-bottom:16px">${esc(role)}</p>` : ''}
           ${bio ? `<p style="line-height:2;text-align:${isEn ? 'left' : 'right'}">${esc(bio)}</p>` : ''}
-          ${(m.contact_telegram || m.contact_phone) ? `<div style="margin-top:20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+          ${(m.contact_telegram || m.contact_instagram || m.contact_phone) ? `<div style="margin-top:20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
             ${m.contact_telegram ? `<a class="btn btn--outline" href="https://t.me/${esc(m.contact_telegram.replace('@',''))}" target="_blank" rel="noopener" style="font-size:12px">تلگرام</a>` : ''}
+            ${m.contact_instagram ? `<a class="btn btn--outline" href="https://instagram.com/${esc(m.contact_instagram.replace('@',''))}" target="_blank" rel="noopener" style="font-size:12px">اینستاگرام</a>` : ''}
           </div>` : ''}
         </div>`;
     } catch {

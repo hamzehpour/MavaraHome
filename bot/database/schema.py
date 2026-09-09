@@ -12,7 +12,7 @@ what's missing instead of guessing from column-already-exists errors.
 from database.connection import get_connection
 from config.settings import BOOTSTRAP_ADMIN_IDS
 
-SCHEMA_VERSION = 16
+SCHEMA_VERSION = 17
 
 SCHEMA_STATEMENTS = [
     # ---- users -------------------------------------------------
@@ -375,6 +375,7 @@ TEAM_MEMBERS_TABLE = """
         gallery TEXT,
         contact_phone TEXT,
         contact_telegram TEXT,
+        contact_instagram TEXT,
         status TEXT NOT NULL DEFAULT 'active',
         sort_order INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -875,6 +876,10 @@ def init_db() -> None:
             # reservation_service._notify_admin_channel_new_request()).
             "ALTER TABLE bot_outbox ADD COLUMN reservation_id INTEGER",
             "ALTER TABLE bot_outbox ADD COLUMN photo_ref TEXT",
+            # Schema v17: requested — an Instagram link button on each
+            # team member's public page, same idea as their existing
+            # Telegram one (contact_telegram), which this mirrors exactly.
+            "ALTER TABLE team_members ADD COLUMN contact_instagram TEXT",
         ):
             try:
                 conn.execute(alter_sql)

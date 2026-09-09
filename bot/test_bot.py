@@ -68,6 +68,7 @@ from database.repositories import reservations as reservations_repo  # noqa: E40
 from database.repositories import admins as admins_repo  # noqa: E402
 from database.repositories import waitlist as waitlist_repo  # noqa: E402
 from database.repositories import faqs as faqs_repo  # noqa: E402
+from database.repositories import team_members as team_repo  # noqa: E402
 from services import reservation_service, event_service, permissions  # noqa: E402
 from utils.jalali import gregorian_to_jalali, jalali_to_gregorian, gregorian_iso_to_jalali_display  # noqa: E402
 from utils.qr_signing import sign_code, verify_signed_code  # noqa: E402
@@ -878,6 +879,25 @@ def _t():
     public = _event_public(events_repo.get_event(event_id))
     assert [f["id"] for f in public["faqs"]] == [f2, f1]
     assert public["faqs"][0]["question"] == "دوم؟"
+
+
+@test("Schema v17: team member contact_instagram round-trips; removing the photo clears just that column")
+def _t():
+    member_id = team_repo.create(
+        full_name="تست عضو", photo="media/team/x.jpg",
+        contact_telegram="@tg", contact_instagram="@ig",
+    )
+    row = team_repo.get(member_id)
+    assert row["contact_instagram"] == "@ig" and row["contact_telegram"] == "@tg"
+    assert row["photo"] == "media/team/x.jpg"
+
+    # The admin UI's "remove photo" button sends exactly this — photo:
+    # None explicitly present in the update, everything else untouched —
+    # must clear ONLY the photo column, not silently drop the rest.
+    updated = team_repo.update(member_id, photo=None)
+    assert updated["photo"] is None
+    assert updated["contact_instagram"] == "@ig", "removing the photo must not touch other fields"
+    assert updated["full_name"] == "تست عضو"
 
 
 def main() -> None:
