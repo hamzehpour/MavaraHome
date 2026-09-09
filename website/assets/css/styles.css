@@ -528,6 +528,14 @@ body::before{
 /* ── Fullscreen Viewer ── */
 .viewer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.96);z-index:2000;display:flex;align-items:center;justify-content:center;cursor:zoom-out}
 .viewer-overlay img,.viewer-overlay video{max-width:95vw;max-height:95vh;object-fit:contain;border-radius:8px}
+/* Prev/next arrows for the resume gallery's fullscreen viewer — fixed to
+   the viewport edges regardless of the page's RTL direction (a photo
+   viewer's left/right nav is a spatial, not textual, convention). */
+.viewer-nav{position:fixed;top:50%;transform:translateY(-50%);width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.3);color:#fff;font-size:30px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2001;transition:background .2s var(--ease)}
+.viewer-nav:hover{background:rgba(255,255,255,0.28)}
+.viewer-nav--prev{left:20px}
+.viewer-nav--next{right:20px}
+@media(max-width:640px){.viewer-nav{width:42px;height:42px;font-size:22px}.viewer-nav--prev{left:8px}.viewer-nav--next{right:8px}}
 
 /* ═══════════ FEEDBACK ═══════════ */
 .feedback-box{background:var(--bg-soft);border-radius:var(--radius);padding:26px;border:1px solid var(--border);margin-top:28px}

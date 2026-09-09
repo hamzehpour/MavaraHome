@@ -62,8 +62,10 @@
 
     <!-- Fullscreen Viewer -->
     <div class="viewer-overlay" id="viewer" style="display:none" onclick="this.style.display='none'">
+        <button type="button" id="viewerPrev" class="viewer-nav viewer-nav--prev" onclick="event.stopPropagation(); viewerStep(-1)" aria-label="previous" style="display:none">‹</button>
         <img id="viewerImg" src="" alt="" style="display:none">
         <video id="viewerVideo" controls style="display:none"></video>
+        <button type="button" id="viewerNext" class="viewer-nav viewer-nav--next" onclick="event.stopPropagation(); viewerStep(1)" aria-label="next" style="display:none">›</button>
     </div>
 
     <div id="footer"></div>
@@ -168,6 +170,11 @@
         toggle.innerHTML = `<button type="button" class="${lang() === 'fa' ? 'active' : ''}" onclick="setLang('fa')">فا</button><button type="button" class="${lang() === 'en' ? 'active' : ''}" onclick="setLang('en')">EN</button>`;
         header.insertBefore(toggle, header.querySelector('.modal-close'));
         const body = document.getElementById('modalBody');
+        // __viewerImages is what openViewer()/viewerStep() browse — see
+        // those functions below (fullscreen viewer prev/next, requested:
+        // clicking a gallery thumbnail could only ever see that one image,
+        // no way to move to the next/previous one from inside the viewer).
+        __viewerImages = (p.gallery || []).map(pp);
         body.innerHTML = `
             ${p.poster ? `<img class="modal-poster" src="${pp(p.poster)}" alt="${esc(pfTitle(p))}" loading="lazy">` : ''}
             <dl class="modal-meta">
@@ -179,7 +186,7 @@
                 ${pfDesc(p) ? `<dt>${T('m_desc')}</dt><dd>${esc(pfDesc(p))}</dd>` : ''}
             </dl>
             ${p.video ? `<video controls src="${pp(p.video)}" style="width:100%;border-radius:var(--radius-sm)"></video>` : ''}
-            ${(p.gallery || []).length ? `<div class="modal-gallery">${p.gallery.map(img => `<img src="${pp(img)}" alt="" loading="lazy" onclick="openViewer('${pp(img)}','image')">`).join('')}</div>` : ''}
+            ${__viewerImages.length ? `<div class="modal-gallery">${__viewerImages.map((img, i) => `<img src="${img}" alt="" loading="lazy" onclick="openViewer(${i})">`).join('')}</div>` : ''}
             ${reserveButtonHTML(p)}
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
                 <a class="btn btn--outline" href="https://instagram.com/mansournasirii" target="_blank" rel="noopener" style="font-size:12px">Instagram</a>
@@ -192,18 +199,32 @@
         document.body.style.overflow = '';
     }
 
-    function openViewer(src, type) {
-        const v = document.getElementById('viewer');
-        if (type === 'image') {
-            document.getElementById('viewerImg').src = src;
-            document.getElementById('viewerImg').style.display = 'block';
-            document.getElementById('viewerVideo').style.display = 'none';
-        } else {
-            document.getElementById('viewerVideo').src = src;
-            document.getElementById('viewerVideo').style.display = 'block';
-            document.getElementById('viewerImg').style.display = 'none';
-        }
-        v.style.display = 'flex';
+    // Fullscreen gallery viewer — requested: clicking a resume gallery
+    // thumbnail used to only ever show that one image, no way to move to
+    // the next/previous one without closing the viewer and clicking a
+    // different thumbnail. __viewerImages is set by renderModal() (the
+    // current project's gallery, already run through pp()); __viewerIndex
+    // is which one the viewer is currently showing.
+    let __viewerImages = [];
+    let __viewerIndex = 0;
+    function openViewer(index) {
+        __viewerIndex = index;
+        renderViewerImage();
+        document.getElementById('viewer').style.display = 'flex';
+    }
+    function renderViewerImage() {
+        const img = document.getElementById('viewerImg');
+        img.src = __viewerImages[__viewerIndex];
+        img.style.display = 'block';
+        document.getElementById('viewerVideo').style.display = 'none';
+        const multi = __viewerImages.length > 1;
+        document.getElementById('viewerPrev').style.display = multi ? 'flex' : 'none';
+        document.getElementById('viewerNext').style.display = multi ? 'flex' : 'none';
+    }
+    function viewerStep(dir) {
+        if (__viewerImages.length < 2) return;
+        __viewerIndex = (__viewerIndex + dir + __viewerImages.length) % __viewerImages.length;
+        renderViewerImage();
     }
 
     // ── Samples Tab ──
@@ -236,7 +257,13 @@
     }
 
     document.addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); document.getElementById('viewer').style.display = 'none'; } });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') { closeModal(); document.getElementById('viewer').style.display = 'none'; }
+        if (document.getElementById('viewer').style.display === 'flex') {
+            if (e.key === 'ArrowLeft') viewerStep(-1);
+            if (e.key === 'ArrowRight') viewerStep(1);
+        }
+    });
 
     document.addEventListener('DOMContentLoaded', init);
     </script>

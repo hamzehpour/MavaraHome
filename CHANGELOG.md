@@ -5,6 +5,25 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Resume gallery: prev/next navigation in the fullscreen viewer
+
+**Why:** requested — clicking a thumbnail in a resume project's gallery
+opened it in the fullscreen viewer, but there was no way to move to the
+next/previous image from there; had to close the viewer and click a
+different thumbnail every time.
+
+- `renderModal()` now stores the current project's whole gallery
+  (already resolved through `pp()`) in `__viewerImages`; each thumbnail's
+  click passes its own index instead of a single image path.
+- Two new nav buttons (‹ ›) on the fullscreen viewer overlay, fixed to
+  the left/right edges of the viewport (a photo viewer's prev/next is a
+  spatial convention, kept the same regardless of the page's RTL text
+  direction) — hidden automatically when a project's gallery has only
+  one image. `event.stopPropagation()` on their click so they don't also
+  trigger the overlay's own "click anywhere to close" handler.
+- Left/right arrow keys do the same, alongside the existing Escape-to-
+  close handler.
+
 ## Fix: uploaded resume (رزومه) images/video never displayed on the public page
 
 **Why:** reported — images and media uploaded for a resume/portfolio
