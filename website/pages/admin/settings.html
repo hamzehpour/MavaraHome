@@ -66,7 +66,11 @@ const SECTIONS = [
   { title: 'ورود مشتری', keys: ['otp_channels_enabled'] },
   { title: 'قالب پیام‌های تلگرام', keys: ['tmpl_payment_instructions', 'tmpl_receipt_received', 'tmpl_ticket_confirmed', 'tmpl_reservation_rejected'] },
   { title: 'قالب پیام‌های ایمیل', keys: ['tmpl_email_otp_subject', 'tmpl_email_otp_body', 'tmpl_email_approved_subject', 'tmpl_email_approved_body', 'tmpl_email_rejected_subject', 'tmpl_email_rejected_body', 'tmpl_email_waitlist_rejected_subject', 'tmpl_email_waitlist_rejected_body'] },
-  { title: 'محتوای سایت (فوتر، درباره، همراهی، تماس)', keys: ['content_hero_tagline', 'content_quotes', 'content_mansour_bio', 'content_mansour_bio_full', 'content_about_p1', 'content_about_p2', 'content_companion_p1', 'content_companion_p2', 'content_footer_tagline', 'content_footer_copyright', 'content_contact_telegram', 'content_contact_instagram', 'content_location'] },
+  { title: 'محتوای سایت (فوتر، درباره، تماس)', keys: ['content_hero_tagline', 'content_quotes', 'content_mansour_bio', 'content_mansour_bio_full', 'content_about_p1', 'content_about_p2', 'content_footer_tagline', 'content_footer_copyright', 'content_contact_telegram', 'content_contact_instagram', 'content_location'] },
+  // بیوگرافی منصور از پنل «رزومه» هم قابل ویرایش است (همان کلید) — اینجا
+  // هم مانده تا کسی که فقط اینجا را می‌شناسد، آن را گم نکند.
+  { title: 'محتوای صفحه «همراهی»', keys: ['content_companion_eyebrow', 'content_companion_title', 'content_companion_sub', 'content_companion_p1', 'content_companion_p2', 'content_companion_h3', 'content_companion_li1', 'content_companion_li2', 'content_companion_li3', 'content_companion_li4', 'content_companion_note', 'content_companion_cta_text', 'content_companion_cta_url'] },
+  { title: 'محتوای صفحه «پادکست»', keys: ['content_podcast_eyebrow', 'content_podcast_title', 'content_podcast_sub', 'content_podcast_intro', 'content_podcast_castbox_url', 'content_podcast_apple_url', 'content_podcast_ig_desc', 'content_podcast_ig_url', 'content_podcast_support_eyebrow', 'content_podcast_support_title', 'content_podcast_host', 'content_podcast_card_label', 'content_podcast_card_number'] },
 ];
 let settingsByKey = {};
 

@@ -690,6 +690,45 @@ DEFAULT_SETTINGS = {
     "content_companion_p2": (
         "این جلسات درمان یا روان‌درمانی نیستند؛ بلکه فرصتی برای گفت‌وگو، اندیشیدن و نگاه کردن به مسائل از زاویه‌ای تازه‌اند."
     ),
+    # Requested follow-up: the rest of pages/companionship.html (only its
+    # two body paragraphs, above, were admin-editable before) and all of
+    # pages/podcast.html — both were entirely hardcoded HTML otherwise.
+    # Defaults are exact copies of what was already hardcoded, same rule
+    # every content_* key in this block follows. Platform display names
+    # ("کست‌باکس", "اپل پادکست", "اینستاگرام") stay hardcoded i18n text,
+    # not exposed here — only the per-podcast specifics (URLs, the
+    # Instagram handle, the support card number) are things an admin
+    # would realistically ever need to change.
+    "content_companion_eyebrow": "همراهی",
+    "content_companion_title": "گاهی برای دیدن راه، داشتن یک همراه کافی است",
+    "content_companion_sub": "جلسات گفت‌وگوی عمیق و بدون قضاوت — به میزبانی منصور نصیری",
+    "content_companion_h3": "این جلسات مناسب کسانی است که:",
+    "content_companion_li1": "به دنبال گفت‌وگویی عمیق و صادقانه هستند",
+    "content_companion_li2": "به جای فرار از مسائل، به دنبال کشف راه‌حل هستند",
+    "content_companion_li3": "می‌خواهند مسیر شخصی یا هنری خود را شفاف‌تر ببینند",
+    "content_companion_li4": "به خودشناسی و زندگی با آگاهی علاقه‌مندند",
+    "content_companion_note": "نحوه برگزاری: آنلاین و تلفنی — با تعیین وقت قبلی — مدت هر جلسه: یک ساعت",
+    "content_companion_cta_text": "هماهنگی از تلگرام: t.me/mavara_home",
+    "content_companion_cta_url": "https://t.me/mavara_home",
+    "content_podcast_eyebrow": "پادکست",
+    "content_podcast_title": "ما ورای بازیگری",
+    "content_podcast_sub": "به میزبانی منصور نصیری",
+    # Contains a <strong> tag on purpose (rendered via data-i18n-html,
+    # same as content_footer_tagline's <br> above) — admin types plain
+    # HTML here, same convention.
+    "content_podcast_intro": (
+        "پادکست «ما ورای بازیگری» در اپل پادکست و کست‌باکس منتشر می‌شود و بر <strong>آگاهی‌بخشی</strong> "
+        "به علاقه‌مندان، دانشجویان و بازیگران تمرکز دارد؛ از خودشناسی و کشف و شهود تا تحلیل ایگو و پیوند هنر با زندگی."
+    ),
+    "content_podcast_castbox_url": "https://castbox.fm/vc/5573496",
+    "content_podcast_apple_url": "https://podcasts.apple.com/ch/podcast/ما-ورای-بازیگری/id1705406997",
+    "content_podcast_ig_desc": "@beyond_the_acting",
+    "content_podcast_ig_url": "https://www.instagram.com/beyond_the_acting/",
+    "content_podcast_support_eyebrow": "حمایت",
+    "content_podcast_support_title": "حمایت از پادکست",
+    "content_podcast_host": "میزبان و سازنده: منصور نصیری",
+    "content_podcast_card_label": "شماره کارت (رفاه):",
+    "content_podcast_card_number": "5894-6315-8133-2129",
     "content_footer_tagline": "سفری به سوی خویشتن<br>از مسیر آگاهی، به یاری هنر",
     "content_footer_copyright": "© ۱۴۰۴ خانه ماورا — Maavara Home",
     "content_contact_telegram": "t.me/mavara_home",

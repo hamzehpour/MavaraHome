@@ -5,6 +5,46 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Admin: edit the "همراهی" and "پادکست" pages' content
+
+**Why:** requested — only the two body paragraphs on `pages/companionship.
+html` (`content_companion_p1`/`_p2`) were admin-editable; everything else
+on that page, and the entire `pages/podcast.html`, was hardcoded HTML.
+
+- 22 new `content_*` settings keys (companionship: eyebrow/title/sub,
+  the "این جلسات مناسب کسانی است که:" heading, its 4 list items, the
+  scheduling note, and the Telegram CTA's text+URL; podcast: eyebrow/
+  title/sub, the intro paragraph, the 3 platform links' URLs, the
+  Instagram handle, and the support section's eyebrow/title/host line/
+  card label/card number). Platform display names ("کست‌باکس", "اپل
+  پادکست", "اینستاگرام") stay hardcoded — not the kind of thing an admin
+  would ever need to change, unlike the URLs/handle next to them.
+  Defaults are exact copies of what was already hardcoded.
+- Unlike the resume page's photo/link-list (which needed real upload and
+  add/remove widgets, so got a dedicated box), every one of these is a
+  plain text/URL field with a fixed count — the *existing* generic
+  settings-page renderer (`pages/admin/settings.html`) already handles
+  that with zero new code, just two more entries in its `SECTIONS` list
+  ("محتوای صفحه «همراهی»", "محتوای صفحه «پادکست»"; `content_companion_p1`/
+  `_p2` moved into the former from the old catch-all section).
+  `content_mansour_bio` stayed listed in both the resume page's own box
+  and here, since it was already reachable from both before this.
+- `site.js`: `SITE_CONTENT_MAP` grew the 18 plain-text entries (reusing
+  every `data-i18n`/`data-i18n-html` key both pages already had — only
+  one truly didn't exist yet, `podcast_card_number`, added as a normal
+  i18n key). Four of the new keys are URLs, which `data-i18n` has no
+  concept of (it only ever sets `textContent`/`innerHTML`) — a small
+  second map, `SITE_CONTENT_HREF_MAP`, sets `.href` on the 4 links by
+  element id instead (companionship's CTA button; podcast's Castbox/
+  Apple Podcasts/Instagram links), applied unconditionally (a link is
+  the same URL regardless of which language the page is read in, unlike
+  the text overrides, which are Persian-only).
+- Verified locally: real HTTP round-trip — confirmed every new key's
+  default via the public, unauthenticated `GET /site-content`; PATCHed a
+  handful (companionship CTA text+URL, a list item, the podcast card
+  number) and confirmed the same endpoint reflected the change. Full
+  53/53 automated suite still green.
+
 ## Admin: edit the resume page's profile content and link buttons
 
 **Why:** requested — the "درباره‌ی منصور نصیری" page's own profile block

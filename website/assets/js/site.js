@@ -119,7 +119,7 @@ const I18N = {
     podcast_eyebrow: 'پادکست', podcast_title: 'ما ورای بازیگری', podcast_sub: 'به میزبانی منصور نصیری',
     podcast_p: 'پادکست «ما ورای بازیگری» در اپل پادکست و کست‌باکس منتشر می‌شود و بر <strong>آگاهی‌بخشی</strong> به علاقه‌مندان، دانشجویان و بازیگران تمرکز دارد؛ از خودشناسی و کشف و شهود تا تحلیل ایگو و پیوند هنر با زندگی.',
     podcast_castbox: 'کست‌باکس', podcast_castbox_d: 'castbox.fm', podcast_apple: 'اپل پادکست', podcast_apple_d: 'Apple Podcasts', podcast_ig: 'اینستاگرام', podcast_ig_d: '@beyond_the_acting',
-    podcast_support: 'حمایت از پادکست', podcast_support_eyebrow: 'حمایت', podcast_host: 'میزبان و سازنده: منصور نصیری', podcast_card: 'شماره کارت (رفاه):',
+    podcast_support: 'حمایت از پادکست', podcast_support_eyebrow: 'حمایت', podcast_host: 'میزبان و سازنده: منصور نصیری', podcast_card: 'شماره کارت (رفاه):', podcast_card_number: '5894-6315-8133-2129',
     mansour_eyebrow: 'بازیگر · کارگردان · نویسنده', mansour_title: 'منصور نصیری', mansour_sub: 'بازیگر، کارگردان و نویسنده — مؤسس خانه ماورا',
     live_pill: 'در حال اکران',
     mansour_bio: 'متولد ۱۳۶۶ در تهران. فعالیت هنری را از تئاتر آغاز کرد و پس از تحصیل در آکادمی سمندریان، مسیرش را در سینما و سریال ادامه داد. برای او بازیگری راهی برای شناخت عمیق‌تر انسان است.',
@@ -211,7 +211,7 @@ const I18N = {
     podcast_eyebrow: 'Podcast', podcast_title: 'Beyond Acting', podcast_sub: 'Hosted by Mansour Nasiri',
     podcast_p: 'The podcast "Beyond Acting" is released on Apple Podcasts and Castbox, focused on <strong>raising awareness</strong> among enthusiasts, students and actors — from self-knowledge and intuition to ego analysis and the bond between art and life.',
     podcast_castbox: 'Castbox', podcast_castbox_d: 'castbox.fm', podcast_apple: 'Apple Podcasts', podcast_apple_d: 'Apple Podcasts', podcast_ig: 'Instagram', podcast_ig_d: '@beyond_the_acting',
-    podcast_support: 'Support the podcast', podcast_support_eyebrow: 'Support', podcast_host: 'Host & producer: Mansour Nasiri', podcast_card: 'Card number (Refah):',
+    podcast_support: 'Support the podcast', podcast_support_eyebrow: 'Support', podcast_host: 'Host & producer: Mansour Nasiri', podcast_card: 'Card number (Refah):', podcast_card_number: '5894-6315-8133-2129',
     mansour_eyebrow: 'Actor · Director · Writer', mansour_title: 'Mansour Nasiri', mansour_sub: 'Actor, director & writer — founder of Mavara House',
     live_pill: 'Now showing',
     mansour_bio: 'Born 1987 in Tehran. He began his artistic career in theater and, after studying at the Samandarian Academy, continued in cinema and television. For him, acting is a way to understand the human being more deeply.',
@@ -1297,11 +1297,44 @@ const SITE_CONTENT_MAP = {
   content_about_p2: ['about_m_p2'],
   content_companion_p1: ['companion_p1'],
   content_companion_p2: ['companion_p2'],
+  content_companion_eyebrow: ['companion_eyebrow'],
+  content_companion_title: ['companion_title'],
+  content_companion_sub: ['companion_sub'],
+  content_companion_h3: ['companion_h3'],
+  content_companion_li1: ['companion_li1'],
+  content_companion_li2: ['companion_li2'],
+  content_companion_li3: ['companion_li3'],
+  content_companion_li4: ['companion_li4'],
+  content_companion_note: ['companion_note'],
+  content_companion_cta_text: ['companion_cta'],
+  content_podcast_eyebrow: ['podcast_eyebrow'],
+  content_podcast_title: ['podcast_title'],
+  content_podcast_sub: ['podcast_sub'],
+  content_podcast_intro: ['podcast_p'],
+  content_podcast_ig_desc: ['podcast_ig_d'],
+  content_podcast_support_eyebrow: ['podcast_support_eyebrow'],
+  content_podcast_support_title: ['podcast_support'],
+  content_podcast_host: ['podcast_host'],
+  content_podcast_card_label: ['podcast_card'],
+  content_podcast_card_number: ['podcast_card_number'],
   content_footer_tagline: ['f_tag'],
   content_footer_copyright: ['f_copy'],
   content_contact_telegram: ['c_tg_d'],
   content_contact_instagram: ['c_ig_d'],
   content_location: ['c_loc_d', 'f_city'],
+};
+// Same content_* values as above, but driving an element's `href`
+// instead of translated text — data-i18n only ever sets textContent/
+// innerHTML (see applyLang()), so these four (companionship's CTA
+// button, podcast's three platform links) are handled separately, right
+// below the text-override loop in loadSiteContent(). Unlike the text
+// map, hrefs apply regardless of language — a link is the same URL
+// whichever way the page is read.
+const SITE_CONTENT_HREF_MAP = {
+  content_companion_cta_url: 'companionCtaLink',
+  content_podcast_castbox_url: 'podcastCastboxLink',
+  content_podcast_apple_url: 'podcastAppleLink',
+  content_podcast_ig_url: 'podcastIgLink',
 };
 async function loadSiteContent() {
   // Best-effort, fire-and-forget from DOMContentLoaded below — on any
@@ -1333,6 +1366,12 @@ async function loadSiteContent() {
   if (typeof data.content_quotes === 'string' && data.content_quotes.trim()) {
     const lines = data.content_quotes.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 6);
     lines.forEach((q, i) => { I18N.fa['q' + (i + 1)] = q; });
+  }
+  for (const [contentKey, elId] of Object.entries(SITE_CONTENT_HREF_MAP)) {
+    const value = data[contentKey];
+    if (!value) continue;
+    const el = document.getElementById(elId);
+    if (el) el.href = value;
   }
   // Only Persian content is admin-editable (see CONTENT_KEYS) — nothing
   // to do here when the visitor is viewing the English version.
