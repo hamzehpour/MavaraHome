@@ -5,6 +5,32 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Admin: event create/edit moved from a modal to its own page
+
+**Why:** requested — the create/edit modal on `pages/admin/events.html`
+had grown tall enough (base fields + sessions table + the FAQ box) to
+need its own internal scroll on top of the page's own scroll, with no
+sense of place and only a small ✕ to get back out. Bad UX.
+
+- New `pages/admin/event-edit.html` — the exact same form, sessions
+  box, and FAQ box, just as a normal page instead of a modal (so it
+  scrolls naturally, one scrollbar, not two), with a real "→ بازگشت به
+  لیست رویدادها" link at the top instead of a modal's ✕. Reached via
+  `event-edit.html` (new event) or `event-edit.html?id=<id>` (edit) —
+  saving redirects back to the list, same as the modal closing used to.
+  Reused the modal's own field styling (`.admin-modal-body`'s CSS) by
+  keeping that class on the page's form wrapper, rather than
+  duplicating those rules under a new page-specific class.
+- `pages/admin/events.html` is now just the list — the "+ رویداد جدید"
+  button and each row's ✏️ are plain links to the new page; every
+  function that only existed to drive the modal (open/close, sessions,
+  FAQ management, save) moved there with it. No backend or behavior
+  changes — same fields, same endpoints, same save semantics.
+- Verified locally: full 54/54 automated suite (backend untouched, so
+  unaffected either way) + both files checked for balanced HTML tags
+  and valid JS syntax; confirmed no other page referenced the removed
+  modal functions.
+
 ## Admin: remove an event's poster or a gallery image
 
 **Why:** requested — same gap as the resume page's gallery and team
