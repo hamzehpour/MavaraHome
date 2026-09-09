@@ -5,6 +5,34 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Fix: adding a FAQ to an event silently didn't save
+
+**Why:** reported — the admin added FAQs (both "create new" and "pick
+from bank") to an event inside the edit modal, closed the modal, and the
+FAQ section never appeared on the event's public page; reopening the
+edit form showed the new questions sitting in the bank dropdown but NOT
+in the "attached to this event" list.
+
+Root cause: every FAQ mutation (add from bank, create new, reorder,
+remove) only touched the in-memory `evFaqIds` array and re-rendered —
+the actual `PATCH /admin/events/<id>` carrying `faq_ids` was left to
+whatever the event FORM's own "💾 ذخیره" submit sent. But that button
+sits above a long, separately-scrolled sessions table, and `addNewFaq()`'s
+own success toast said "…added to this event" (true only of the
+unsaved local state) — so an admin had every reason to believe adding
+was already saved and close the modal without ever reaching the real
+submit button.
+
+Fixed the same way sessions already behave on this exact same form
+(`addSession()`/`toggleSession()`/`deleteSession()` all hit the server
+immediately, no dependency on the outer form's submit): every FAQ
+add/remove/reorder now PATCHes `{faq_ids}` to the event right away.
+Verified locally with a real HTTP round-trip reproducing the reported
+sequence exactly (create event → create+attach a FAQ → do NOT submit the
+form → re-fetch the public event page and the admin edit fetch) — the
+FAQ is present on both, and no other event field was touched by the
+narrower PATCH body.
+
 ## Per-event FAQs, backed by a reusable, admin-managed FAQ bank
 
 **Why:** requested — each event can now show a "پرسش‌های متداول" section;

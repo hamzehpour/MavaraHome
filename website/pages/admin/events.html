@@ -237,21 +237,44 @@ function renderFaqBankSelect() {
         ? available.map(f => `<option value="${f.id}">${esc(f.question.length > 70 ? f.question.slice(0, 70) + '…' : f.question)}</option>`).join('')
         : '<option value="">— همه‌ی پرسش‌های بانک قبلاً اضافه شده‌اند —</option>';
 }
+// Bug (reported, real production confirmation — the admin added FAQs,
+// closed the modal, and the event page never showed them): every FAQ
+// mutation below used to only touch the local evFaqIds array and
+// re-render, leaving the actual PATCH /admin/events/<id> (faq_ids: [...])
+// to whatever the form's own "💾 ذخیره" submit sent — but that button
+// sits above a long, separately-scrolled sessions table, and addNewFaq()'s
+// own toast said "...added to this event" (true only of the in-memory
+// state), so an admin had every reason to believe adding was already
+// saved and close the modal without ever reaching the real submit button.
+// Fixed the same way sessions already work (addSession()/toggleSession()/
+// deleteSession() below all hit the server immediately, no dependency on
+// the outer form) — persistFaqOrder() PATCHes just {faq_ids} right after
+// every add/remove/reorder, so closing the modal any time after is safe.
+async function persistFaqOrder() {
+    try {
+        await API.events.update(editingId, { faq_ids: evFaqIds });
+    } catch (err) {
+        alert('خطا در ذخیره‌ی پرسش‌های متداول — ' + (err.details || err.message));
+    }
+}
 function moveFaq(i, dir) {
     const j = i + dir;
     if (j < 0 || j >= evFaqIds.length) return;
     [evFaqIds[i], evFaqIds[j]] = [evFaqIds[j], evFaqIds[i]];
     renderFaqCurrentList();
+    persistFaqOrder();
 }
 function removeFaq(i) {
     evFaqIds.splice(i, 1);
     renderFaqCurrentList(); renderFaqBankSelect();
+    persistFaqOrder();
 }
 function addFaqFromBank() {
     const id = Number(document.getElementById('faqBankSelect').value);
     if (!id || evFaqIds.includes(id)) return;
     evFaqIds.push(id);
     renderFaqCurrentList(); renderFaqBankSelect();
+    persistFaqOrder();
 }
 async function addNewFaq() {
     const question = document.getElementById('faqNewQuestion').value.trim();
@@ -269,6 +292,7 @@ async function addNewFaq() {
         document.getElementById('faqNewQuestionEn').value = '';
         document.getElementById('faqNewAnswerEn').value = '';
         renderFaqCurrentList(); renderFaqBankSelect();
+        await persistFaqOrder();
         toast('پرسش ساخته و به این رویداد اضافه شد');
     } catch (err) {
         alert('خطا — ' + (err.details || err.message));
