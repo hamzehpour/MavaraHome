@@ -5,6 +5,43 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Fix: the admin panel's "delete event" button did nothing
+
+**Why:** reported — pressing 🗑 on a row in `pages/admin/events.html`
+removed nothing and showed no error.
+
+**Root cause:** there was no `DELETE /api/v1/admin/events/<id>` route.
+`events_repo.delete_event()` existed and the Telegram bot used it, but the
+website API never wired it up — `do_DELETE` handled sessions, portfolio,
+team, faqs and bank-cards only, so the request fell through to the generic
+404. The panel's `del()` had no `try`/`catch`, so the rejected promise was
+swallowed and the two lines after it — the reload and the "حذف شد" toast —
+simply never ran. A silent 404 looks exactly like a dead button.
+
+- `api/server.py`: added the missing route. Mirrors the bot's own delete
+  (`handlers/admin_events.py`) — a hard cascade (sessions, and through
+  them reservations and payments, via the existing `ON DELETE CASCADE`
+  chain) plus a `logs` entry recording the title and what went with it.
+- **New guard:** if the event still has `approved` (paid, ticket-issued)
+  reservations, the route answers `409 has_approved_reservations` with the
+  counts instead of deleting. The panel then shows a second confirmation
+  naming the real numbers, and only that retries with `?force=1`. Sold
+  tickets are the one thing in that cascade that can't be reconstructed,
+  and one click shouldn't be able to erase them.
+- `database/repositories/events.py`: `count_dependents()` — what a delete
+  would take with it (sessions / reservations / approved reservations) —
+  so the confirmation can state it before the fact rather than after.
+- `pages/admin/events.html`: real error handling (this is what hid the
+  bug), a confirmation that says the sessions and reservations go too, the
+  second confirmation described above, and a toast reporting what was
+  actually removed.
+- Verified locally: new test (62/62) covering `count_dependents()` and the
+  full cascade. Plus an HTTP round-trip on a disposable database: a plain
+  event deletes with `200` and its counts; an event holding an approved
+  reservation is refused with `409` and is still there afterwards; the
+  same call with `?force=1` succeeds; unknown id `404`; no token `401`;
+  and both deletions left the expected `event_deleted` rows in `logs`.
+
 ## Fix: "نیازمند اصلاح" was releasing the buyer's seat instead of holding it
 
 **Why:** reported — the agreed behaviour for this admin action is that the

@@ -1566,6 +1566,43 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = parsed.path
         try:
+            # Deleting an event was reachable from the admin panel's 🗑
+            # button since that page existed, but this route never did —
+            # the request 404'd, the frontend's un-caught promise
+            # rejection swallowed it, and the row simply stayed put with
+            # no error shown. Mirrors the Telegram bot's own delete
+            # (handlers/admin_events.py): a hard cascade delete —
+            # sessions, and through them reservations/payments, all go
+            # with it (ON DELETE CASCADE, see schema.py) — plus a log
+            # entry. Unlike the bot, it refuses in one case: if the event
+            # still has APPROVED (paid, ticket-issued) reservations, it
+            # answers 409 with the counts so the panel can spell out
+            # exactly what is about to be destroyed and ask again; a
+            # second call with ?force=1 then goes through. Sold tickets
+            # are the one thing here that can't be reconstructed.
+            m = re.match(r"^/api/v1/admin/events/(\d+)$", path)
+            if m:
+                if not self._is_admin():
+                    return self._send_json(401, {"error": "unauthorized"})
+                event_id = int(m.group(1))
+                event = events_repo.get_event(event_id)
+                if not event:
+                    return self._send_json(404, {"error": "not_found"})
+                counts = events_repo.count_dependents(event_id)
+                force = str(parse_qs(urlparse(self.path).query).get("force", [""])[0]).lower() in ("1", "true")
+                if counts["approved_reservations"] and not force:
+                    return self._send_json(409, {
+                        "error": "has_approved_reservations",
+                        "details": counts,
+                    })
+                events_repo.delete_event(event_id)
+                logs_repo.record(
+                    "event_deleted", None, target_type="event", target_id=event_id,
+                    details=f"title={event['title']}; sessions={counts['sessions']}; "
+                            f"reservations={counts['reservations']}; approved={counts['approved_reservations']}",
+                )
+                return self._send_json(200, {"data": {"deleted": True, **counts}})
+
             m = re.match(r"^/api/v1/admin/sessions/(\d+)$", path)
             if m:
                 if not self._is_admin():

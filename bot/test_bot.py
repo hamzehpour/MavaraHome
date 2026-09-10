@@ -407,6 +407,33 @@ def _t():
     assert sessions_repo.reserved_count(session_id) == 1, "capacity must never be exceeded"
 
 
+@test("Deleting an event reports what it will destroy, then cascades to sessions and reservations")
+def _t():
+    # The admin panel's 🗑 button had no API route behind it at all until
+    # 2026-09-10 (the request 404'd and the frontend swallowed it), so
+    # nothing here was ever exercised. delete_event() is a hard cascade —
+    # count_dependents() is what lets the panel say so before doing it.
+    event_id = events_repo.create_event(title="تست حذف رویداد")
+    s1 = sessions_repo.create_session(event_id, "2027-09-09", "18:00", capacity=5)
+    s2 = sessions_repo.create_session(event_id, "2027-09-10", "18:00", capacity=5)
+    _make_user(700021)
+    _make_user(700022)
+    r1 = reservation_service.start_reservation(telegram_id=700021, session_id=s1, people=1)["reservation_id"]
+    r2 = reservation_service.start_reservation(telegram_id=700022, session_id=s2, people=2)["reservation_id"]
+    reservations_repo.set_status(r2, "approved")
+
+    counts = events_repo.count_dependents(event_id)
+    assert counts == {"sessions": 2, "reservations": 2, "approved_reservations": 1}, counts
+
+    events_repo.delete_event(event_id)
+    assert events_repo.get_event(event_id) is None
+    assert sessions_repo.get_session(s1) is None and sessions_repo.get_session(s2) is None, \
+        "sessions must cascade away with their event"
+    assert reservations_repo.get_reservation(r1) is None and reservations_repo.get_reservation(r2) is None, \
+        "reservations must cascade away with their sessions"
+    assert events_repo.count_dependents(event_id) == {"sessions": 0, "reservations": 0, "approved_reservations": 0}
+
+
 @test("Rejecting a reservation frees its seat immediately")
 def _t():
     # The old two-step "grace period" (awaiting_buyer_confirmation, buyer

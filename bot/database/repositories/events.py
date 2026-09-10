@@ -121,6 +121,30 @@ def update_event_fields(event_id: int, **fields) -> dict | None:
         return dict(row) if row else None
 
 
+def count_dependents(event_id: int) -> dict:
+    """What a delete_event() would take with it. Sessions cascade from the
+    event, and reservations/payments cascade from those sessions (see the
+    ON DELETE CASCADE chain in schema.py), so deleting an event is never
+    just deleting a row. `approved_reservations` is called out separately
+    because those are paid, ticket-issued sales — the admin panel makes
+    the admin confirm a second time when that count isn't zero."""
+    with get_connection() as conn:
+        sessions = conn.execute(
+            "SELECT COUNT(*) c FROM sessions WHERE event_id = ?", (event_id,)
+        ).fetchone()["c"]
+        reservations = conn.execute(
+            "SELECT COUNT(*) c FROM reservations r JOIN sessions s ON s.id = r.session_id "
+            "WHERE s.event_id = ?", (event_id,)
+        ).fetchone()["c"]
+        approved = conn.execute(
+            "SELECT COUNT(*) c FROM reservations r JOIN sessions s ON s.id = r.session_id "
+            "WHERE s.event_id = ? AND r.status = 'approved'", (event_id,)
+        ).fetchone()["c"]
+        return {"sessions": sessions, "reservations": reservations, "approved_reservations": approved}
+
+
 def delete_event(event_id: int) -> None:
+    """Hard delete — sessions, reservations and payments go with it via
+    ON DELETE CASCADE. Callers should show count_dependents() first."""
     with get_connection() as conn:
         conn.execute("DELETE FROM events WHERE id = ?", (event_id,))

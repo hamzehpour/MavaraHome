@@ -106,9 +106,13 @@ const API = {
       await this.refresh();
       return updated;
     },
-    async delete(id) {
-      await apiFetchAdmin(`/admin/events/${id}`, { method: 'DELETE' });
+    // force=true re-sends the request past the "this event still has
+    // approved (paid) reservations" guard — the panel only sets it after
+    // a second, explicit confirmation. Returns what was deleted.
+    async delete(id, force = false) {
+      const result = await apiFetchAdmin(`/admin/events/${id}${force ? '?force=1' : ''}`, { method: 'DELETE' });
       await this.refresh();
+      return result;
     },
     async uploadMedia(file, kind) {
       const dataUrl = await new Promise((resolve, reject) => {

@@ -23,10 +23,41 @@ async function load() {
     document.getElementById('tBody').innerHTML = rows.map(e => `<tr><td><strong>${e.title}</strong></td><td>${e.location || '—'}</td><td><span class="badge ${e.status === 'archived' ? 'badge--ended' : 'badge--active'}">${STATUS_LABEL[e.status] || e.status}</span></td><td style="display:flex;gap:6px"><a href="event-edit.html?id=${e.id}" class="btn btn--outline btn--sm" style="font-size:11px;padding:4px 10px">✏️</a><button class="btn btn--outline btn--sm" onclick="del(${e.id})" style="font-size:11px;padding:4px 10px;color:#c44">🗑️</button></td></tr>`).join('') || '<tr><td colspan="4">رویدادی ثبت نشده.</td></tr>';
 }
 
+// Deleting an event cascades to its sessions and, through them, to every
+// reservation and payment on them — so say that plainly, and say it again
+// with the real numbers if any of those reservations are paid/approved.
+// The previous version had no try/catch at all, which is why the missing
+// DELETE route (fixed 2026-09-10) looked like "the button does nothing":
+// the request 404'd, the promise rejected, and neither load() nor the
+// toast below ever ran.
 async function del(id) {
-    if (!confirm('این رویداد برای همیشه حذف شود؟')) return;
-    await API.events.delete(id);
-    await load(); toast('حذف شد');
+    const row = API.events.all().find(e => String(e.id) === String(id));
+    const title = row ? row.title : `#${id}`;
+    if (!confirm(`رویداد «${title}» و همه‌ی سانس‌ها و رزروهای آن برای همیشه حذف شوند؟\nاین کار قابل بازگشت نیست.`)) return;
+    try {
+        const result = await API.events.delete(id);
+        await load();
+        toast(`حذف شد — ${result.sessions} سانس و ${result.reservations} رزرو`);
+    } catch (err) {
+        if (err.status === 409 && err.details && err.details.approved_reservations) {
+            const d = err.details;
+            const ok = confirm(
+                `⚠️ این رویداد ${d.approved_reservations} رزرو تاییدشده (بلیت صادرشده) دارد.\n\n` +
+                `با حذف رویداد، ${d.sessions} سانس و هر ${d.reservations} رزرو آن — شامل همین بلیت‌های فروخته‌شده — ` +
+                `برای همیشه پاک می‌شوند و قابل بازیابی نیستند.\n\nمطمئنی می‌خواهی ادامه بدهی؟`
+            );
+            if (!ok) return;
+            try {
+                const result = await API.events.delete(id, true);
+                await load();
+                toast(`حذف شد — ${result.sessions} سانس و ${result.reservations} رزرو`);
+            } catch (err2) {
+                alert('خطا در حذف — ' + (err2.details || err2.message));
+            }
+            return;
+        }
+        alert('خطا در حذف — ' + (err.details || err.message));
+    }
 }
 function logout() { API.auth.logout(); window.location.href = 'login.html'; }
 function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
