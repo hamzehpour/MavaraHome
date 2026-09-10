@@ -683,6 +683,12 @@ body:has(.admin-layout){padding-top:0}
    Toggling the class is what lets them come back to that exact layout —
    clearing el.style.display would erase it and stack the row. */
 .is-locked{display:none !important}
+/* Guidance under a file input: what size to upload and how it will be
+   cropped. The numbers come from the CSS that actually renders each image
+   — if an aspect-ratio below changes, the matching hint text has to change
+   with it. The full table is in docs/05-frontend-and-design.md. */
+.upload-hint{font-size:11.5px;line-height:1.85;color:var(--text-muted);margin:6px 0 4px}
+.upload-hint b{color:var(--text);font-weight:600}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:12px 28px;border-radius:var(--radius-full);font-size:14px;font-weight:600;z-index:3000;animation:toastAnim 3s ease forwards;pointer-events:none;background:#2a7a2a;color:#fff}
 @keyframes toastAnim{0%{opacity:0;transform:translateX(-50%) translateY(20px)}10%{opacity:1;transform:translateX(-50%) translateY(0)}80%{opacity:1}100%{opacity:0}}
 

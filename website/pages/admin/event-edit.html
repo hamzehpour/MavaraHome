@@ -28,12 +28,15 @@
                 <input id="evTel" placeholder="بدون @ — مثلاً: mavarahome" dir="ltr" style="text-align:left">
                 <p style="font-size:11.5px;color:var(--text-muted);margin:2px 0 10px">این دو مورد به‌صورت دکمه‌ی «رزرو» روی صفحه‌ی این رویداد نمایش داده می‌شوند — رزرو واقعی در تلگرام انجام می‌شود.</p>
                 <label>پوستر رویداد</label>
+                <p class="upload-hint">بهترین اندازه: <b>۹۰۰×۱۰۰۰ پیکسل</b> (نسبت ۹:۱۰ — کمی عمودی). تصویر برای پر کردن این نسبت <b>از مرکز کراپ می‌شود</b>، پس سوژه‌ی اصلی را وسط کادر بگذارید. JPG یا WebP، حداکثر ۳ مگابایت.</p>
                 <input type="file" id="evPosterFile" accept="image/*">
                 <div id="evPosterPreview" style="margin-top:8px"></div>
                 <label style="margin-top:14px">گالری عکس رویداد (چند عکس هم‌زمان قابل انتخاب است)</label>
+                <p class="upload-hint">بهترین اندازه: ضلع بلند دست‌کم <b>۱۶۰۰ پیکسل</b>، هر نسبتی. با کلیک، عکس <b>کامل و بدون کراپ</b> بزرگ می‌شود؛ فقط بندانگشتی‌اش مربع (۱:۱) از مرکز کراپ می‌شود. هر عکس حداکثر ۳ مگابایت.</p>
                 <input type="file" id="evGalleryFiles" accept="image/*" multiple>
                 <div id="evGalleryPreview" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"></div>
                 <label style="margin-top:14px">ویدیوی رویداد (فایل یا لینک)</label>
+                <p class="upload-hint">MP4 یا WebM، حداکثر <b>۲۵ مگابایت</b>. برای فایل سنگین‌تر، به‌جای آپلود آدرس ویدیو را در کادر پایین بگذارید.</p>
                 <input type="file" id="evVideoFile" accept="video/*">
                 <input id="evVideoUrl" placeholder="یا آدرس ویدیو (اختیاری)" style="margin-top:6px">
                 <div style="display:flex;gap:8px;margin-top:16px"><button type="submit" class="btn btn--primary">💾 ذخیره</button><a href="events.html" class="btn btn--outline">انصراف</a></div>

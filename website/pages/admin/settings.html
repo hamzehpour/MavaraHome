@@ -50,6 +50,7 @@
             <label style="font-size:12px">متن پایین بلیت (زیر QR)</label>
             <input id="ttFooter" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font-family:inherit;margin-bottom:10px">
             <label style="font-size:12px">لوگوی بلیت</label>
+            <p class="upload-hint">بهترین اندازه: <b>۴۰۰×۴۰۰ پیکسل</b> (مربع)، ترجیحاً PNG با پس‌زمینه‌ی <b>شفاف</b>. روی یک کارت سفید در سربرگ بلیت PDF چاپ می‌شود و بدون تغییر نسبت داخل کادر جا می‌شود — <b>کراپ نمی‌شود</b>، ولی تصویر غیرمربع دور خودش فضای خالی می‌گیرد.</p>
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
                 <img id="ttLogoPreview" style="width:48px;height:48px;object-fit:contain;border:1px solid var(--border);border-radius:8px;background:var(--bg-soft);display:none">
                 <input type="file" id="ttLogoFile" accept="image/*">
@@ -59,7 +60,7 @@
         </div>
         <div class="feedback-box settings-box" data-search="تصاویر برند لوگو فاویکون brand logo favicon" style="margin-top:20px">
             <h4>تصاویر برند</h4>
-            <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">هرکدام را عوض کنی، بلافاصله در همه‌جای سایت جایگزین می‌شود — نیاز به تغییر چیز دیگری نیست. فرمت و حداکثر ابعاد هر تصویر ثابت است (زیر هرکدام نوشته شده)، حجم هر فایل حداکثر ۳ مگابایت.</p>
+            <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">هرکدام را عوض کنی، بلافاصله در همه‌جای سایت جایگزین می‌شود — نیاز به تغییر چیز دیگری نیست. فرمت هر تصویر ثابت است و اندازه‌ی پیشنهادی زیر هرکدام نوشته شده. حجم هر فایل حداکثر ۳ مگابایت و ابعادش حداکثر ۴۰۰۰×۴۰۰۰ پیکسل.</p>
             <div id="brandImages" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px"></div>
         </div>
         </div>
@@ -214,16 +215,16 @@ function applyView() {
 // social-share image), so unlike every other upload in this panel there's
 // no settings row or DB pointer to save — the upload IS the save.
 const BRAND_IMAGES = [
-  { kind: 'brand_logo', path: '../../assets/images/logo/mavara-home-logo.png', label: 'لوگوی سربرگ سایت', hint: 'فرمت PNG، حداکثر ۴۰۰۰×۴۰۰۰ پیکسل', accept: 'image/png' },
-  { kind: 'brand_favicon', path: '../../assets/images/logo/favicon.webp', label: 'فاویکون (آیکون تب مرورگر)', hint: 'فرمت WebP، حداکثر ۴۰۰۰×۴۰۰۰ پیکسل', accept: 'image/webp' },
-  { kind: 'brand_og_image', path: '../../assets/images/logo/mavara-emblem-640.webp', label: 'تصویر پیش‌نمایش اشتراک‌گذاری (شبکه‌های اجتماعی)', hint: 'فرمت WebP، حداکثر ۴۰۰۰×۴۰۰۰ پیکسل', accept: 'image/webp' },
+  { kind: 'brand_logo', path: '../../assets/images/logo/mavara-home-logo.png', label: 'لوگوی سربرگ سایت', hint: 'مربع، ۵۱۲×۵۱۲ پیکسل — PNG با پس‌زمینه‌ی شفاف. در سربرگ و پابرگ به‌صورت ۳۸×۳۸ گرد نمایش داده می‌شود.', accept: 'image/png' },
+  { kind: 'brand_favicon', path: '../../assets/images/logo/favicon.webp', label: 'فاویکون (آیکون تب مرورگر)', hint: 'مربع، ۵۱۲×۵۱۲ پیکسل — WebP. مرورگر تا ۱۶ پیکسل کوچکش می‌کند، پس طرح ساده و پرکنتراست بهتر دیده می‌شود.', accept: 'image/webp' },
+  { kind: 'brand_og_image', path: '../../assets/images/logo/mavara-emblem-640.webp', label: 'تصویر پیش‌نمایش اشتراک‌گذاری (شبکه‌های اجتماعی)', hint: 'مربع، ۱۲۰۰×۱۲۰۰ پیکسل — WebP. پیش‌نمایش لینک سایت در تلگرام و شبکه‌های اجتماعی؛ همین تصویر در صفحه‌ی ورود پنل هم استفاده می‌شود.', accept: 'image/webp' },
 ];
 function loadBrandImages() {
   document.getElementById('brandImages').innerHTML = BRAND_IMAGES.map((b, i) => `
     <div style="text-align:center">
       <img id="brandPreview${i}" src="${b.path}?v=${Date.now()}" style="width:72px;height:72px;object-fit:contain;border:1px solid var(--border);border-radius:8px;background:var(--bg-soft);margin-bottom:8px">
       <div style="font-size:12px;margin-bottom:2px">${esc(b.label)}</div>
-      <div style="font-size:10.5px;color:var(--text-muted);margin-bottom:8px">${esc(b.hint)}</div>
+      <div class="upload-hint" style="margin:0 0 8px">${esc(b.hint)}</div>
       <input type="file" id="brandFile${i}" accept="${b.accept}" style="font-size:11px;width:100%">
       <button class="btn btn--outline" style="font-size:11px;padding:6px 12px;margin-top:6px" data-brand-idx="${i}">آپلود</button>
       <p id="brandMsg${i}" style="display:none;font-size:11px;margin-top:6px"></p>

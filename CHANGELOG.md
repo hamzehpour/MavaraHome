@@ -5,6 +5,64 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Every image upload now says what size to use and how it will be cropped
+
+*2026-09-10*
+
+**Why:** reported — "images for events, albums and everywhere else have no
+guidance and get cropped."
+
+**Root cause:** correct on the crop, and there was no guidance anywhere.
+Every frame that displays an uploaded image uses `object-fit: cover` on a
+fixed `aspect-ratio`, so anything that isn't already that shape is
+centre-cropped. Nothing in the panel said what those shapes were, and
+nothing resizes server-side either — an admin uploading a 4000×4000 photo
+for a 38px logo slot ships those megabytes to every visitor.
+
+Added a `<p class="upload-hint">` under all ten upload points. Each states
+the recommended pixel size, the ratio, the format, the size cap, and — the
+part that was actually being asked about — whether and how it crops. The
+numbers are derived from the CSS that renders each image, not invented:
+
+| Upload | Frame | Recommended |
+|---|---|---|
+| Event poster | `.event-cover` `aspect-ratio:3/3.35`, detail column 340px | 900×1000, centre-cropped |
+| Event gallery | thumb `aspect-ratio:1`; full view `object-fit:contain` | ≥1600px long edge, only the thumb crops |
+| Team member photo | 88/118/128px circles | 400×400, circular crop |
+| Resume work poster | `.sample-card` `aspect-ratio:3/4` | 900×1200, centre-cropped |
+| Resume work gallery | as event gallery | ≥1600px long edge |
+| Ticket logo | `ticket_pdf.py`, 14mm square, `preserveAspectRatio=True` | 400×400 transparent PNG, never cropped |
+| Site header logo | `.logo img` 38×38 | 512×512 transparent PNG |
+| Favicon | browser tab | 512×512 WebP |
+| Share/OG image | `og:image` + the login emblem | 1200×1200 WebP |
+| Payment receipt (customer) | admin views it as-is | legibility, not size — never cropped |
+
+- `pages/admin/event-edit.html`, `team-edit.html`: hints under poster,
+  gallery, video and profile photo.
+- `pages/admin/settings.html`: ticket logo hint; the three `BRAND_IMAGES`
+  entries already had a `hint` field but it only carried the format and
+  the 4000px cap, so it now carries the recommended size and where the
+  image is actually used. Those hints also moved onto the shared
+  `.upload-hint` class instead of their own inline style.
+- `assets/js/site.js`: `pay_upload_hint` extended in **both** languages
+  (customer-facing text goes through `I18N`, per the golden rules) —
+  formats, the 3MB cap, and that receipts are never cropped, so the only
+  thing that matters is that amount/date/reference are legible.
+- `pages/account.html`: the same for the "resubmit receipt" path.
+- `assets/css/styles.css`: `.upload-hint`.
+- `docs/05-frontend-and-design.md`: new "اندازه‌ی تصاویر" section with the
+  full table, the backend caps, and the rule that these numbers are
+  derived from the rendering CSS — change an `aspect-ratio`, change the
+  hint with it. This is the single reference the hints must agree with.
+
+**Verified locally** with a real Chromium run: all ten hints render, on
+every page, with no console errors; the bilingual receipt hint resolves
+correctly in both `fa` and `en`. No horizontal scroll at 400px on any of
+the three admin pages touched. 71/71 backend tests pass.
+
+**Deploy:** frontend only — no restart, no migration. Hard-refresh the
+panel (`Ctrl+Shift+R`).
+
 ## Admin panel: sessions and FAQs are visible (locked) on a new event
 
 *2026-09-10*

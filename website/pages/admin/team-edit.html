@@ -30,6 +30,7 @@
                 <div class="form-row" style="margin-top:12px"><div><label>وضعیت</label><select id="tmStatus"><option value="active">فعال (نمایش عمومی)</option><option value="hidden">مخفی</option></select></div><div><label>ترتیب نمایش</label><input id="tmSort" type="number" value="0"></div></div>
                 <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-weight:400"><input type="checkbox" id="tmHideFromList" style="width:auto"> خارج از لیست عمومی «اعضای خانه ماورا» بماند (صفحه‌ی خودش همچنان در دسترس است — مثلاً برای منصور نصیری که صفحه‌ی اختصاصی جدا دارد)</label>
                 <label style="margin-top:12px">عکس پروفایل</label>
+                <p class="upload-hint">بهترین اندازه: <b>۴۰۰×۴۰۰ پیکسل</b> (مربع). داخل قاب <b>دایره‌ای</b> نمایش داده می‌شود و از مرکز کراپ می‌شود — صورت را وسط کادر و کمی با فاصله از لبه‌ها بگذارید. JPG یا WebP، حداکثر ۳ مگابایت.</p>
                 <input type="file" id="tmPhotoFile" accept="image/*">
                 <div id="tmPhotoPreview" style="margin-top:8px"></div>
 
@@ -62,9 +63,11 @@
         <label>توضیحات</label><textarea id="pfDesc"></textarea>
         <label>وضعیت</label><select id="pfStatus"><option value="active">فعال</option><option value="now_showing">درحال اجرا</option><option value="hidden">مخفی</option></select>
         <label>پوستر</label>
+        <p class="upload-hint">بهترین اندازه: <b>۹۰۰×۱۲۰۰ پیکسل</b> (نسبت ۳:۴ — عمودی، مثل پوستر تئاتر). <b>از مرکز کراپ می‌شود.</b> JPG یا WebP، حداکثر ۳ مگابایت.</p>
         <input type="file" id="pfPosterFile" accept="image/*">
         <div id="pfPosterPreview" style="margin-top:8px"></div>
         <label style="margin-top:12px">گالری عکس</label>
+        <p class="upload-hint">بهترین اندازه: ضلع بلند دست‌کم <b>۱۶۰۰ پیکسل</b>، هر نسبتی. با کلیک <b>کامل و بدون کراپ</b> بزرگ می‌شود؛ فقط بندانگشتی‌اش مربع (۱:۱) از مرکز کراپ می‌شود. هر عکس حداکثر ۳ مگابایت.</p>
         <input type="file" id="pfGalleryFiles" accept="image/*" multiple>
         <div id="pfGalleryPreview" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"></div>
         <label style="margin-top:12px">لینک ویدیو (اختیاری)</label>
