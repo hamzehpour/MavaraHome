@@ -674,6 +674,15 @@ body:has(.admin-layout){padding-top:0}
 .admin-modal-body input,.admin-modal-body select,.admin-modal-body textarea{width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:var(--font);font-size:14px;margin-bottom:14px;background:var(--bg-soft)}
 .admin-modal-body textarea{min-height:80px;resize:vertical}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+/* A panel section that exists but can't be used yet — sessions and FAQs on
+   an event that hasn't been saved. Reads as "waiting", not as "broken":
+   dashed border rather than the solid one used by live boxes. */
+.locked-note{font-size:12.5px;line-height:1.9;color:var(--text-muted);background:var(--bg-soft);border:1px dashed var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:4px}
+/* !important because the elements this hides carry their own inline
+   display (the session date/time/capacity row is an inline display:flex).
+   Toggling the class is what lets them come back to that exact layout —
+   clearing el.style.display would erase it and stack the row. */
+.is-locked{display:none !important}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:12px 28px;border-radius:var(--radius-full);font-size:14px;font-weight:600;z-index:3000;animation:toastAnim 3s ease forwards;pointer-events:none;background:#2a7a2a;color:#fff}
 @keyframes toastAnim{0%{opacity:0;transform:translateX(-50%) translateY(20px)}10%{opacity:1;transform:translateX(-50%) translateY(0)}80%{opacity:1}100%{opacity:0}}
 

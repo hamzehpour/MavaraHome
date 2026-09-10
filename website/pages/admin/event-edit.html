@@ -38,26 +38,33 @@
                 <input id="evVideoUrl" placeholder="یا آدرس ویدیو (اختیاری)" style="margin-top:6px">
                 <div style="display:flex;gap:8px;margin-top:16px"><button type="submit" class="btn btn--primary">💾 ذخیره</button><a href="events.html" class="btn btn--outline">انصراف</a></div>
             </form>
-            <div id="sessionsBox" style="display:none;margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
+            <div id="sessionsBox" style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
                 <h4 style="margin-bottom:4px">سانس‌ها</h4>
                 <p style="font-size:11.5px;color:var(--text-muted);margin-bottom:12px">هر سانس یک تاریخ/ساعت/ظرفیت مستقل دارد — همینا روی سایت برای رزرو نشان داده می‌شوند.</p>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">
+                <p class="locked-note is-locked">🔒 اول رویداد را با دکمه‌ی «ذخیره» بالا بسازید — بلافاصله به همین صفحه برمی‌گردید و این بخش فعال می‌شود. سانس‌ها به شناسه‌ی رویداد وصل می‌شوند، پس تا رویداد ساخته نشده جایی برای ثبتشان وجود ندارد.</p>
+                <div id="sesFields" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">
                     <div><label style="font-size:11px">تاریخ</label><input type="date" id="sesDate" style="padding:8px"></div>
                     <div><label style="font-size:11px">ساعت</label><input type="time" id="sesTime" style="padding:8px"></div>
                     <div><label style="font-size:11px">ظرفیت</label><input type="number" id="sesCapacity" min="1" value="10" style="width:80px;padding:8px"></div>
                     <button type="button" class="btn btn--outline" style="font-size:12px;padding:8px 14px" onclick="addSession()">+ افزودن سانس</button>
                 </div>
-                <table class="admin-table"><thead><tr><th>تاریخ</th><th>ساعت</th><th>ظرفیت</th><th>باقی‌مانده</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody id="sessionsBody"></tbody></table>
+                <!-- Pre-existing, fixed while this section was in hand: six
+                     columns don't fit a phone, and without this wrapper the
+                     whole panel scrolled sideways instead of just the table. -->
+                <div id="sessionsTable" style="overflow-x:auto">
+                    <table class="admin-table"><thead><tr><th>تاریخ</th><th>ساعت</th><th>ظرفیت</th><th>باقی‌مانده</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody id="sessionsBody"></tbody></table>
+                </div>
             </div>
-            <div id="faqBox" style="display:none;margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
+            <div id="faqBox" style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
                 <h4 style="margin-bottom:4px">پرسش‌های متداول</h4>
                 <p style="font-size:11.5px;color:var(--text-muted);margin-bottom:12px">این پرسش‌ها روی صفحه‌ی همین رویداد نمایش داده می‌شوند. می‌توانید از بانک پرسش‌های متداول (پرسش‌هایی که قبلاً برای رویدادهای دیگر ساخته‌اید) اضافه کنید، یا پرسش تازه بسازید — پرسش تازه هم به همین رویداد اضافه می‌شود و هم اتوماتیک وارد بانک می‌شود تا بعداً برای رویدادهای دیگر هم قابل استفاده باشد. ویرایش متن یک پرسش از صفحه‌ی <a href="faqs.html" target="_blank">بانک پرسش‌های متداول</a>، همه‌جا که استفاده شده را هم به‌روز می‌کند.</p>
+                <p class="locked-note is-locked">🔒 اول رویداد را با دکمه‌ی «ذخیره» بالا بسازید — بلافاصله به همین صفحه برمی‌گردید و این بخش فعال می‌شود.</p>
                 <div id="faqCurrentList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px"></div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">
+                <div id="faqFields" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">
                     <div style="flex:1;min-width:220px"><label style="font-size:11px">افزودن از بانک پرسش‌های متداول</label><select id="faqBankSelect" style="padding:8px;width:100%"></select></div>
                     <button type="button" class="btn btn--outline" style="font-size:12px;padding:8px 14px" onclick="addFaqFromBank()">+ افزودن</button>
                 </div>
-                <details><summary style="cursor:pointer;font-size:13px;color:var(--gold-deep);font-weight:600">+ ساخت پرسش تازه</summary>
+                <details id="faqNewBox"><summary style="cursor:pointer;font-size:13px;color:var(--gold-deep);font-weight:600">+ ساخت پرسش تازه</summary>
                     <div style="margin-top:10px">
                         <div class="form-row"><div><label>سوال (فارسی)</label><input id="faqNewQuestion"></div><div><label>سوال (انگلیسی) — اختیاری</label><input id="faqNewQuestionEn"></div></div>
                         <div class="form-row"><div><label>پاسخ (فارسی)</label><textarea id="faqNewAnswer"></textarea></div><div><label>پاسخ (انگلیسی) — اختیاری</label><textarea id="faqNewAnswerEn"></textarea></div></div>
@@ -143,15 +150,48 @@ document.getElementById('evVideoFile').addEventListener('change', async (ev) => 
     } catch { toast('آپلود ویدیو ناموفق بود — سرور بک‌اند را بررسی کنید'); }
 });
 
+// Sessions and FAQs both act on an event that already has an id: a session
+// row is POSTed the moment its button is pressed (event_id is NOT NULL,
+// REFERENCES events(id)), and "add from bank" PATCHes the event's faq_ids.
+// Neither can work on an unsaved event.
+//
+// They used to be hidden outright in create mode, which read as "this form
+// has no sessions" — the admin saved, landed back on the list, and had to
+// hunt for the event and press ✏️ to discover the two sections that were
+// there all along. Now both boxes are always visible: in create mode they
+// are shown locked, with a note saying what unlocks them, and save()
+// redirects straight back here in edit mode so the wait is one click, not
+// a detour through the list.
+function setBoxesLocked(locked) {
+    // Toggle a class, never el.style.display. Several of these elements
+    // carry their own inline display (the session date/time/capacity row is
+    // an inline display:flex); writing '' to restore them would erase that
+    // and drop the row into a stacked column.
+    const lockable = ['#sesFields', '#sessionsTable', '#faqFields', '#faqNewBox', '#faqCurrentList'];
+    lockable.forEach(sel => document.querySelector(sel).classList.toggle('is-locked', locked));
+    document.querySelectorAll('.locked-note').forEach(n => n.classList.toggle('is-locked', !locked));
+    // Belt and braces: the class already takes them out of the tab order,
+    // but a disabled control can't be reached by any means at all.
+    document.querySelectorAll('#sesFields, #faqFields, #faqNewBox')
+        .forEach(box => box.querySelectorAll('input, select, button, textarea')
+            .forEach(c => { c.disabled = locked; }));
+}
+
 async function init() {
     await API.init();
-    const id = new URLSearchParams(location.search).get('id');
+    const params = new URLSearchParams(location.search);
+    const id = params.get('id');
     if (id) {
         editEv(Number(id));
+        // Set by save() right after creating the event, so the redirect
+        // explains itself instead of looking like the form reloaded.
+        if (params.get('created') === '1') {
+            toast('رویداد ساخته شد — حالا می‌توانید سانس‌ها و پرسش‌های متداولش را اضافه کنید');
+            document.getElementById('sessionsBox').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     } else {
         document.getElementById('pageTitle').textContent = 'رویداد جدید';
-        document.getElementById('sessionsBox').style.display = 'none';
-        document.getElementById('faqBox').style.display = 'none';
+        setBoxesLocked(true);
     }
 }
 
@@ -186,8 +226,7 @@ function editEv(id) {
     evFaqIds = Array.isArray(e.faqs) ? e.faqs.map(f => f.id) : [];
     evFaqCache = {};
     (e.faqs || []).forEach(f => { evFaqCache[f.id] = f; });
-    document.getElementById('sessionsBox').style.display = 'block';
-    document.getElementById('faqBox').style.display = 'block';
+    setBoxesLocked(false);
     loadSessions();
     loadFaqBank();
 }
@@ -339,9 +378,23 @@ async function save(e) { e.preventDefault();
     const submitBtn = e.target.querySelector('button[type=submit]');
     if (submitBtn) submitBtn.disabled = true;
     try {
-        if (editingId) { await API.events.update(editingId, d); } else { await API.events.create(d); }
-        toast('ذخیره شد');
-        location.href = 'events.html';
+        if (editingId) {
+            await API.events.update(editingId, d);
+            toast('ذخیره شد');
+            location.href = 'events.html';
+        } else {
+            // Straight back into this page in edit mode, so sessions and
+            // FAQs — the two things a new event almost always needs next —
+            // are one save away instead of a round trip through the list.
+            const created = await API.events.create(d);
+            toast('ذخیره شد');
+            // The event IS saved either way; if the response somehow came
+            // back without an id, fall back to the old destination rather
+            // than navigating to an edit page for nothing.
+            location.href = created && created.id
+                ? `event-edit.html?id=${created.id}&created=1`
+                : 'events.html';
+        }
     } catch (err) {
         alert('خطا در ذخیره — ' + (err.details || err.message));
         if (submitBtn) submitBtn.disabled = false;

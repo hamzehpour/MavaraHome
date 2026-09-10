@@ -5,6 +5,62 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Admin panel: sessions and FAQs are visible (locked) on a new event
+
+*2026-09-10*
+
+**Why:** reported — "when I press New Event there's no sessions or FAQ
+section; they only appear after I save and press edit. Why?"
+
+**Root cause:** working as built, but built to read like a missing
+feature. Both sections act on an event that already has an id — a session
+row is POSTed the moment its own button is pressed (`event_id` is `NOT
+NULL REFERENCES events(id)`), and "add from bank" PATCHes the event's
+`faq_ids` — so neither can work on an unsaved event. `init()` handled that
+by hiding both boxes outright in create mode, and `save()` then sent the
+admin back to the event *list*. From the admin's side that is a form with
+no sessions, followed by a hunt through the list for the event they just
+made, to discover two sections that were there all along.
+
+- `pages/admin/event-edit.html`: both boxes are now always visible. In
+  create mode they render locked — the controls are hidden and disabled,
+  and a dashed note says what unlocks them ("save the event first, you'll
+  come straight back here"). `setBoxesLocked()` replaces the old
+  show/hide.
+- `save()` on a *new* event now redirects to `event-edit.html?id=<new
+  id>&created=1` instead of `events.html`. The `created=1` flag shows a
+  toast explaining the landing and scrolls to the sessions box, so the
+  section the admin needs next is one click from where they were. Editing
+  an existing event still returns to the list, unchanged.
+- Falls back to `events.html` if the create response somehow carries no
+  id — the event is saved either way, so that path must not strand.
+- `assets/css/styles.css`: `.locked-note` (dashed, muted — "waiting", not
+  "broken") and `.is-locked`.
+- **Note for future edits:** the lock is a class toggle, never
+  `el.style.display`. Several of these elements carry their own inline
+  `display` (the session date/time/capacity row is an inline
+  `display:flex`); writing `''` to restore them erases it and stacks the
+  row into a column. That bug was written and caught in the browser during
+  this change — hence `.is-locked{display:none !important}` and the
+  comment on it.
+- Pre-existing bug fixed while the section was in hand: the six-column
+  sessions table overflowed a phone screen and scrolled the whole panel
+  sideways. It now sits in its own `overflow-x:auto` wrapper.
+
+**Backend: unchanged.** `POST /api/v1/admin/events` already accepted
+`faq_ids`, and nothing else needed to move.
+
+**Verified locally** with a real Chromium run against a disposable
+database: in create mode both boxes show with their notes and every
+control disabled; saving redirects to the new event's edit page with the
+toast; the boxes unlock; adding a session there works and the row lands in
+the table. Zero console errors. At 400px both modes have no horizontal
+scroll (`scrollWidth == clientWidth`), which was not true of the sessions
+table before. 71/71 backend tests still pass.
+
+**Deploy:** frontend only — no restart, no migration. Hard-refresh the
+panel (`Ctrl+Shift+R`).
+
 ## Architecture review: three structural fixes (schema v19)
 
 *2026-09-10*
