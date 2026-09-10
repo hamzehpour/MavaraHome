@@ -344,6 +344,69 @@ def _t():
     assert second is None, "second approve (double-tap) must be a no-op, not re-issue a ticket"
 
 
+@test("نیازمند اصلاح: the seat stays held, the deadline is lifted, and only admin resolves it")
+def _t():
+    # The whole point of this action: the buyer keeps their seat while they
+    # fix the receipt, with no countdown, and the reservation is settled
+    # ONLY by a later admin approve/reject. Regression guard — the status
+    # was missing from sessions.SEAT_HOLDING_STATUSES, so asking for a
+    # correction handed the seat straight back to the pool.
+    event_id = events_repo.create_event(title="تست نیازمند اصلاح")
+    session_id = sessions_repo.create_session(event_id, "2027-05-05", "20:00", capacity=2)
+    _make_user(700011)
+    res = reservation_service.start_reservation(telegram_id=700011, session_id=session_id, people=2)
+    reservation_id = res["reservation_id"]
+    reservations_repo.set_status(reservation_id, "pending_review")
+    assert sessions_repo.reserved_count(session_id) == 2
+
+    assert reservation_service.request_correction(reservation_id, reviewed_by=1, message="رسید ناخواناست")
+    assert reservations_repo.get_reservation(reservation_id)["status"] == "needs_correction"
+    assert sessions_repo.reserved_count(session_id) == 2, \
+        "the seat must STAY held while the buyer fixes their receipt"
+    assert event_service.get_available_seats(sessions_repo.get_session(session_id)) == 0, \
+        "a session held by a needs_correction reservation must not be offered to anyone else"
+
+    # ...and no deadline can take it away, however old the original one is.
+    from database.connection import get_connection
+    past = "2000-01-01T00:00:00"
+    with get_connection() as conn:
+        conn.execute("UPDATE reservations SET expires_at = ? WHERE id = ?", (past, reservation_id))
+    expired = reservation_service.expire_stale_reservations()
+    assert not any(r["id"] == reservation_id for r in expired), \
+        "needs_correction must never auto-expire, even with a stale expires_at"
+    assert sessions_repo.reserved_count(session_id) == 2
+
+    # The admin — and only the admin — resolves it. Rejecting frees it.
+    assert reservation_service.reject_reservation(reservation_id, reviewed_by=1, reason="نشد") is not None, \
+        "reject must work directly from needs_correction"
+    assert sessions_repo.reserved_count(session_id) == 0
+
+
+@test("نیازمند اصلاح: a held seat can't be resold, so resubmission can never overbook")
+def _t():
+    # Before the fix the seat was released on request_correction() while
+    # submit_receipt() re-took it with no capacity re-check — so a second
+    # buyer could take the seat and the corrected reservation would push
+    # the session past its capacity.
+    event_id = events_repo.create_event(title="تست عدم بیش‌فروشی")
+    session_id = sessions_repo.create_session(event_id, "2027-06-06", "21:00", capacity=1)
+    _make_user(700012)
+    _make_user(700013)
+    first = reservation_service.start_reservation(telegram_id=700012, session_id=session_id, people=1)
+    reservations_repo.set_status(first["reservation_id"], "pending_review")
+    reservation_service.request_correction(first["reservation_id"], reviewed_by=1, message="اصلاح کن")
+
+    # Someone else tries for the same single seat while it's being fixed.
+    second = reservation_service.start_reservation(telegram_id=700013, session_id=session_id, people=1)
+    assert second.get("status") != "reserved", \
+        f"the seat was still held — a second buyer must not get it (got {second})"
+
+    # The first buyer resubmits; the session is still exactly at capacity.
+    assert reservation_service.submit_receipt(first["reservation_id"], "file-id-corrected")
+    assert reservations_repo.get_reservation(first["reservation_id"])["status"] == "pending_review"
+    assert sessions_repo.reserved_count(session_id) == 1, "capacity must never be exceeded"
+
+
 @test("Rejecting a reservation frees its seat immediately")
 def _t():
     # The old two-step "grace period" (awaiting_buyer_confirmation, buyer

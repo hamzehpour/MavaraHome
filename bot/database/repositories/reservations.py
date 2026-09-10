@@ -1,4 +1,9 @@
 from database.connection import get_connection
+# The one definition of "holding a seat" — see sessions.py. Imported
+# rather than re-typed so a new status can never be counted in one
+# query and forgotten in the next (which is exactly how
+# 'needs_correction' ended up releasing seats).
+from database.repositories.sessions import SEAT_HOLDING_STATUS_SQL
 
 
 def increase_capacity_and_reserve_locked(session_id: int, user_id: int, people: int,
@@ -273,10 +278,9 @@ def update_people_and_price_locked(reservation_id: int, new_people: int) -> dict
         reservation = conn.execute("SELECT * FROM reservations WHERE id = ?", (reservation_id,)).fetchone()
         session = conn.execute("SELECT * FROM sessions WHERE id = ?", (reservation["session_id"],)).fetchone()
         reserved = conn.execute(
-            """
+            f"""
             SELECT COALESCE(SUM(people), 0) c FROM reservations
-            WHERE session_id = ? AND status IN
-                ('pending_payment', 'pending_review', 'awaiting_buyer_confirmation', 'approved')
+            WHERE session_id = ? AND status IN ({SEAT_HOLDING_STATUS_SQL})
             """,
             (session["id"],),
         ).fetchone()["c"]
@@ -302,10 +306,9 @@ def move_to_session_locked(reservation_id: int, new_session_id: int) -> dict:
             return {"success": False, "error": "session_not_found"}
 
         reserved = conn.execute(
-            """
+            f"""
             SELECT COALESCE(SUM(people), 0) c FROM reservations
-            WHERE session_id = ? AND status IN
-                ('pending_payment', 'pending_review', 'awaiting_buyer_confirmation', 'approved')
+            WHERE session_id = ? AND status IN ({SEAT_HOLDING_STATUS_SQL})
             """,
             (new_session_id,),
         ).fetchone()["c"]
@@ -383,11 +386,11 @@ def telegram_ids_not_seen_show(from_date_iso: str) -> list[int]:
 def telegram_ids_for_session(session_id: int) -> list[int]:
     with get_connection() as conn:
         rows = conn.execute(
-            """
+            f"""
             SELECT DISTINCT u.telegram_id FROM reservations r
             JOIN users u ON u.id = r.user_id
             WHERE r.session_id = ?
-              AND r.status IN ('pending_payment', 'pending_review', 'awaiting_buyer_confirmation', 'approved')
+              AND r.status IN ({SEAT_HOLDING_STATUS_SQL})
               AND u.telegram_id IS NOT NULL
             """,
             (session_id,),
@@ -398,12 +401,12 @@ def telegram_ids_for_session(session_id: int) -> list[int]:
 def telegram_ids_for_date(event_id: int, date_iso: str) -> list[int]:
     with get_connection() as conn:
         rows = conn.execute(
-            """
+            f"""
             SELECT DISTINCT u.telegram_id FROM reservations r
             JOIN users u ON u.id = r.user_id
             JOIN sessions s ON s.id = r.session_id
             WHERE s.event_id = ? AND s.session_date = ?
-              AND r.status IN ('pending_payment', 'pending_review', 'awaiting_buyer_confirmation', 'approved')
+              AND r.status IN ({SEAT_HOLDING_STATUS_SQL})
               AND u.telegram_id IS NOT NULL
             """,
             (event_id, date_iso),
@@ -506,14 +509,14 @@ def list_holders_for_session(session_id: int) -> list[dict]:
     edits/deactivates a session and needs to know who to contact."""
     with get_connection() as conn:
         rows = conn.execute(
-            """
+            f"""
             SELECT r.id, r.people, r.status, r.reservation_code,
                    r.attendee_name, r.attendee_phone,
                    u.full_name, u.phone
             FROM reservations r
             JOIN users u ON u.id = r.user_id
             WHERE r.session_id = ?
-              AND r.status IN ('pending_payment', 'pending_review', 'awaiting_buyer_confirmation', 'approved')
+              AND r.status IN ({SEAT_HOLDING_STATUS_SQL})
             ORDER BY r.created_at
             """,
             (session_id,),

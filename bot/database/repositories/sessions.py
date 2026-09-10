@@ -93,18 +93,46 @@ def update_session(session_id: int, session_date: str = None, session_time: str 
         conn.execute(f"UPDATE sessions SET {', '.join(fields)} WHERE id = ?", params)
 
 
+# THE single definition of "this reservation is holding a seat". Every
+# capacity check, every "who is on this session" lookup, and every
+# notify-the-holders query filters on exactly this list — import
+# SEAT_HOLDING_STATUS_SQL rather than re-typing the literal, which is how
+# a new status silently ends up counting as nobody (see below).
+#
+# 'needs_correction' is in here deliberately: when an admin uses the
+# "نیازمند اصلاح" action the buyer keeps their seat — only the payment
+# DEADLINE is lifted (list_expired_pending() matches 'pending_payment'
+# only), and the reservation is resolved solely by a later admin
+# approve/reject. It was missing from this list until 2026-09-10, so the
+# action was handing the seat back to the pool the instant it was used.
+#
+# 'awaiting_buyer_confirmation' is a retired status no code writes any
+# more; kept here so any row still carrying it from before that removal
+# keeps its seat.
+SEAT_HOLDING_STATUSES = (
+    "pending_payment",
+    "pending_review",
+    "needs_correction",
+    "awaiting_buyer_confirmation",
+    "approved",
+)
+# Ready-to-interpolate SQL list. Safe to f-string into a query: every
+# value is a literal defined right here, never user input.
+SEAT_HOLDING_STATUS_SQL = ", ".join(f"'{s}'" for s in SEAT_HOLDING_STATUSES)
+
+
 def reserved_count(session_id: int, conn=None) -> int:
     """
-    Sum of people in reservations that actually hold a seat
-    (pending_payment / pending_review / approved all occupy capacity;
-    rejected/cancelled/expired free it up again).
+    Sum of people in reservations that actually hold a seat — see
+    SEAT_HOLDING_STATUSES above for exactly which statuses those are
+    (rejected/cancelled/expired free the seat up again).
     Accepts an optional open connection so callers can run this inside
     the same transaction as the insert (see reservation_service).
     """
-    query = """
+    query = f"""
         SELECT COALESCE(SUM(people), 0) c FROM reservations
         WHERE session_id = ?
-        AND status IN ('pending_payment', 'pending_review', 'awaiting_buyer_confirmation', 'approved')
+        AND status IN ({SEAT_HOLDING_STATUS_SQL})
     """
     if conn is not None:
         return conn.execute(query, (session_id,)).fetchone()["c"]

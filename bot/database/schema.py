@@ -603,8 +603,11 @@ DEFAULT_SETTINGS = {
     ),
     # Admin used the "نیازمند اصلاح" action instead of رد/تایید — the
     # customer isn't rejected, just needs to fix something (wrong receipt,
-    # wrong amount, ...) and try again; no time-limit pressure here since
-    # request_correction() removes the payment lock entirely.
+    # wrong amount, ...) and try again. No time-limit pressure here: the
+    # payment DEADLINE is lifted (list_expired_pending() only ever matches
+    # 'pending_payment'), but the SEAT STAYS HELD — 'needs_correction' is
+    # in sessions.SEAT_HOLDING_STATUSES — and only a later admin
+    # approve/reject resolves the reservation either way.
     "tmpl_email_needs_correction_subject": "نیاز به اصلاح رسید پرداخت — {event_title}",
     "tmpl_email_needs_correction_body": (
         "سلام 👋\n\n"

@@ -5,6 +5,59 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Fix: "نیازمند اصلاح" was releasing the buyer's seat instead of holding it
+
+**Why:** reported — the agreed behaviour for this admin action is that the
+reservation stays locked (the seat keeps counting against the session's
+capacity), only the payment *deadline* is lifted, and the reservation is
+resolved solely by a later admin approve/reject. In practice the seat was
+handed straight back to the pool the moment the button was pressed.
+
+**Root cause:** "does this reservation hold a seat?" was decided by a
+hardcoded status allowlist —
+`status IN ('pending_payment', 'pending_review', 'awaiting_buyer_confirmation', 'approved')`
+— duplicated verbatim across six SQL strings in
+`database/repositories/sessions.py` and `.../reservations.py`. When the
+`needs_correction` status was introduced with this feature, it was never
+added to any of them, so the `pending_review → needs_correction`
+transition dropped the seat. Three things kept it quiet: `reservations.
+status` is free text with no CHECK constraint, so an unlisted value fails
+no query — it just silently matches nothing; the allowlist existed in six
+places rather than one; and no test ever covered this action (the
+equivalent assertion exists for *reject*, never for *correction*). Git
+history confirms this was never right — it shipped this way with the
+feature, and only the "no auto-expiry" half ever worked (that half comes
+from `list_expired_pending()` filtering on `pending_payment` alone, so it
+was correct by accident of a different filter).
+
+**Also fixed by the same change — a latent overbooking hole:**
+`submit_receipt()` moves a corrected reservation back to `pending_review`
+without re-checking capacity. So if anyone booked the released seat while
+the buyer was fixing their receipt, the resubmission pushed the session
+over its capacity. The new test reproduces exactly that and now passes.
+
+- `database/repositories/sessions.py`: one canonical
+  `SEAT_HOLDING_STATUSES` / `SEAT_HOLDING_STATUS_SQL` definition,
+  `needs_correction` included, replacing the literal in `reserved_count()`.
+- `database/repositories/reservations.py`: imports it and uses it in all
+  five remaining copies (the two locked capacity re-checks, the two
+  notify-the-holders lookups, `list_holders_for_session`). A new status can
+  no longer be counted in one query and forgotten in the next.
+- `services/channel_service.py`: `needs_correction` now has its own icon
+  (✏️) and counts in the board's "در انتظار تأیید" tally — those rows now
+  appear in the holders list, so the board's numbers have to add up.
+- `database/schema.py`: corrected the comment that claimed
+  `request_correction()` "removes the payment lock entirely" — it lifts the
+  deadline; the seat stays held.
+- Verified locally: two new tests (61/61 total), both confirmed to FAIL
+  against the previous code with exactly the reported symptom ("the seat
+  must STAY held…", "capacity must never be exceeded") and pass after the
+  fix. Plus a full HTTP round-trip on a disposable database through the
+  real endpoints: book the only seat → submit receipt → admin presses
+  نیازمند اصلاح → session still reports `available: 0`, a second buyer is
+  correctly sent to the waiting list, and the admin can still approve
+  straight from that state.
+
 ## Admin: the settings page is now tabbed, searchable, and complete
 
 **Why:** reported — the settings page had grown to 11 stacked boxes (~56

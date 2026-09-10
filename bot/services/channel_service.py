@@ -49,6 +49,7 @@ def _day_header(date_iso: str, event_title: str = "") -> str:
 _STATUS_ICON = {
     "pending_payment": "🕐",   # created, buyer hasn't sent a receipt yet
     "pending_review": "⏳",    # receipt sent, waiting on admin
+    "needs_correction": "✏️",  # admin asked for a fix; seat still held, no deadline
     "awaiting_buyer_confirmation": "⏳",
     "approved": "✅",          # only this is a truly confirmed sale
 }
@@ -81,7 +82,7 @@ def _session_block(session: dict, index: int) -> list[str]:
         icon = _STATUS_ICON.get(h["status"], "•")
         if h["status"] == "approved":
             approved_count += h["people"]
-        elif h["status"] in ("pending_review", "awaiting_buyer_confirmation"):
+        elif h["status"] in ("pending_review", "needs_correction", "awaiting_buyer_confirmation"):
             pending_count += h["people"]
         lines.append(to_persian_digits(f"{icon} {name} {h['people']} نفر ({phone})"))
 
