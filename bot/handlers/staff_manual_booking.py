@@ -70,17 +70,29 @@ async def verify_ticket_check(message: Message, state: FSMContext) -> None:
             gregorian_iso_to_jalali_display(session["session_date"]) if session else "-",
             session["session_time"] if session else "-",
         ),
-        reply_markup=qr_mark_used_keyboard(reservation["id"]) if reservation["status"] != "used" else None,
+        # `checked_in_at`, not status — the website panel's check-in has
+        # always recorded entry this way, and now the bot does too. Reading
+        # status here (the old `!= "used"` test) meant a ticket already
+        # scanned on the web still got the button offered, with no warning:
+        # the same person could walk in twice.
+        reply_markup=qr_mark_used_keyboard(reservation["id"]) if not reservation.get("checked_in_at") else None,
     )
 
 
 @router.callback_query(F.data.startswith("qr_mark_used:"))
 async def mark_ticket_used(callback: CallbackQuery) -> None:
     reservation_id = int(callback.data.split(":")[1])
-    reservations_repo.set_status(reservation_id, "used")
-    logs_repo.record("ticket_marked_used", callback.from_user.id,
-                      target_type="reservation", target_id=reservation_id)
-    await callback.message.edit_text(callback.message.text + f"\n\n{fa.QR_MARKED_USED}")
+    # set_checked_in() is atomic and returns False when the ticket was
+    # already checked in — including by the website panel, or by another
+    # staff member scanning the same QR a second earlier. Say so instead
+    # of silently confirming a second entry.
+    newly_checked_in = reservations_repo.set_checked_in(reservation_id)
+    logs_repo.record(
+        "ticket_checked_in" if newly_checked_in else "ticket_checkin_duplicate",
+        callback.from_user.id, target_type="reservation", target_id=reservation_id,
+    )
+    note = fa.QR_MARKED_USED if newly_checked_in else fa.QR_ALREADY_CHECKED_IN
+    await callback.message.edit_text(callback.message.text + f"\n\n{note}")
     await callback.answer()
 
 

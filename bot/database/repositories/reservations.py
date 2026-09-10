@@ -110,19 +110,33 @@ def get_by_code(code: str) -> dict | None:
 
 
 def set_checked_in(reservation_id: int) -> bool:
-    """Phase 6 door check-in. Returns False if already checked in (so the
-    caller can tell 'first scan tonight' from 'this ticket was already
-    used') — never overwrites an existing checked_in_at timestamp."""
+    """
+    Door check-in — the ONE way a ticket is recorded as having entered,
+    from the website panel and from the Telegram bot alike.
+
+    Returns False if the ticket was already checked in (so the caller can
+    tell 'first scan tonight' from 'someone already came in on this
+    ticket') — never overwrites an existing checked_in_at timestamp.
+
+    Deliberately does NOT touch `status`: a checked-in ticket stays
+    'approved'. Check-in is a timestamp overlay, not a state transition.
+    The bot used to write status='used' here instead, which dropped the
+    ticket out of every `status = 'approved'` revenue/attendance query
+    and released its seat — see the schema v19 migration.
+
+    Atomic on purpose: the "not already checked in" guard lives in the
+    UPDATE's WHERE clause, not in a separate SELECT. With a SELECT-then-
+    UPDATE, two staff scanning the same ticket at the same moment could
+    both read NULL and both be told "first scan tonight" — the exact
+    double-entry this function exists to prevent.
+    """
     with get_connection() as conn:
-        row = conn.execute("SELECT checked_in_at FROM reservations WHERE id=?", (reservation_id,)).fetchone()
-        if not row:
-            return False
-        if row["checked_in_at"]:
-            return False
-        conn.execute(
-            "UPDATE reservations SET checked_in_at = datetime('now') WHERE id = ?", (reservation_id,)
+        cur = conn.execute(
+            "UPDATE reservations SET checked_in_at = datetime('now'), updated_at = datetime('now') "
+            "WHERE id = ? AND checked_in_at IS NULL",
+            (reservation_id,),
         )
-        return True
+        return cur.rowcount > 0
 
 
 def list_for_user(user_id: int) -> list[dict]:

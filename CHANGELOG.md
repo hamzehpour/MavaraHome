@@ -5,6 +5,100 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Architecture review: three structural fixes (schema v19)
+
+*2026-09-10*
+
+**Why:** asked to review the codebase for structural, architectural or
+logical problems after the documentation pass. Three findings were real
+and are fixed here. Everything else found is recorded in
+`docs/10-state-and-roadmap.md` rather than changed.
+
+### 1. Door check-in had two sources of truth — and one of them deleted revenue
+
+**Root cause:** the two check-in paths were written independently and
+never reconciled. The Telegram path (`handlers/staff_manual_booking.py`)
+set `status='used'`; the website path (`POST /api/v1/admin/tickets/checkin`)
+stamped `checked_in_at` and left the status alone. The `ALTER` that
+introduced `checked_in_at` already states the intended design — "a
+reservation stays confirmed after check-in, check-in is just a timestamp
+overlay, so nothing that already reads `status` needs to change" — the bot
+path simply never got the memo.
+
+Three consequences, all verified against the code:
+
+- **A ticket scanned from the bot vanished from the books.** Every revenue
+  and attendance query filters `status = 'approved'` (`sales_totals()` and
+  five others in `repositories/reservations.py`). `used` is not that, so
+  the ticket dropped out of sales totals, ticket counts and the attendee
+  list. The identical ticket scanned from the web panel counted correctly.
+- **It released its seat.** `'used'` is not in `SEAT_HOLDING_STATUSES`.
+- **The same ticket could be walked in twice.** Neither path read the
+  other's record of entry: the bot decided "already used?" from `status`,
+  which a website check-in never touches, so a web-scanned ticket was
+  offered the "mark entered" button again with no warning.
+
+**Fixed:**
+- `repositories/reservations.py`: `set_checked_in()` is now the one way a
+  ticket is recorded as having entered, from both channels. It never
+  touches `status`. It is also now **atomic** — the "not already checked
+  in" guard moved into the `UPDATE`'s `WHERE` clause. The old
+  SELECT-then-UPDATE was a real race, not a theoretical one: the new
+  concurrency test run against the pre-fix code had **3 of 8 simultaneous
+  scans all reported as "first scan tonight"**.
+- `handlers/staff_manual_booking.py`: calls `set_checked_in()`, reports
+  "already checked in" when it returns False, and decides whether to offer
+  the button from `checked_in_at` instead of `status`.
+- `texts/fa.py`: the door screen's "this ticket was already used" warning
+  now fires for a ticket checked in through either channel.
+- **Schema v19 migration:** existing rows are repaired —
+  `UPDATE reservations SET status='approved', checked_in_at=COALESCE(checked_in_at, updated_at) WHERE status='used'`.
+  `updated_at` is the right source because for a `used` row that write
+  *was* the check-in. **Past revenue reports change as a result** — that
+  is the point: those tickets were sold and should always have counted.
+- `'used'` is retired. `STATUS_LABELS` keeps its label for pre-migration
+  rows only; a test now fails if any code writes it again.
+
+### 2. Only the bot process ran migrations
+
+**Root cause:** `init_db()` was called by `bot.py` and nowhere else, so the
+API's schema depended on a process it does not control. On any deploy that
+bumped `SCHEMA_VERSION` both services restart together and the API could
+serve requests against an unmigrated database; and if the bot failed to
+start at all (bad `BOT_TOKEN`, no route to Telegram), the schema was never
+migrated while the site and admin panel came up fine and returned 500s.
+
+**Fixed:** `api/server.py`'s `main()` calls `init_db()` before serving.
+Every statement is idempotent, so whichever process starts first migrates
+and the other no-ops.
+
+### 3. The one unguarded status transition
+
+**Root cause:** `admin_cancel_reservation()` used bare `set_status()` — the
+only transition in the system that did. It would "cancel" an already
+expired or rejected reservation, and two admins acting on the same row at
+once both succeeded, last write winning.
+
+**Fixed:** `set_status_if_any(SEAT_HOLDING_STATUSES, "cancelled")`, and it
+now returns a bool. The Telegram caller reports "this reservation was no
+longer active" instead of claiming a cancellation that did not happen.
+
+**Verified locally:** 71/71 tests pass (9 new). The new tests were run
+against the pre-fix source in a separate git worktree first — **7 of the 9
+failed there**, including the concurrency race above; the other two are
+contract guards that the old `set_checked_in()` already satisfied. Fix 2
+was verified end-to-end by starting `api/server.py` against a database file
+that did not exist with no bot ever run: it logged `Database schema
+upgraded: v0 -> v19`, created 26 tables and served `/api/v1/events` and
+`/api/v1/site-content` with 200s. Docs updated (`03-data-model.md`,
+`06-telegram-bot.md`, `07-operations.md`, `02-architecture.md`,
+`10-state-and-roadmap.md`, `AGENTS.md`) and `docs/generate.py --check`
+passes.
+
+**Deploy:** schema change — restart **both** services (`sudo systemctl
+restart mavara-api mavara-bot`). The migration runs automatically on
+whichever starts first.
+
 ## Fix: the admin panel's "delete event" button did nothing
 
 *2026-09-10*

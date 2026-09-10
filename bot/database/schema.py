@@ -14,7 +14,7 @@ import json
 from database.connection import get_connection
 from config.settings import BOOTSTRAP_ADMIN_IDS
 
-SCHEMA_VERSION = 18
+SCHEMA_VERSION = 19
 
 SCHEMA_STATEMENTS = [
     # ---- users -------------------------------------------------
@@ -1042,6 +1042,37 @@ def init_db() -> None:
             conn.execute(
                 "UPDATE team_members SET links = ? WHERE id = ?",
                 (json.dumps(entries, ensure_ascii=False), row["id"]),
+            )
+
+        # Schema v19, one-time migration: retire the 'used' reservation
+        # status in favour of the `checked_in_at` timestamp.
+        #
+        # Two door-check-in paths had drifted apart. The Telegram path set
+        # status='used'; the website path stamped `checked_in_at` and left
+        # the status alone. The ALTER that added `checked_in_at` (above)
+        # already states the intended design — "a reservation stays
+        # confirmed after check-in, check-in is just a timestamp overlay,
+        # so nothing that already reads `status` needs to change" — the
+        # bot path simply never got the memo.
+        #
+        # Leaving those rows as 'used' is not cosmetic: every revenue and
+        # attendance query filters `status = 'approved'` (see
+        # repositories/reservations.py), so a ticket scanned from the bot
+        # silently dropped out of sales totals, ticket counts and the
+        # attendee list, and released its seat ('used' is not in
+        # SEAT_HOLDING_STATUSES). The same ticket scanned from the web
+        # panel counted correctly.
+        #
+        # `updated_at` is the right source for the backfilled timestamp:
+        # set_status() stamps it, and for a 'used' row that write WAS the
+        # check-in. COALESCE keeps any real `checked_in_at` that a row
+        # already has (a ticket scanned on the web first, then in the bot)
+        # — the earlier, web-recorded time is the accurate one.
+        if stored_version < 19:
+            conn.execute(
+                "UPDATE reservations "
+                "SET status = 'approved', checked_in_at = COALESCE(checked_in_at, updated_at) "
+                "WHERE status = 'used'"
             )
 
         # Record the version this database is now at. Future migrations

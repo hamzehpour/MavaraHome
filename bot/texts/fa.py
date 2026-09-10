@@ -124,6 +124,10 @@ STATUS_LABELS = {
     "needs_correction": "نیازمند اصلاح ✏️",
     "cancelled": "لغو شده",
     "expired": "منقضی شده",
+    # Retired in schema v19 — no code writes 'used' any more (door
+    # check-in is the `checked_in_at` timestamp, and the ticket stays
+    # 'approved'). Kept only so a row from a database that predates the
+    # migration still renders a label instead of a raw English string.
     "used": "استفاده شده",
     "waiting": "در لیست انتظار",
 }
@@ -416,7 +420,15 @@ QR_CODE_NOT_FOUND = "❌ کدی با این مشخصات در سیستم پید�
 
 def qr_verify_result(reservation: dict, event_title: str, session_date_fa: str, session_time: str) -> str:
     status_fa = STATUS_LABELS.get(reservation["status"], reservation["status"])
-    used_note = "\n\n⚠️ این بلیت قبلاً استفاده‌شده ثبت شده بود!" if reservation["status"] == "used" else ""
+    # `checked_in_at`, not status == 'used'. Entry is recorded as a
+    # timestamp by both check-in paths (bot and website panel) since
+    # schema v19, so this warning now fires no matter where the ticket
+    # was first scanned — it previously missed web-scanned tickets
+    # entirely, which is how the same ticket could be used twice.
+    used_note = (
+        "\n\n⚠️ این بلیت قبلاً استفاده شده است! (ورود ثبت‌شده)"
+        if reservation.get("checked_in_at") else ""
+    )
     return (
         f"✅ بلیت معتبر است\n\n"
         f"🎭 {event_title} | {session_date_fa} — {session_time}\n"
@@ -425,8 +437,9 @@ def qr_verify_result(reservation: dict, event_title: str, session_date_fa: str, 
         f"وضعیت: {status_fa}{used_note}"
     )
 
-QR_MARK_USED_BUTTON = "✅ ورود ثبت شود (استفاده‌شده)"
+QR_MARK_USED_BUTTON = "✅ ورود ثبت شود"
 QR_MARKED_USED = "✅ ورود ثبت شد."
+QR_ALREADY_CHECKED_IN = "⚠️ ورود این بلیت قبلاً ثبت شده بود — چیزی تغییر نکرد."
 
 # ---------- owner passcode + protected owner removal ----------
 ASK_SET_OWNER_PASSCODE = "یک رمز جدید برای انتقال مالکیت تعیین کنید (حداقل ۴ کاراکتر):"

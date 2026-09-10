@@ -1641,6 +1641,22 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
+    # Migrate before serving a single request. Until now init_db() was
+    # called only by bot.py, which made the schema version depend on a
+    # process this one does not control:
+    #   - on any deploy that bumps SCHEMA_VERSION both services restart
+    #     together, so the API could answer requests against a database
+    #     the bot had not migrated yet;
+    #   - and if the bot failed to start at all (bad BOT_TOKEN, no route
+    #     to Telegram), the schema was never migrated while the website
+    #     and admin panel came up fine and returned 500s.
+    # Calling it here is safe and cheap: every statement is idempotent
+    # (CREATE TABLE IF NOT EXISTS, each ALTER wrapped in try/except, data
+    # backfills guarded by stored_version), so whichever process starts
+    # first migrates and the other one no-ops.
+    from database.schema import init_db
+    init_db()
+
     # Phase 1 (migration finding #4): these must run even when bot.py is
     # not — see utils/scheduler.py's module note above run_expiry_loop_sync
     # for why a plain background thread here, not a port of bot.py's

@@ -5,6 +5,9 @@ from database.repositories import waitlist as waitlist_repo
 from database.repositories import users as users_repo
 from database.repositories import sessions as sessions_repo
 from database.repositories import settings as settings_repo
+# The one definition of "this reservation still occupies a seat" — see
+# database/repositories/sessions.py. Imported, never re-typed.
+from database.repositories.sessions import SEAT_HOLDING_STATUSES
 from services import settings_service
 
 
@@ -673,8 +676,25 @@ def reject_waitlist_entry(waitlist_id: int, reviewed_by: int) -> dict:
     return {"success": True}
 
 
-def admin_cancel_reservation(reservation_id: int) -> None:
-    reservations_repo.set_status(reservation_id, "cancelled")
+def admin_cancel_reservation(reservation_id: int) -> bool:
+    """
+    Admin-initiated cancellation. Returns False when there was nothing to
+    cancel — the reservation had already left the seat-holding states
+    (expired on its own, was rejected, or another admin cancelled it a
+    moment earlier).
+
+    Guarded like every other status transition in this module. It was the
+    one place still calling bare set_status(), which would happily
+    "cancel" an already-expired or already-rejected row and, worse, could
+    clobber a concurrent approval: two admins acting on the same
+    reservation at the same time both succeeded, and whoever wrote last
+    won. SEAT_HOLDING_STATUSES is exactly the right guard here — those
+    are the states in which a reservation still occupies a seat, so they
+    are the states in which "free the seat" is a meaningful action.
+    """
+    return reservations_repo.set_status_if_any(
+        reservation_id, SEAT_HOLDING_STATUSES, "cancelled"
+    )
 
 
 def get_user_reservations(telegram_id: int) -> list[dict]:

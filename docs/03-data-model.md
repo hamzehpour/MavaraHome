@@ -1,6 +1,6 @@
 # ۰۳ — مدل داده
 
-یک فایل SQLite، ۲۴ جدول، نسخه‌ی اسکیما **۱۸**. همه‌چیز در
+یک فایل SQLite، ۲۴ جدول، نسخه‌ی اسکیما **۱۹**. همه‌چیز در
 `bot/database/schema.py` تعریف شده (~۱٬۰۶۰ خط، پرکامنت — بخوانش).
 
 ## روابط اصلی
@@ -69,11 +69,16 @@ stateDiagram-v2
     needs_correction --> needs_correction: ادمین پیام دوم فرستاد
     needs_correction --> approved: ادمین مستقیم تأیید کرد
     needs_correction --> rejected: ادمین رد کرد
-    approved --> used: پذیرش در ورودی — مسیر ربات
+    approved --> [*]: پذیرش در ورودی<br/>(مهر زمانی checked_in_at — وضعیت عوض نمی‌شود)
     expired --> [*]
     rejected --> [*]
-    used --> [*]
 ```
+
+> **پذیرش در ورودی یک وضعیت نیست.** از v19 هر دو مسیر پذیرش (ربات و پنل
+> وب) فقط ستون `checked_in_at` را مهر می‌زنند و وضعیت `approved` را
+> دست‌نخورده می‌گذارند. قبلاً مسیر ربات وضعیت را `used` می‌کرد و چون همه‌ی
+> کوئری‌های درآمد و حاضرین روی `status = 'approved'` فیلتر می‌کنند، آن بلیت
+> از گزارش مالی حذف و صندلی‌اش آزاد می‌شد.
 
 ### کدام وضعیت‌ها صندلی نگه می‌دارند
 
@@ -84,8 +89,9 @@ stateDiagram-v2
 pending_payment · pending_review · needs_correction · awaiting_buyer_confirmation · approved
 ```
 
-هرچه بیرون این لیست باشد (`rejected`، `expired`، `cancelled`، `used`) صندلی
-را آزاد می‌کند.
+هرچه بیرون این لیست باشد (`rejected`، `expired`، `cancelled`) صندلی را
+آزاد می‌کند. بلیتی که وارد سالن شده همچنان `approved` است و صندلی‌اش را
+نگه می‌دارد — پذیرش، وضعیت را عوض نمی‌کند.
 
 > ⚠️ **این تنها تعریف است و شش کوئری ظرفیت از آن می‌خوانند.** اگر وضعیت
 > جدیدی اضافه کردی که باید صندلی نگه دارد و به این لیست اضافه نکردی،
@@ -108,8 +114,12 @@ pending_payment · pending_review · needs_correction · awaiting_buyer_confirma
 | `pending_review` / `needs_correction` | `approved` | `approve_reservation()` | صدور کد + QR امضاشده + ایمیل بلیت PDF |
 | `pending_review` / `needs_correction` | `rejected` | `reject_reservation()` | صندلی فوراً آزاد، مشتری با ذکر دلیل مطلع |
 | `pending_payment` | `expired` | `expire_stale_reservations()` (زمان‌بند) | **فقط `pending_payment` را هدف می‌گیرد** |
-| هر وضعیتی | `cancelled` | `admin_cancel_reservation()` | تنها گذار بدون محافظ |
-| `approved` | `used` | مسیر پذیرش در ربات | مسیر وب به‌جایش `checked_in_at` را پر می‌کند (⚠️ دو نمایش متفاوت از یک مفهوم) |
+| هر وضعیت صندلی‌گیر | `cancelled` | `admin_cancel_reservation()` | با `set_status_if_any(SEAT_HOLDING_STATUSES)`؛ روی رزرو منقضی/ردشده `False` می‌دهد |
+
+**پذیرش در ورودی گذار وضعیت نیست** و عمداً در این جدول نیست: `set_checked_in()`
+فقط `checked_in_at` را مهر می‌زند. یک جمله‌ی `UPDATE` با شرط
+`WHERE checked_in_at IS NULL` — پس دو نفر که هم‌زمان یک QR را اسکن کنند،
+فقط یکی «اولین اسکن امشب» می‌گیرد.
 
 ### چرا «نیازمند اصلاح» ویژه است
 
@@ -136,8 +146,9 @@ set_status_if_any(id, (expected,…), new)  # UPDATE … WHERE id=? AND status I
 شده» و نباید retry شود. همین است که دوبار زدن دکمه‌ی تلگرام، یا تصمیم
 هم‌زمان دو ادمین، را بی‌خطر می‌کند.
 
-`set_status()` خام فقط سه جا استفاده می‌شود (`expired`، `cancelled`،
-`used`) که رقابت در آن‌ها بی‌معناست.
+`set_status()` خام فقط برای `expired` استفاده می‌شود (زمان‌بند، که خودش
+تنها نویسنده‌ی آن وضعیت است). `cancelled` از v19 محافظ‌دار شد و پذیرش در
+ورودی اصلاً گذار وضعیت نیست.
 
 ### وضعیت بازنشسته
 
@@ -171,13 +182,14 @@ set_status_if_any(id, (expected,…), new)  # UPDATE … WHERE id=? AND status I
 **برای اضافه کردن یک ستون:**
 ```python
 # در schema.py
-SCHEMA_VERSION = 19                      # ← بالا ببر
+SCHEMA_VERSION = 20                      # ← بالا ببر (نسخه‌ی فعلی ۱۹ است)
 # ستون را هم به CREATE TABLE اضافه کن (برای نصب تازه)
 # و هم به فهرست ALTER (برای دیتابیس موجود):
 "ALTER TABLE reservations ADD COLUMN my_new_column TEXT",
 ```
 سپس روی سرور `python migrate.py` و بعد ریستارت سرویس‌ها. چون هر دو پروسه
 `init_db()` را در استارت اجرا می‌کنند، ریستارت به‌تنهایی هم کافی است.
+(این جمله تا v18 **غلط** بود — فقط `bot.py` مایگریت می‌کرد. از v19 درست است.)
 
 **قواعد:** فقط افزایشی؛ ستون حذف نکن؛ `NOT NULL` بدون `DEFAULT` روی جدول
 پرداده نگذار؛ اگر داده‌ای باید منتقل شود، backfill را با `stored_version`

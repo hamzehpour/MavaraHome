@@ -124,8 +124,11 @@ def seed() -> None:
     statuses_to_generate = (
         ["approved"] * 8 + ["pending_review"] * 4 + ["pending_payment"] * 3
         + ["rejected"] * 2 + ["awaiting_buyer_confirmation"] * 1 + ["expired"] * 2
-        + ["cancelled"] * 1 + ["used"] * 2
+        + ["cancelled"] * 1 + ["checked_in"] * 2
     )
+    # 'checked_in' is not a status — it is an 'approved' reservation with a
+    # `checked_in_at` timestamp (schema v19 retired the 'used' status this
+    # list used to seed). Translated to a real status below, after insert.
     user_count = 0
     reservation_count = 0
     for _ in range(200):
@@ -142,6 +145,9 @@ def seed() -> None:
             people = random.randint(1, 4)
             unit_price = random.choice([350000, 450000, 500000])
             status = random.choice(statuses_to_generate)
+            checked_in = status == "checked_in"
+            if checked_in:
+                status = "approved"
 
             with get_connection() as conn:
                 user_row = conn.execute("SELECT id FROM users WHERE telegram_id = ?", (telegram_id,)).fetchone()
@@ -157,6 +163,11 @@ def seed() -> None:
                     conn.execute(
                         "UPDATE reservations SET reservation_code = ? WHERE id = ?",
                         (f"MV-TEST{reservation_id:04d}", reservation_id),
+                    )
+                if checked_in:
+                    conn.execute(
+                        "UPDATE reservations SET checked_in_at = datetime('now') WHERE id = ?",
+                        (reservation_id,),
                     )
             reservation_count += 1
 

@@ -198,7 +198,7 @@ try/except روی `ALTER TABLE`). مهاجرت نیاز به بازنویسی `s
 
 ```
 bot/                     بک‌اند — هر دو پروسه از اینجا اجرا می‌شوند
-  bot.py                 پروسه‌ی ربات؛ init_db() اینجا صدا زده می‌شود
+  bot.py                 پروسه‌ی ربات (init_db() در استارت)
   api/server.py          پروسه‌ی API
   config/settings.py     خواندن .env و انتخاب فایل دیتابیس بر اساس ENV
   database/

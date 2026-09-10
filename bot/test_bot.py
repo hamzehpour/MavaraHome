@@ -1069,6 +1069,195 @@ def _t():
     assert portfolio_repo.get(p1) is None, "portfolio rows must not survive their owner's deletion"
 
 
+# ---- Schema v19: one door check-in, one source of truth ------------------
+# Background: two check-in paths had drifted apart. The Telegram path wrote
+# status='used'; the website path stamped `checked_in_at` and left the status
+# alone. Because every revenue/attendance query filters `status='approved'`,
+# a ticket scanned from the bot silently vanished from sales totals and
+# released its seat — and neither path could see the other's check-in, so
+# the same ticket could be walked in twice.
+
+def _approved_reservation(tg_id: int, title: str, date: str, people: int = 2) -> dict:
+    """An approved, ticketed reservation — the state a ticket is in at the door."""
+    event_id = events_repo.create_event(title=title)
+    session_id = sessions_repo.create_session(event_id, date, "20:00", capacity=30)
+    _make_user(tg_id)
+    res = reservation_service.start_reservation(telegram_id=tg_id, session_id=session_id, people=people)
+    reservations_repo.set_status(res["reservation_id"], "pending_review")
+    reservation_service.approve_reservation(res["reservation_id"], reviewed_by=1)
+    return {"reservation_id": res["reservation_id"], "session_id": session_id}
+
+
+@test("Schema v19: checking a ticket in keeps it in revenue totals and keeps its seat")
+def _t():
+    made = _approved_reservation(700310, "تست پذیرش در سالن", "2027-06-01")
+    before = reservations_repo.sales_totals()
+    seat_before = sessions_repo.reserved_count(made["session_id"])
+
+    assert reservations_repo.set_checked_in(made["reservation_id"]) is True
+
+    row = reservations_repo.get_reservation(made["reservation_id"])
+    assert row["status"] == "approved", \
+        "check-in is a timestamp overlay, not a state transition — status must stay 'approved'"
+    assert row["checked_in_at"], "check-in must stamp checked_in_at"
+
+    after = reservations_repo.sales_totals()
+    assert after["revenue"] == before["revenue"], \
+        "a ticket that walked in must still count as revenue"
+    assert after["tickets"] == before["tickets"], \
+        "a ticket that walked in must still count in the ticket total"
+    assert sessions_repo.reserved_count(made["session_id"]) == seat_before, \
+        "checking someone in must not release their seat"
+
+
+@test("Schema v19: a second scan of the same ticket is refused (no double entry)")
+def _t():
+    made = _approved_reservation(700311, "تست ورود دوباره", "2027-06-02")
+    assert reservations_repo.set_checked_in(made["reservation_id"]) is True
+    first = reservations_repo.get_reservation(made["reservation_id"])["checked_in_at"]
+
+    assert reservations_repo.set_checked_in(made["reservation_id"]) is False, \
+        "the second scan must report 'already checked in', not succeed again"
+    assert reservations_repo.get_reservation(made["reservation_id"])["checked_in_at"] == first, \
+        "a repeat scan must never overwrite the original entry time"
+
+
+@test("Schema v19: concurrent scans of one ticket produce exactly one check-in")
+def _t():
+    # The guard lives in the UPDATE's WHERE clause. With the previous
+    # SELECT-then-UPDATE, two staff scanning the same QR at the same moment
+    # could both read NULL and both be told "first scan tonight".
+    import threading
+
+    made = _approved_reservation(700312, "تست همزمانی پذیرش", "2027-06-03")
+    results: list[bool] = []
+    lock = threading.Lock()
+
+    def scan():
+        ok = reservations_repo.set_checked_in(made["reservation_id"])
+        with lock:
+            results.append(ok)
+
+    threads = [threading.Thread(target=scan) for _ in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert sum(1 for r in results if r) == 1, \
+        f"exactly one concurrent scan may win, got {sum(1 for r in results if r)} of {len(results)}"
+
+
+@test("Schema v19: the bot's door screen warns about a ticket the website already checked in")
+def _t():
+    # The exact double-entry hole: the bot decided "already used?" from
+    # status, which a website check-in never touches. A ticket scanned on
+    # the web then scanned in the bot showed no warning at all.
+    from texts import fa
+
+    made = _approved_reservation(700313, "تست هشدار ورود دوباره", "2027-06-04")
+    reservations_repo.set_checked_in(made["reservation_id"])   # as the website panel does
+    row = reservations_repo.get_reservation(made["reservation_id"])
+    row["user_full_name"] = "تماشاگر تست"
+
+    text = fa.qr_verify_result(row, "نمایش تست", "۱۴۰۶/۰۳/۱۴", "20:00")
+    assert "قبلاً استفاده شده" in text, \
+        "a ticket already checked in anywhere must be flagged at the door, whatever channel scanned it first"
+
+
+@test("Schema v19: no code path writes the retired 'used' status any more")
+def _t():
+    # A source-level guard on purpose. 'used' was written from exactly one
+    # line, and nothing about the type system or the tests stopped it —
+    # `status` is free text with no CHECK constraint. This keeps it gone.
+    import re as _re
+    from pathlib import Path as _Path
+
+    bot_root = _Path(__file__).resolve().parent
+    offenders = []
+    for py in bot_root.rglob("*.py"):
+        if py.name in ("test_bot.py", "schema.py") or "venv" in py.parts:
+            continue
+        for i, line in enumerate(py.read_text(encoding="utf-8").splitlines(), 1):
+            if _re.search(r"""set_status\w*\([^)]*["']used["']""", line):
+                offenders.append(f"{py.relative_to(bot_root)}:{i}")
+    assert not offenders, \
+        "door check-in is `checked_in_at`, not status='used' — found: " + ", ".join(offenders)
+
+
+@test("Schema v19 migration: existing 'used' rows become approved + checked_in_at")
+def _t():
+    from database.connection import get_connection
+
+    made = _approved_reservation(700314, "تست مهاجرت وضعیت استفاده‌شده", "2027-06-05")
+    rid = made["reservation_id"]
+
+    # Put the row (and the database) back exactly how v18 left it.
+    with get_connection() as conn:
+        conn.execute(
+            "UPDATE reservations SET status = 'used', checked_in_at = NULL, "
+            "updated_at = '2026-01-02 03:04:05' WHERE id = ?", (rid,),
+        )
+        conn.execute("UPDATE schema_meta SET value = '18' WHERE key = 'version'")
+
+    lost = reservations_repo.sales_totals()
+    init_db()
+    regained = reservations_repo.sales_totals()
+
+    row = reservations_repo.get_reservation(rid)
+    assert row["status"] == "approved", f"migration must retire 'used', got {row['status']!r}"
+    assert row["checked_in_at"] == "2026-01-02 03:04:05", \
+        "the backfilled entry time must come from updated_at — that write WAS the check-in"
+    assert regained["revenue"] > lost["revenue"], \
+        "the migration must put previously-'used' tickets back into revenue totals"
+
+
+# ---- Guarded admin cancellation -----------------------------------------
+
+@test("admin_cancel_reservation refuses a reservation that no longer holds a seat")
+def _t():
+    made = _approved_reservation(700315, "تست لغو رزرو منقضی", "2027-06-06")
+    rid = made["reservation_id"]
+    reservations_repo.set_status(rid, "expired")
+
+    assert reservation_service.admin_cancel_reservation(rid) is False, \
+        "cancelling an already-expired reservation must report that nothing happened"
+    assert reservations_repo.get_reservation(rid)["status"] == "expired", \
+        "a bare set_status() here would clobber the real final state"
+
+
+@test("admin_cancel_reservation frees the seat when the reservation is live")
+def _t():
+    made = _approved_reservation(700316, "تست لغو رزرو فعال", "2027-06-07")
+    before = sessions_repo.reserved_count(made["session_id"])
+
+    assert reservation_service.admin_cancel_reservation(made["reservation_id"]) is True
+    assert reservations_repo.get_reservation(made["reservation_id"])["status"] == "cancelled"
+    assert sessions_repo.reserved_count(made["session_id"]) < before, \
+        "cancelling must release the seat"
+
+    assert reservation_service.admin_cancel_reservation(made["reservation_id"]) is False, \
+        "cancelling twice must be a no-op the caller can detect"
+
+
+# ---- The API process migrates too ---------------------------------------
+
+@test("api/server.py runs init_db() at startup, not only bot.py")
+def _t():
+    # Source-level, because the alternative is booting the HTTP server.
+    # When only bot.py migrated, a deploy that bumped SCHEMA_VERSION let the
+    # API answer requests against an unmigrated database — and if the bot
+    # failed to start at all, the schema was never migrated while the site
+    # came up and returned 500s.
+    from pathlib import Path as _Path
+
+    src = (_Path(__file__).resolve().parent / "api" / "server.py").read_text(encoding="utf-8")
+    main_body = src.split("def main():", 1)[1]
+    assert "init_db()" in main_body, \
+        "api/server.py's main() must call init_db() before serving requests"
+
+
+
 def main() -> None:
     print("=" * 60)
     print("  MAVARA BOT — AUTOMATED TEST SUITE")

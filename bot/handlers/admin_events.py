@@ -548,7 +548,16 @@ async def res_edit_cancel_do(callback: CallbackQuery) -> None:
     from services import reservation_service
     reservation_id = int(callback.data.split(":")[1])
     reservation = reservations_repo.get_reservation(reservation_id)
-    reservation_service.admin_cancel_reservation(reservation_id)
+    # False means the reservation was no longer holding a seat — it had
+    # already expired, been rejected, or been cancelled by someone else
+    # between opening this confirmation and pressing the button. Say so
+    # rather than reporting a cancellation that did not happen.
+    if not reservation_service.admin_cancel_reservation(reservation_id):
+        await callback.message.answer(
+            "ℹ️ این رزرو دیگر فعال نبود (منقضی، رد یا قبلاً لغو شده) — تغییری اعمال نشد."
+        )
+        await callback.answer()
+        return
     logs_repo.record("reservation_cancelled_by_admin", callback.from_user.id, f"reservation_id={reservation_id}")
     if reservation:
         from services import channel_service
