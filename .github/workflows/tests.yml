@@ -1,0 +1,38 @@
+# تست‌ها و تازگی مستندات — روی هر push و هر PR.
+#
+# قبل از این، تنها ورک‌فلوی مخزن انتشار GitHub Pages بود و هیچ‌چیز ۶۲ تست را
+# اجرا نمی‌کرد. حالا یک رگرسیون در منطق رزرو، یا مستنداتی که با کد جلو
+# نرفته، همین‌جا قرمز می‌شود.
+name: tests
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: نصب وابستگی‌ها
+        run: pip install -r bot/requirements.txt
+
+      - name: اجرای تست‌ها
+        # ENV=test اجباری است — خود test_bot.py هم اگر production باشد
+        # بلافاصله خارج می‌شود و در هر حالت روی یک فایل موقت کار می‌کند.
+        working-directory: bot
+        env:
+          ENV: test
+          JWT_SECRET: ci-only-not-a-real-secret
+        run: python3 test_bot.py
+
+      - name: بررسی تازگی مستندات
+        # مرجع API و فهرست کلیدهای تنظیمات از روی کد تولید می‌شوند؛ این
+        # مرحله مطمئن می‌شود کسی کد را جلو نبرده و مستندات را جا نگذاشته.
+        run: python3 docs/generate.py --check

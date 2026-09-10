@@ -7,6 +7,8 @@ dropped or rewritten).
 
 ## Fix: the admin panel's "delete event" button did nothing
 
+*2026-09-10*
+
 **Why:** reported — pressing 🗑 on a row in `pages/admin/events.html`
 removed nothing and showed no error.
 
@@ -43,6 +45,8 @@ simply never ran. A silent 404 looks exactly like a dead button.
   and both deletions left the expected `event_deleted` rows in `logs`.
 
 ## Fix: "نیازمند اصلاح" was releasing the buyer's seat instead of holding it
+
+*2026-09-10*
 
 **Why:** reported — the agreed behaviour for this admin action is that the
 reservation stays locked (the seat keeps counting against the session's
@@ -97,6 +101,8 @@ over its capacity. The new test reproduces exactly that and now passes.
 
 ## Admin: the settings page is now tabbed, searchable, and complete
 
+*2026-09-10*
+
 **Why:** reported — the settings page had grown to 11 stacked boxes (~56
 fields, eight of them four-row textareas) in one long column; finding a
 single setting meant scrolling past everything else.
@@ -142,6 +148,8 @@ single setting meant scrolling past everything else.
   59/59.
 
 ## Unified resume/profile module: Mansour Nasiri's page and every team member's page now share one system (schema v18)
+
+*2026-09-09*
 
 **Why:** requested — the "درباره‌ی منصور نصیری" page's resume-building,
 profile-editing and gallery/viewer capabilities were entirely bespoke to
@@ -215,6 +223,8 @@ member's page.
 
 ## Fix: blank ~62px scrolling gap at the top of every admin panel page
 
+*2026-09-09*
+
 **Why:** reported — an empty band at the top of every admin page that
 scrolled along with the rest of the content, on every page in the
 panel. First pass (below) treated a real but secondary layout issue as
@@ -253,6 +263,8 @@ classes (confirmed by grep — only `login.html` doesn't).
 
 ## Admin: event create/edit moved from a modal to its own page
 
+*2026-09-09*
+
 **Why:** requested — the create/edit modal on `pages/admin/events.html`
 had grown tall enough (base fields + sessions table + the FAQ box) to
 need its own internal scroll on top of the page's own scroll, with no
@@ -279,6 +291,8 @@ sense of place and only a small ✕ to get back out. Bad UX.
 
 ## Admin: remove an event's poster or a gallery image
 
+*2026-09-09*
+
 **Why:** requested — same gap as the resume page's gallery and team
 members' photo, just for events: a poster could only be replaced (never
 cleared), and gallery images only ever grew (`.push()` on upload), with
@@ -299,6 +313,8 @@ no way to take one back out short of clearing the whole field by hand.
   automated suite still green.
 
 ## Team members: remove profile photo, add an Instagram link button
+
+*2026-09-09*
 
 **Why:** requested — no way to remove a team member's profile photo once
 set (only replace it), and no Instagram link button on their public page
@@ -333,6 +349,8 @@ set (only replace it), and no Instagram link button on their public page
   `contact_instagram` stayed intact.
 
 ## Admin: edit the "همراهی" and "پادکست" pages' content
+
+*2026-09-09*
 
 **Why:** requested — only the two body paragraphs on `pages/companionship.
 html` (`content_companion_p1`/`_p2`) were admin-editable; everything else
@@ -373,6 +391,8 @@ on that page, and the entire `pages/podcast.html`, was hardcoded HTML.
   53/53 automated suite still green.
 
 ## Admin: edit the resume page's profile content and link buttons
+
+*2026-09-09*
 
 **Why:** requested — the "درباره‌ی منصور نصیری" page's own profile block
 (photo, eyebrow/title/role line, footer text) and its two link buttons
@@ -432,6 +452,8 @@ edit an arbitrary list of link buttons, not just the fixed two.
 
 ## Admin: remove an image from a resume project's gallery
 
+*2026-09-09*
+
 **Why:** requested — once a gallery photo was uploaded to a resume/
 portfolio project, there was no way to take it back out (`pfGallery`
 only ever grew, via `.push()` on upload) short of deleting the whole
@@ -445,6 +467,8 @@ project and starting over.
   poster/video already behave here).
 
 ## Resume gallery: prev/next navigation in the fullscreen viewer
+
+*2026-09-09*
 
 **Why:** requested — clicking a thumbnail in a resume project's gallery
 opened it in the fullscreen viewer, but there was no way to move to the
@@ -464,6 +488,8 @@ different thumbnail every time.
   close handler.
 
 ## Fix: uploaded resume (رزومه) images/video never displayed on the public page
+
+*2026-09-09*
 
 **Why:** reported — images and media uploaded for a resume/portfolio
 entry (poster, gallery, video) never showed up anywhere on the public
@@ -494,6 +520,8 @@ as the resume list's own click handler already does correctly.
 
 ## Fix: event-detail gallery — literal "gallery_label" text, thumbnails opening a new tab
 
+*2026-09-09*
+
 **Why:** reported, two separate bugs on the same page:
 
 1. The gallery section's heading literally showed the text
@@ -516,6 +544,8 @@ as the resume list's own click handler already does correctly.
    element's `src` instead of opening a tab.
 
 ## Fix: adding a FAQ to an event silently didn't save
+
+*2026-09-09*
 
 **Why:** reported — the admin added FAQs (both "create new" and "pick
 from bank") to an event inside the edit modal, closed the modal, and the
@@ -544,6 +574,8 @@ FAQ is present on both, and no other event field was touched by the
 narrower PATCH body.
 
 ## Per-event FAQs, backed by a reusable, admin-managed FAQ bank
+
+*2026-09-09*
 
 **Why:** requested — each event can now show a "پرسش‌های متداول" section;
 admins manage it, visitors only see it.
@@ -605,6 +637,8 @@ admins manage it, visitors only see it.
 
 ## Remove the gallery section from the home page
 
+*2026-09-07*
+
 **Why:** requested — the "از نگاه من" flip-card photo gallery on the
 homepage is no longer wanted.
 
@@ -621,6 +655,8 @@ homepage is no longer wanted.
   — still used by `pages/about-mansour.html`.
 
 ## Fix production crash: booking failed with a generic error for some buyers
+
+*2026-09-07*
 
 **Why:** reported — "ثبت رزرو با خطا مواجه شد" on the website, no more
 detail than that. Production logs showed the real cause: a 500 crash
@@ -655,6 +691,8 @@ exact scenario.
 
 ## Emphasize accurate phone/email in the booking form
 
+*2026-09-06*
+
 **Why:** requested — the phone/email step had no reminder that these are
 the only way the buyer ever hears back (ticket, tracking code, "نیازمند
 اصلاح" messages, the payment reminder). A typo there silently strands the
@@ -670,6 +708,8 @@ Verified with Playwright: the note renders correctly under both fields
 in the actual booking modal.
 
 ## "حساب من" first in the mobile menu, with a hint of what it's for
+
+*2026-09-06*
 
 **Why:** requested — on mobile, "حساب من" was the last item in the
 hamburger menu like any other nav link, with no indication it's where a
@@ -696,6 +736,8 @@ checked) shows "حساب من (پیگیری و مشاهده رزروها)" as th
 with the rest of the menu following in its original order.
 
 ## Remove the Telegram-only reject "grace period" — reject is now direct/final everywhere
+
+*2026-09-06*
 
 **Why:** requested — now that "نیازمند اصلاح" exists for "something's
 fixable, don't reject outright," the old two-step grace period
@@ -757,6 +799,8 @@ reject shape); the scratch test's reject-related checks updated to match
 
 ## Fix: rejecting via Telegram left a website-only buyer stuck, never notified
 
+*2026-09-06*
+
 **Why:** reported — rejecting a reservation from Telegram showed "⚠️ رزرو
 رد شد ولی ارسال پیام به خریدار ناموفق بود (آیدی تلگرام: None)" and the
 buyer never heard anything, by email or otherwise. Telegram's reject flow
@@ -788,6 +832,8 @@ rejects immediately (not `awaiting_buyer_confirmation`) and reports the
 real email-send outcome.
 
 ## Fix two "نیازمند اصلاح" bugs: silent correction messages from the alerts channel, admin locked out afterwards
+
+*2026-09-06*
 
 **Why:** reported, after the "نیازمند اصلاح" action shipped — two separate
 bugs, both real:
@@ -862,6 +908,8 @@ needs-correction → reject directly — both fully succeeding end to end.
 
 ## Fix: "تکمیل رزرو" button/countdown stayed after successfully completing a resumed reservation
 
+*2026-09-06*
+
 **Why:** reported, right after the resume feature above shipped — after
 resuming a reservation and uploading its receipt, closing the modal
 still showed the exact same "تکمیل رزرو" button and a countdown ticking
@@ -910,6 +958,8 @@ closed — the account.html card lost its resume button/countdown, and
 the event-detail.html CTA reverted to the normal "رزرو بلیت" button.
 
 ## Resume an unfinished reservation instead of starting over
+
+*2026-09-06*
 
 **Why:** requested, right after the 4-step redesign above shipped — a
 buyer who closes the tab mid-payment (goes to their banking app, gets
@@ -963,6 +1013,8 @@ for that event and confirmed the amber "تکمیل رزرو" CTA (not the normal
 gold one) with its own live countdown, resuming the same way from there.
 
 ## Booking-flow redesign: real 4-step flow, capacity lock actually works again, "نیازمند اصلاح" admin action
+
+*2026-09-06*
 
 **Why:** requested — the capacity lock (`payment_expiry_minutes`) had been
 in the code for a while but stopped doing anything useful. A prior
@@ -1049,6 +1101,8 @@ correction message in `admin_note` → buyer resubmission via
 
 ## Split the admin alerts channel from the sales-monitoring channel
 
+*2026-09-06*
+
 **Why:** reported, live — the monitoring channel (silent per-day board,
 `services/channel_service.py`) and the new-request alerts (fresh
 message + approve/reject buttons, added earlier this week) were
@@ -1085,6 +1139,8 @@ only `monitoring_channel_id`.
 
 ## Removed: the repeating "رزرو همچنان منتظر بررسی است" staff reminder
 
+*2026-09-05*
+
 **Why:** requested — disable it entirely.
 
 Found the flow: `utils/scheduler.py`'s `run_expiry_loop` (every 120s)
@@ -1111,6 +1167,8 @@ module, and both removed keys are confirmed absent from
 
 ## Small pulsing green dot on every "در حال اجرا" (live) event badge
 
+*2026-09-05*
+
 **Why:** requested — make an ongoing event easier to spot at a glance
 among a grid/slider of cards.
 
@@ -1129,6 +1187,8 @@ cards, only for `status === 'ongoing'` — "به‌زودی"/"آرشیو" badges
 unaffected.
 
 ## Approval confirmation email now has the PDF ticket attached
+
+*2026-09-05*
 
 **Why:** requested — the ticket (QR code) was only reachable via a
 Telegram photo or by logging into the website account page; a buyer
@@ -1162,6 +1222,8 @@ endpoint re-tested end-to-end (real OTP login, real download) after
 the `_ticket_context` move to confirm it wasn't broken by the refactor.
 
 ## Booking form: payment receipt is now required, custom-styled, and its errors are visible
+
+*2026-09-05*
 
 **Why:** requested — the receipt was optional, but a customer skipping
 it left the admin no proof of payment to review against. Separately: a
@@ -1201,6 +1263,8 @@ lets the booking proceed; screenshotted in both light and dark theme.
 
 ## The "email was sent" admin message now reflects the real outcome
 
+*2026-09-05*
+
 **Why:** found immediately after shipping the previous fix (which
 assumed "buyer has an email on file" meant "the email went out") — a
 real production SMTP auth failure (Gmail rejecting the configured app
@@ -1226,6 +1290,8 @@ Username and Password not accepted` — an app-password/2FA setup issue
 on the Google account, not a code bug; see the chat for the fix.)
 
 ## Admin channel alert now includes the receipt + approve/reject buttons (schema v15)
+
+*2026-09-05*
 
 **Why:** requested, right after seeing the plain-text alert land — an
 admin wanted to act directly from the channel (approve/reject a payment)
@@ -1264,6 +1330,8 @@ callback_data for their reservation id.
 
 ## Fixed: monitoring channel setup didn't work for a Telegram *group*
 
+*2026-09-05*
+
 **Why:** hit live, during setup — the forward-a-message flow
 (`handlers/channel_setup.py`) only ever worked for an actual Telegram
 *channel* (or a supergroup post sent anonymously "as the group").
@@ -1289,6 +1357,8 @@ assumes a channel).
 
 ## Fixed: deploy/mavara-bot.service and mavara-api.service pointed at a stale path
 
+*2026-09-04*
+
 Both templates still said `/opt/mavara-bot` / `User=mavara` — the
 production server actually runs everything under `/opt/MavaraHome/bot`
 as root (confirmed via `systemctl show mavara-api` on the real deploy).
@@ -1299,6 +1369,8 @@ be installed from this repo directly, and future reference to either
 file isn't misleading.
 
 ## Instant Telegram channel alert for new reservations + waitlist entries
+
+*2026-09-04*
 
 **Why:** requested — admins wanted to know about a new reservation
 needing review, or a new waiting-list signup, immediately (not by
@@ -1359,6 +1431,8 @@ source label either way.
 
 ## Per-event ticket price now editable from the events admin page
 
+*2026-09-04*
+
 **Why:** reported — the settings page's "قیمت هر بلیت" (ticket price)
 lived under general settings, implying one global price, but pricing is
 really per-event (`event_service.get_effective_price()` already checked
@@ -1400,6 +1474,8 @@ reopen and see it prefilled, clear it, reopen and see it empty — zero
 console errors.
 
 ## "Maximal admin independence," phase 3 — site content + brand images
+
+*2026-09-04*
 
 **Why:** the last two pieces of the original story — "اطلاعات فیکس روی
 سایت مثلا توی فوتر و اینها" (fixed site info like the footer) and
@@ -1455,6 +1531,8 @@ testing genuinely overwrote them locally.
 
 ## "Maximal admin independence," phase 2 — email templates now admin-editable
 
+*2026-09-04*
+
 **Why:** direct continuation of phase 1. The website settings page (and
 the underlying `EDITABLE_SETTINGS`/`settings` table mechanism already
 built for Telegram message templates) covered the bot's Telegram
@@ -1503,6 +1581,8 @@ existing generic save button works with no console/page errors, and the
 saved value survives a reload.
 
 ## New admin settings page — "maximal admin independence," phase 1
+
+*2026-09-04*
 
 **Why:** requested — the admin should be able to change anything
 editable (messages/notices, fixed site info, images) without needing a
@@ -1585,6 +1665,8 @@ message templates, bank cards, ticket PDF template, and upload safety.
 
 ## New: admin email broadcasts, segmented by event/tag
 
+*2026-09-04*
+
 **Why:** requested — admin wants to build a segment from customers who
 actually purchased (filtered by event, or by an event's tag/category)
 and send them an email. SMS is planned as a second channel later, which
@@ -1638,6 +1720,8 @@ instead of assuming email-only).
 
 ## Fixed: mobile nav menu collapsed into a sliver, bled over the page
 
+*2026-09-04*
+
 **Why:** reported with a real phone screenshot on `account.html` —
 opening the mobile hamburger menu showed nav links scattered over the
 page content with no solid background behind them, overlapping the
@@ -1671,6 +1755,8 @@ page's own text, instead of a normal full-screen menu.
 
 ## Homepage: active events moved up, founder bio card removed
 
+*2026-09-04*
+
 **Why:** get a visitor to what's actually on right now faster, without
 scrolling past the founder bio card first.
 
@@ -1691,6 +1777,8 @@ scrolling past the founder bio card first.
   its new position.
 
 ## Waiting-list approval: two real bugs from live use, fixed
+
+*2026-09-04*
 
 **Why:** using the page just shipped, both surfaced immediately —
 approving a *website* waiting-list entry showed up in the reservations
@@ -1735,6 +1823,8 @@ with no ticket, no way to finalize it from the page at all.
   code included.
 
 ## Waiting-list admin: a new website admin page, and a real gap it closes
+
+*2026-09-04*
 
 **Why:** asked "where can I see waiting-list reservations in admin?" —
 the honest answer was nowhere. A full session's waiting-list entry has
@@ -1787,6 +1877,8 @@ created and then effectively invisible to every admin.
 
 ## Waiting-list signup moved into the booking modal
 
+*2026-09-04*
+
 **Why:** joining the waiting list for a sold-out session was three
 stacked native `prompt()` dialogs, entirely outside the booking modal —
 a different, lower-quality flow for what's functionally a very similar
@@ -1818,6 +1910,8 @@ action.
 
 ## Event page: Telegram/phone demoted to a support line, not a booking CTA
 
+*2026-09-04*
+
 **Why:** with real in-page booking live, showing "Book on Telegram" and
 a phone-call button right next to the actual booking button suggested
 they were equally valid ways to book — they aren't anymore; they're for
@@ -1837,6 +1931,8 @@ questions.
   event with no contact info at all.
 
 ## Booking form: staged flow (picker → form → confirm → result)
+
+*2026-09-03*
 
 **Why:** direct feedback on the just-shipped modal — the date/session
 picker stayed on screen underneath the buyer-info fields once a session
@@ -1872,6 +1968,8 @@ to the result.
   advancing. No console errors in any of it.
 
 ## Booking form: one step, modal/bottom-sheet, and rewritten messages
+
+*2026-09-03*
 
 **Why:** direct feedback on the live booking widget — it was two forms
 pretending to be one flow (buyer info, then a second reveal for the
@@ -1932,6 +2030,8 @@ unclear or, in one case, outright wrong.
 
 ## Reservation migration — phase 4 (admin reservation panel, on the website)
 
+*2026-09-03*
+
 **Why:** the last piece — an admin no longer needs Telegram to run the
 reservation side of the business. Session management, the approval
 queue (with receipt viewing), and door check-in all live on the website
@@ -1991,6 +2091,8 @@ now, next to the content admin they already use.
 
 ## Reservation migration — phase 3 (booking, live on the website)
 
+*2026-09-03*
+
 **Why:** the whole point of this migration — a customer can now book an
 event directly on mavarahome.com, no Telegram required, and the
 reservation lands in the exact same database, visible to the same admin
@@ -2044,6 +2146,8 @@ tools, the same instant. Journeys 2 and 4 from the original request.
 
 ## Reservation migration — phase 2 (schema v11 → v12)
 
+*2026-09-03*
+
 **Why:** phase 3 (booking UI on the website) needs a customer identity
 that works the same regardless of which channel someone books through —
 phase 0 built the merge logic (`get_or_create_customer()`), phase 2 is
@@ -2094,6 +2198,8 @@ go check Telegram.
   actual event, date and reservation code, not placeholders.
 
 ## Reservation migration — phase 0 + phase 1 (schema v9 → v11)
+
+*2026-09-03*
 
 **Why:** a product review ("critically review the reservation journey and
 prepare a migration plan") found the split below had, in the meantime,
@@ -2182,6 +2288,8 @@ truth for events/portfolio/team, immediately available to both channels.
   `status`/`tags`/`date` round-tripping correctly end to end.
 
 ## Follow-up: split website/ from bot/ so the site can host on plain shared hosting (no SSH)
+
+*2026-08-23*
 
 > **Superseded by the reservation-migration phase 1 above** —
 > `website/backend_cms/` described in this section no longer exists.
@@ -2280,6 +2388,8 @@ clean.
 
 ## Follow-up: customer login rewritten from phone+Telegram to email OTP (schema v8 → v9)
 
+*2026-08-23*
+
 The original Phase 4 design used phone number + OTP delivered through the
 Telegram bot, because this project has no SMS provider — a website-only
 customer (no telegram_id yet) had to open a one-time deep link into the
@@ -2365,6 +2475,8 @@ pages' inline scripts `node --check` clean.
 
 ## Follow-up: real Persian ticket typesetting + admin-editable template (schema v7 → v8)
 
+*2026-08-23*
+
 Closes the one item Phase 4-8 explicitly left incomplete ("شکل‌یافته Persian
 RTL... reportlab has no built-in RTL/شکل‌دهی support") plus two related,
 explicitly requested features: an admin-editable ticket template (with an
@@ -2430,6 +2542,8 @@ Tested both with and without a logo, and with/without notes/address, to
 confirm the layout degrades gracefully in each case.
 
 ## New tables (schema v7)
+
+*2026-08-23*
 - `customer_otp` — hashed OTP codes for customer login (Phase 4)
 - `telegram_link_tokens` — one-time deep-link tokens for phone→telegram linking (Phase 4)
 - `bot_outbox` — durable queue letting the API process ask the bot process to deliver a Telegram message, since they're separate OS processes sharing only the database (Phase 4/5)
@@ -2439,12 +2553,16 @@ confirm the layout degrades gracefully in each case.
 - New indexes: `idx_reservations_user`, plus one per new table's natural lookup key
 
 ## New backend files
+
+*2026-08-23*
 - `database/repositories/customer_auth.py`, `bot_outbox.py`, `messages.py`, `team_members.py`
 - `services/customer_auth_service.py` — OTP request/verify flow
 - `utils/ticket_pdf.py` — PDF ticket generation (reportlab)
 - `seed_phase4_8.py` — test data seeding for everything above
 
 ## New API endpoints (`api/server.py`)
+
+*2026-08-23*
 ```
 POST /api/v1/auth/customer/request-otp
 POST /api/v1/auth/customer/verify-otp
@@ -2469,17 +2587,23 @@ to `api/server.py` itself, only to `services/`, per the project's own
 architecture rule.
 
 ## New frontend pages
+
+*2026-08-23*
 - `pages/account.html` — customer login (OTP) + reservation/ticket dashboard + support chat
 - `pages/team.html` — public team directory + per-member detail (via `?slug=`)
 - `pages/admin/team.html`, `messages.html`, `checkin.html`
 - `pages/connect-telegram.html` — extended to also handle `?link=<token>` (account linking), not just `?code=` (existing ticket-delivery flow)
 
 ## Bot-side changes
+
+*2026-08-23*
 - `utils/scheduler.py` — new `run_outbox_loop()`, polls `bot_outbox` every 5s and delivers via `bot.send_message`
 - `bot.py` — registers the new loop alongside the existing expiry/backup loops
 - `handlers/common.py` — `/start` now recognizes a `LINK-<token>` deep-link payload and links phone↔telegram_id
 
 ## Real bugs found and fixed (not introduced by this work, found while building on top of it)
+
+*2026-08-23*
 
 ### 1. Broken site navigation from any inner page
 `assets/js/site.js`'s `pp()` path helper returned `index.html` unprefixed
@@ -2542,6 +2666,8 @@ check was silently checking for one fewer table than actually exists.
 Added, along with the five new Phase 4-8 tables.
 
 ## Known, documented limitations (not fixed — see README's checklist for why)
+
+*2026-08-23*
 - Camera-based QR scanning on the check-in page (manual code entry only)
 - File attachments in support messages (text only)
 - Fully shaped/joined Persian typography in the PDF ticket (reportlab has no built-in Arabic-script shaping)
@@ -2549,6 +2675,8 @@ Added, along with the five new Phase 4-8 tables.
 - Full aiogram-installed, real-Telegram-network testing (this sandbox has no internet — same limitation the original Phase 0-3 work documented)
 
 ## Testing performed in this sandbox
+
+*2026-08-23*
 - Every new/modified Python file: `py_compile` clean
 - Every new/modified JS file (inline and external): `node --check` / `new Function()` clean
 - Live API server + curl, covering: OTP request (both link-required and

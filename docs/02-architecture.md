@@ -15,7 +15,7 @@ graph TB
     subgraph server["سرور (یک VPS)"]
         NGINX["nginx<br/>فایل‌های استاتیک + پروکسی /api/v1"]
         BOT["پروسه ۱: bot.py<br/>aiogram · ۱۳ روتر"]
-        API["پروسه ۲: api/server.py<br/>http.server · ۶۸ اندپوینت"]
+        API["پروسه ۲: api/server.py<br/>http.server · ۶۷ مسیر"]
         SVC["services/<br/>تمام منطق تجاری"]
         DB[("SQLite<br/>data/production.db")]
     end
