@@ -7,11 +7,20 @@
         <button onclick="logout()" style="margin-top:auto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>خروج</button></aside>
     <main class="admin-main" style="max-width:760px">
         <h2 style="margin-bottom:6px">تنظیمات</h2>
-        <p style="color:var(--text-muted);font-size:13px;margin-bottom:24px">همان تنظیماتی که از داخل ربات تلگرام هم قابل تغییرند — این‌جا و آن‌جا یک منبع مشترک است، هرکدام را عوض کنی همه‌جا اثر می‌کند.</p>
+        <p style="color:var(--text-muted);font-size:13px;margin-bottom:8px">همان تنظیماتی که از داخل ربات تلگرام هم قابل تغییرند — این‌جا و آن‌جا یک منبع مشترک است، هرکدام را عوض کنی همه‌جا اثر می‌کند.</p>
 
-        <div id="sections"></div>
+        <div id="settingsToolbar">
+            <div class="samples-tabs" id="settingsTabs"></div>
+            <input id="settingsSearch" type="search" placeholder="جستجو بین تنظیمات — مثلاً: کارت، قیمت، ایمیل">
+        </div>
+        <p id="searchHint" style="display:none;font-size:12.5px;color:var(--text-muted);margin-bottom:14px">در حال جستجو بین همه‌ی بخش‌ها — برای برگشت به تب‌ها، کادر جستجو را خالی کن.</p>
+        <p id="searchEmpty" style="display:none;font-size:13.5px;color:var(--text-muted);text-align:center;padding:30px 0">موردی با این عبارت پیدا نشد.</p>
 
-        <div class="feedback-box" style="margin-top:28px">
+        <div class="tab-panel" data-tab="general"><div id="sec-general"></div></div>
+
+        <div class="tab-panel" data-tab="payment">
+            <div id="sec-payment"></div>
+        <div class="feedback-box settings-box" data-search="کارت‌های بانکی card bank" style="margin-top:0">
             <h4>کارت‌های بانکی</h4>
             <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">شماره کارتی که به‌عنوان «فعال» علامت بخوری، همان‌که در راهنمای پرداخت (تلگرام و سایت) به خریدار نشان داده می‌شود.</p>
             <table class="admin-table" style="margin-bottom:16px"><thead><tr><th>شماره کارت</th><th>صاحب حساب</th><th>بانک</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody id="cardsBody"></tbody></table>
@@ -25,8 +34,14 @@
             </div>
             <p id="cardMsg" style="display:none;font-size:12.5px;margin-top:8px"></p>
         </div>
+        </div>
 
-        <div class="feedback-box" style="margin-top:20px">
+        <div class="tab-panel" data-tab="messages"><div id="sec-messages"></div></div>
+
+        <div class="tab-panel" data-tab="content"><div id="sec-content"></div></div>
+
+        <div class="tab-panel" data-tab="brand">
+        <div class="feedback-box settings-box" data-search="قالب بلیت pdf ticket" style="margin-top:0">
             <h4>قالب بلیت PDF</h4>
             <label style="font-size:12px">عنوان بالای بلیت</label>
             <input id="ttTitle" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font-family:inherit;margin-bottom:10px">
@@ -42,11 +57,11 @@
             <button class="btn btn--gold" onclick="saveTicketTemplate()">ذخیره قالب بلیت</button>
             <p id="ttMsg" style="display:none;font-size:12.5px;margin-top:8px"></p>
         </div>
-
-        <div class="feedback-box" style="margin-top:20px">
+        <div class="feedback-box settings-box" data-search="تصاویر برند لوگو فاویکون brand logo favicon" style="margin-top:20px">
             <h4>تصاویر برند</h4>
             <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">هرکدام را عوض کنی، بلافاصله در همه‌جای سایت جایگزین می‌شود — نیاز به تغییر چیز دیگری نیست. فرمت و حداکثر ابعاد هر تصویر ثابت است (زیر هرکدام نوشته شده)، حجم هر فایل حداکثر ۳ مگابایت.</p>
             <div id="brandImages" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px"></div>
+        </div>
         </div>
     </main>
 </div>
@@ -55,30 +70,143 @@
 if (!API.auth.check()) window.location.href = 'login.html';
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
-// Groups the flat settings list into sections. ticket_template_* keys
-// are deliberately excluded here — they're edited in the dedicated
-// "قالب بلیت PDF" box below via /admin/ticket-template (which also
-// handles the logo upload, something the generic key/value settings
-// endpoint has no concept of).
-const SECTIONS = [
-  { title: 'تنظیمات کلی', keys: ['brand_name', 'welcome_message', 'rules_text', 'support_contact'] },
-  { title: 'رزرو و پرداخت', keys: ['ticket_price', 'max_tickets_per_person', 'payment_expiry_minutes'] },
-  { title: 'ورود مشتری', keys: ['otp_channels_enabled'] },
-  { title: 'قالب پیام‌های تلگرام', keys: ['tmpl_payment_instructions', 'tmpl_receipt_received', 'tmpl_ticket_confirmed', 'tmpl_reservation_rejected'] },
-  { title: 'قالب پیام‌های ایمیل', keys: ['tmpl_email_otp_subject', 'tmpl_email_otp_body', 'tmpl_email_approved_subject', 'tmpl_email_approved_body', 'tmpl_email_rejected_subject', 'tmpl_email_rejected_body', 'tmpl_email_waitlist_rejected_subject', 'tmpl_email_waitlist_rejected_body'] },
-  { title: 'محتوای سایت (فوتر، درباره، تماس)', keys: ['content_hero_tagline', 'content_quotes', 'content_resume_footer', 'content_about_p1', 'content_about_p2', 'content_footer_tagline', 'content_footer_copyright', 'content_contact_telegram', 'content_contact_instagram', 'content_location'] },
-  // Schema v18: content_mansour_bio/_bio_full removed from here — Mansour
-  // Nasiri's profile (bio included) is now edited from پنل «اعضای خانه
-  // ماورا» → team-edit.html, like every other member, not this generic
-  // settings mechanism.
-  { title: 'محتوای صفحه «همراهی»', keys: ['content_companion_eyebrow', 'content_companion_title', 'content_companion_sub', 'content_companion_p1', 'content_companion_p2', 'content_companion_h3', 'content_companion_li1', 'content_companion_li2', 'content_companion_li3', 'content_companion_li4', 'content_companion_note', 'content_companion_cta_text', 'content_companion_cta_url'] },
-  { title: 'محتوای صفحه «پادکست»', keys: ['content_podcast_eyebrow', 'content_podcast_title', 'content_podcast_sub', 'content_podcast_intro', 'content_podcast_castbox_url', 'content_podcast_apple_url', 'content_podcast_ig_desc', 'content_podcast_ig_url', 'content_podcast_support_eyebrow', 'content_podcast_support_title', 'content_podcast_host', 'content_podcast_card_label', 'content_podcast_card_number'] },
+// ── Tabbed layout ──
+// This page had grown to 11 stacked boxes (~56 fields, 8 of them
+// four-row textareas) in a single column — finding one setting meant a
+// long scroll. Same content, now grouped into 5 tabs with only one
+// panel visible at a time. The tab pills reuse .samples-tabs /
+// .samples-tab-btn from assets/css/styles.css — the same component the
+// public resume page's "نمونه‌کارها" tabs use — rather than inventing a
+// second tab widget.
+//
+// The grouping lives ONLY here: GET /api/v1/admin/settings returns a
+// flat list (from EDITABLE_SETTINGS) and PATCH accepts any subset of
+// keys, so this is purely a frontend arrangement — no backend change.
+//
+// RULE: every key EDITABLE_SETTINGS exposes must appear in exactly one
+// section below. The three ticket_template_* keys are the sole
+// exception — they're edited in the "قالب بلیت PDF" box via
+// /admin/ticket-template, which also handles the logo upload that the
+// generic key/value endpoint has no concept of. (Before this rewrite
+// five keys — payment_reminder_minutes and the payment-reminder /
+// needs-correction email templates — were in EDITABLE_SETTINGS but in
+// no section, so they were invisible here and editable only from the
+// Telegram bot's settings menu.)
+const TABS = [
+  { id: 'general', title: 'عمومی', sections: [
+    { title: 'تنظیمات کلی', keys: ['brand_name', 'welcome_message', 'rules_text', 'support_contact'] },
+    { title: 'ورود مشتری', keys: ['otp_channels_enabled'] },
+  ] },
+  { id: 'payment', title: 'رزرو و پرداخت', sections: [
+    { title: 'رزرو و پرداخت', keys: ['ticket_price', 'max_tickets_per_person', 'payment_expiry_minutes', 'payment_reminder_minutes'] },
+  ] },
+  { id: 'messages', title: 'پیام‌ها', sections: [
+    { title: 'قالب پیام‌های تلگرام', keys: ['tmpl_payment_instructions', 'tmpl_receipt_received', 'tmpl_ticket_confirmed', 'tmpl_reservation_rejected'] },
+    { title: 'قالب پیام‌های ایمیل', keys: ['tmpl_email_otp_subject', 'tmpl_email_otp_body', 'tmpl_email_approved_subject', 'tmpl_email_approved_body', 'tmpl_email_rejected_subject', 'tmpl_email_rejected_body', 'tmpl_email_waitlist_rejected_subject', 'tmpl_email_waitlist_rejected_body', 'tmpl_email_payment_reminder_subject', 'tmpl_email_payment_reminder_body', 'tmpl_email_needs_correction_subject', 'tmpl_email_needs_correction_body'] },
+  ] },
+  { id: 'content', title: 'محتوای سایت', sections: [
+    { title: 'محتوای سایت (فوتر، درباره، تماس)', keys: ['content_hero_tagline', 'content_quotes', 'content_resume_footer', 'content_about_p1', 'content_about_p2', 'content_footer_tagline', 'content_footer_copyright', 'content_contact_telegram', 'content_contact_instagram', 'content_location'] },
+    // Schema v18: content_mansour_bio/_bio_full are NOT here — Mansour
+    // Nasiri's profile (bio included) is edited from پنل «اعضای خانه
+    // ماورا» → team-edit.html, like every other member.
+    { title: 'محتوای صفحه «همراهی»', keys: ['content_companion_eyebrow', 'content_companion_title', 'content_companion_sub', 'content_companion_p1', 'content_companion_p2', 'content_companion_h3', 'content_companion_li1', 'content_companion_li2', 'content_companion_li3', 'content_companion_li4', 'content_companion_note', 'content_companion_cta_text', 'content_companion_cta_url'] },
+    { title: 'محتوای صفحه «پادکست»', keys: ['content_podcast_eyebrow', 'content_podcast_title', 'content_podcast_sub', 'content_podcast_intro', 'content_podcast_castbox_url', 'content_podcast_apple_url', 'content_podcast_ig_desc', 'content_podcast_ig_url', 'content_podcast_support_eyebrow', 'content_podcast_support_title', 'content_podcast_host', 'content_podcast_card_label', 'content_podcast_card_number'] },
+  ] },
+  // The boxes in this tab (and the bank-cards box in "رزرو و پرداخت")
+  // are hand-written markup with their own endpoints, not generic
+  // key/value fields — so they have no `sections` entry; they just live
+  // inside their tab's panel in the HTML above.
+  { id: 'brand', title: 'بلیت و برند', sections: [] },
 ];
+
+// Flat index over every generic section — a section's position here is
+// its stable id, used for both the save button's data-section-idx and
+// its status-message element.
+const ALL_SECTIONS = [];
+TABS.forEach(tab => (tab.sections || []).forEach(section => {
+  section.idx = ALL_SECTIONS.length;
+  ALL_SECTIONS.push(section);
+}));
+
+const TAB_STORAGE_KEY = 'mh_settings_tab';
 let settingsByKey = {};
+let activeTab = TABS[0].id;
 
 async function init() {
+  renderTabs();
+  document.getElementById('settingsSearch').addEventListener('input', applyView);
+  setTab(readSavedTab());
   await Promise.all([loadSettings(), loadCards(), loadTicketTemplate()]);
   loadBrandImages();
+}
+
+function renderTabs() {
+  document.getElementById('settingsTabs').innerHTML = TABS.map(t =>
+    `<button type="button" class="samples-tab-btn" data-tab="${t.id}">${esc(t.title)}</button>`).join('');
+  document.querySelectorAll('#settingsTabs .samples-tab-btn').forEach(btn => {
+    btn.onclick = () => setTab(btn.dataset.tab);
+  });
+}
+
+// Which tab was open last is a UI preference, not application data —
+// same localStorage convention as MavaraTheme in app.js (a raw key, not
+// the `db` JSON wrapper), wrapped in try/catch like site.js's lang()
+// for browsers where storage is unavailable.
+function readSavedTab() {
+  let saved = null;
+  try { saved = localStorage.getItem(TAB_STORAGE_KEY); } catch {}
+  return TABS.some(t => t.id === saved) ? saved : TABS[0].id;
+}
+function setTab(id) {
+  activeTab = id;
+  try { localStorage.setItem(TAB_STORAGE_KEY, id); } catch {}
+  document.querySelectorAll('#settingsTabs .samples-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+  applyView();
+}
+
+// One function owns what's on screen: which tab panel is open AND the
+// quick-search filter. Search filters the ALREADY-RENDERED fields in
+// place (every panel shown, non-matching fields and empty boxes
+// hidden) rather than rendering a second, search-only copy of them —
+// a second copy would duplicate every f_<key> and msg-sec-<n> id in the
+// DOM and break getElementById for saving.
+function applyView() {
+  const q = (document.getElementById('settingsSearch').value || '').trim().toLowerCase();
+  const searching = q.length > 0;
+  document.getElementById('settingsTabs').style.display = searching ? 'none' : '';
+  document.getElementById('searchHint').style.display = searching ? 'block' : 'none';
+  document.querySelectorAll('.tab-panel').forEach(panel => {
+    panel.style.display = (searching || panel.dataset.tab === activeTab) ? 'block' : 'none';
+  });
+
+  let visibleBoxes = 0;
+  document.querySelectorAll('.settings-box').forEach(box => {
+    const fields = box.querySelectorAll('.setting-field');
+    if (!searching) {
+      box.style.display = '';
+      fields.forEach(f => { f.style.display = ''; });
+      const total = box.querySelector('.settings-count');
+      if (total) total.textContent = `${Number(total.dataset.total).toLocaleString('fa-IR')} مورد`;
+      return;
+    }
+    // A box whose own title matches shows all of its fields; otherwise
+    // only the fields that match themselves.
+    const titleHit = (box.dataset.search || '').includes(q);
+    let hits = 0;
+    fields.forEach(f => {
+      const hit = titleHit || f.dataset.search.includes(q);
+      f.style.display = hit ? '' : 'none';
+      if (hit) hits++;
+    });
+    const show = hits > 0 || (titleHit && fields.length === 0);
+    box.style.display = show ? '' : 'none';
+    if (show) visibleBoxes++;
+    // While filtering, the heading counts what's actually on screen —
+    // "۱۳ مورد" above two visible fields would just be confusing.
+    const count = box.querySelector('.settings-count');
+    if (count) count.textContent = `${hits.toLocaleString('fa-IR')} مورد`;
+  });
+  document.getElementById('searchEmpty').style.display = (searching && visibleBoxes === 0) ? 'block' : 'none';
 }
 
 // ── Brand images (phase 3) — each slot overwrites a fixed static file
@@ -126,45 +254,59 @@ async function uploadBrandImage(i) {
 async function loadSettings() {
   const list = await API.settings.list();
   settingsByKey = Object.fromEntries(list.map(s => [s.key, s]));
-  document.getElementById('sections').innerHTML = SECTIONS.map((section, idx) => `
-    <div class="feedback-box" style="margin-bottom:20px">
-      <h4>${esc(section.title)}</h4>
-      ${section.keys.filter(k => settingsByKey[k]).map(k => fieldHTML(settingsByKey[k])).join('')}
-      <button class="btn btn--gold" data-section-idx="${idx}">ذخیره</button>
-      <p id="msg-${cssId(section.title)}" style="display:none;font-size:12.5px;margin-top:8px"></p>
-    </div>`).join('');
+  TABS.forEach(tab => {
+    const mount = document.getElementById('sec-' + tab.id);
+    if (mount) mount.innerHTML = (tab.sections || []).map(sectionHTML).join('');
+  });
   // Bound via addEventListener + closure, not an inline onclick="" —
   // embedding JSON.stringify(section.keys) directly in an onclick="..."
   // attribute put that array's own double quotes inside the outer
   // double-quoted attribute, closing it early and corrupting the
   // handler (same bug class as checkin.html's doCheckin binding).
-  document.querySelectorAll('#sections button[data-section-idx]').forEach(btn => {
-    const section = SECTIONS[Number(btn.dataset.sectionIdx)];
-    btn.onclick = () => saveSection(section);
+  document.querySelectorAll('button[data-section-idx]').forEach(btn => {
+    btn.onclick = () => saveSection(ALL_SECTIONS[Number(btn.dataset.sectionIdx)]);
   });
+  // Re-assert the open tab and any live search filter — this runs after
+  // every save too, which re-renders all sections from scratch.
+  applyView();
 }
 
-function cssId(s) { return s.replace(/[^a-zA-Z0-9]/g, ''); }
+function sectionHTML(section) {
+  const fields = section.keys.filter(k => settingsByKey[k]);
+  return `
+    <div class="feedback-box settings-box" data-search="${esc(section.title.toLowerCase())}" style="margin-bottom:20px">
+      <h4>${esc(section.title)} <span class="settings-count" data-total="${fields.length}" style="font-weight:400;font-size:11.5px;color:var(--text-muted)">${fields.length.toLocaleString('fa-IR')} مورد</span></h4>
+      ${fields.map(k => fieldHTML(settingsByKey[k])).join('')}
+      <button class="btn btn--gold" data-section-idx="${section.idx}">ذخیره</button>
+      <p id="msg-sec-${section.idx}" style="display:none;font-size:12.5px;margin-top:8px"></p>
+    </div>`;
+}
 
 function fieldHTML(s) {
   const hint = s.type === 'int' ? `<span style="color:var(--text-muted);font-size:11px"> (بین ${s.min.toLocaleString('fa-IR')} تا ${s.max.toLocaleString('fa-IR')})</span>` : '';
   const input = s.type === 'textarea'
     ? `<textarea id="f_${s.key}" rows="4" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font-family:inherit;resize:vertical">${esc(s.value)}</textarea>`
     : `<input id="f_${s.key}" type="${s.type === 'int' ? 'number' : 'text'}" value="${esc(s.value)}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;font-family:inherit">`;
-  return `<label style="font-size:12px">${esc(s.label)}${hint}</label>${input}<div style="margin-bottom:12px"></div>`;
+  // The wrapper (and its data-search) is what the quick-search shows or
+  // hides — see applyView(). Matching on the key too, not just the
+  // Persian label, so searching e.g. "podcast" or "tmpl_email" works.
+  return `<div class="setting-field" data-search="${esc((s.label + ' ' + s.key).toLowerCase())}"><label style="font-size:12px">${esc(s.label)}${hint}</label>${input}<div style="margin-bottom:12px"></div></div>`;
 }
 
 async function saveSection(section) {
-  const keys = section.keys;
   const values = {};
-  keys.forEach(k => { if (settingsByKey[k]) values[k] = document.getElementById('f_' + k).value; });
-  const title = section.title;
-  const msg = document.getElementById('msg-' + cssId(title));
+  section.keys.forEach(k => { if (settingsByKey[k]) values[k] = document.getElementById('f_' + k).value; });
+  // The status message is addressed by the section's numeric index, NOT
+  // by a slug of its title: the old cssId() stripped every non-ASCII
+  // character, so all eight Persian titles collapsed to the same empty
+  // string — every section's "ذخیره شد" landed under the first box.
+  const msgId = 'msg-sec-' + section.idx;
+  const msg = document.getElementById(msgId);
   msg.style.display = 'none';
   try {
     await API.settings.update(values);
     await loadSettings();
-    const newMsg = document.getElementById('msg-' + cssId(title));
+    const newMsg = document.getElementById(msgId);
     newMsg.style.display = 'block';
     newMsg.style.color = '#2a7a2a';
     newMsg.textContent = 'ذخیره شد.';

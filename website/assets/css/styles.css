@@ -636,6 +636,21 @@ body:has(.admin-layout){padding-top:0}
 .admin-sidebar a:hover,.admin-sidebar a.active{background:rgba(255,255,255,0.08);color:#fff}
 .admin-sidebar a.active{background:var(--gold-grad);color:var(--navy);font-weight:600}
 .admin-main{flex:1;padding:32px;background:var(--bg-soft);height:100vh;overflow-y:auto}
+/* Admin settings page: tabbed layout. Reuses the public resume page's
+   .samples-tabs/.samples-tab-btn pill component (see above) rather than a
+   second tab widget — these three rules only re-align it for admin (the
+   public one is centred and fit-content; here it starts at the line's
+   edge, fills the column, and wraps). #settingsToolbar must carry an
+   opaque background: it's sticky, and content scrolls behind it. Note the
+   scroll container is .admin-main (height:100vh;overflow-y:auto), not the
+   window — sticky anchors to that, which is exactly what we want. */
+.admin-main .samples-tabs{justify-content:flex-start;width:100%;flex-wrap:wrap;margin:0}
+#settingsToolbar{position:sticky;top:0;z-index:5;background:var(--bg-soft);padding:10px 0 12px;margin-bottom:16px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:10px}
+#settingsSearch{width:100%;padding:10px 16px;border:1px solid var(--border);border-radius:var(--radius-full);font-family:var(--font);font-size:13.5px;background:var(--bg-card);color:var(--text)}
+#settingsSearch:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,162,93,0.18)}
+/* Panels start hidden so nothing flashes before applyView() runs; the
+   open one is switched back on with an inline style. */
+.tab-panel{display:none}
 .admin-login{max-width:360px;margin:110px auto;background:var(--bg-card);padding:44px 40px;border-radius:var(--radius);box-shadow:var(--shadow-lg);text-align:center;border-top:4px solid var(--gold)}
 .admin-login input{width:100%;padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:var(--font);text-align:center;font-size:16px;margin:12px 0}
 .admin-login input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,162,93,0.18)}
@@ -742,6 +757,9 @@ body:has(.admin-layout){padding-top:0}
   .admin-main{height:auto;overflow-y:visible}
   .dash-cols{grid-template-columns:1fr !important}
   .admin-sidebar a,.admin-sidebar button{white-space:nowrap;font-size:12px}
+  /* the settings tab bar wraps to 2-3 rows here — a full pill radius
+     around a multi-row block reads as a blob, so square it off a bit */
+  .admin-main .samples-tabs{border-radius:var(--radius)}
   .form-row{grid-template-columns:1fr}
   .footer-grid{gap:26px}
 }

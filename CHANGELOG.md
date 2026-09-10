@@ -5,6 +5,52 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Admin: the settings page is now tabbed, searchable, and complete
+
+**Why:** reported — the settings page had grown to 11 stacked boxes (~56
+fields, eight of them four-row textareas) in one long column; finding a
+single setting meant scrolling past everything else.
+
+- `pages/admin/settings.html` is now five tabs — عمومی / رزرو و پرداخت /
+  پیام‌ها / محتوای سایت / بلیت و برند — with one panel visible at a time.
+  Nothing was removed or moved between owners: the same boxes, the same
+  fields, the same per-section save buttons and endpoints. Purely a
+  frontend arrangement — `GET /api/v1/admin/settings` returns a flat list
+  and `PATCH` takes any subset of keys, so no backend change was needed.
+- The tab pills **reuse** `.samples-tabs`/`.samples-tab-btn` (the public
+  resume page's "نمونه‌کارها" tabs) rather than adding a second tab
+  widget; the only new CSS is three admin-alignment overrides plus the
+  sticky toolbar and `.tab-panel{display:none}`.
+- Quick search over every setting's Persian label AND its key (so both
+  «کارت» and `tmpl_email` work). While searching, all panels are shown
+  and non-matching fields/boxes are hidden **in place** — a second,
+  search-only rendering of the fields would have duplicated every
+  `f_<key>`/`msg-sec-<n>` id in the DOM and broken saving. A box whose
+  own title matches shows all its fields; each heading's counter switches
+  to the number of matches while filtering.
+- The open tab is remembered in `localStorage` (`mh_settings_tab`), same
+  convention as `MavaraTheme` — a UI preference, raw key, try/catch'd.
+- **Fixed:** every section's "ذخیره شد" used to appear under the *first*
+  box. `cssId()` built the message element's id by stripping non-ASCII
+  characters from the section title — and all eight titles are Persian,
+  so every one collapsed to the same empty string and `msg-` matched
+  whichever element came first. Messages are now addressed by the
+  section's numeric index.
+- **Fixed:** five keys were in `EDITABLE_SETTINGS` but in no section, so
+  they were invisible in the web panel and editable only from the
+  Telegram bot's settings menu — `payment_reminder_minutes` and the four
+  payment-reminder / needs-correction email template fields. All five are
+  now on the page; a check confirms all 64 editable keys are covered
+  exactly once (61 in the tabs + 3 in the ticket-template box).
+- Verified locally: real browser run (Playwright/Chromium) against a
+  disposable database — logged in, confirmed one panel at a time, tab
+  switching, search filtering (including the empty state and the
+  match-count headings), tab memory across a reload, that saving a
+  section puts its confirmation under that same box, that all five
+  newly-reachable keys render, and the wrapped tab bar at mobile width;
+  zero console errors. Backend untouched, so the full suite still passes
+  59/59.
+
 ## Unified resume/profile module: Mansour Nasiri's page and every team member's page now share one system (schema v18)
 
 **Why:** requested — the "درباره‌ی منصور نصیری" page's resume-building,
