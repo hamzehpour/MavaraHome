@@ -48,6 +48,7 @@ from database.repositories import settings as settings_repo
 from database.repositories import faqs as faqs_repo
 from utils.auth import hash_password, verify_password, create_token, verify_token, ACCESS_TOKEN_TTL_SECONDS, REFRESH_TOKEN_TTL_SECONDS
 from utils.qr_signing import verify_signed_code
+from utils import image_processing
 from validators.validators import normalize_phone, is_valid_iranian_mobile, is_valid_full_name, is_valid_email
 from utils.logger import get_logger
 
@@ -109,6 +110,7 @@ _MIME = {
     ".css": "text/css; charset=utf-8", ".json": "application/json; charset=utf-8",
     ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".svg": "image/svg+xml",
     ".webp": "image/webp", ".woff": "font/woff", ".woff2": "font/woff2", ".ico": "image/x-icon",
+    ".gif": "image/gif",
     ".mp4": "video/mp4", ".webm": "video/webm",
 }
 
@@ -831,7 +833,13 @@ class Handler(BaseHTTPRequestHandler):
                 data_url = body.get("data")
                 if not data_url or not isinstance(data_url, str) or not data_url.startswith("data:"):
                     return self._send_json(400, {"error": "validation", "details": "data must be a base64 data URL"})
-                if len(data_url) > 1_500_000 * 4 // 3 + 100:  # base64 inflates size by ~4/3
+                # Raised from 1.5MB now that the server downscales receipts
+                # instead of storing them as sent. The old cap was below what
+                # a phone camera produces (a current iPhone photo is ~2-5MB),
+                # so "photograph your receipt" — the whole point of this
+                # step — was routinely rejected before it reached here.
+                # What lands on disk is ~5-60KB either way.
+                if len(data_url) > 8_000_000 * 4 // 3 + 100:  # base64 inflates size by ~4/3
                     return self._send_json(400, {"error": "receipt_too_large"})
                 match = re.match(r"^data:([^;]+);base64,(.*)$", data_url, re.S)
                 if not match:
@@ -840,6 +848,23 @@ class Handler(BaseHTTPRequestHandler):
                 ext_map = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
                 ext = ext_map.get(mime, ".jpg")
                 import base64, time, random
+                # Until now this endpoint took the client's word for it and
+                # wrote whatever bytes arrived — unlike the admin upload
+                # path, nothing here checked they were an image at all.
+                # Running receipts through the same processor closes that,
+                # shrinks what is usually the largest file in the system (a
+                # raw phone photo), and drops EXIF — which on a phone photo
+                # is the customer's GPS location.
+                try:
+                    receipt_bytes = base64.b64decode(b64)
+                except Exception:
+                    return self._send_json(400, {"error": "validation", "details": "malformed base64 data"})
+                try:
+                    receipt_bytes, ext = image_processing.process_image(receipt_bytes, "receipt")
+                except image_processing.ImageTooLarge:
+                    return self._send_json(400, {"error": "receipt_too_large"})
+                except image_processing.InvalidImage:
+                    return self._send_json(400, {"error": "validation", "details": "file is not a valid image"})
                 safe_name = f"{reservation_id}-{int(time.time() * 1000)}-{random.randint(1000, 9999)}{ext}"
                 # private_media/, NOT media/ — see PRIVATE_MEDIA_ROOT's
                 # comment above. This is the fix for the receipt-leak
@@ -848,7 +873,7 @@ class Handler(BaseHTTPRequestHandler):
                 upload_dir = os.path.join(PRIVATE_MEDIA_ROOT, "receipts")
                 os.makedirs(upload_dir, exist_ok=True)
                 with open(os.path.join(upload_dir, safe_name), "wb") as f:
-                    f.write(base64.b64decode(b64))
+                    f.write(receipt_bytes)
                 receipt_path = f"receipts/{safe_name}"
 
                 # Same service function the Telegram bot uses for a photo
@@ -1210,7 +1235,14 @@ class Handler(BaseHTTPRequestHandler):
                     })
                 ext = ext_map[mime]
                 is_video = mime.startswith("video/")
-                max_bytes = 25 * 1024 * 1024 if is_video else 3 * 1024 * 1024
+                # Raised from 3MB now that images are downscaled on arrival
+                # rather than stored as sent. The old cap predated any
+                # resizing and was below what a phone camera produces — a
+                # 4000x3000 photo is right around 3MB — so it rejected
+                # exactly the uploads that benefit most, while what actually
+                # lands on disk is now tens of KB. The real memory guard is
+                # the pixel-count check in image_processing, not this.
+                max_bytes = 25 * 1024 * 1024 if is_video else 8 * 1024 * 1024
                 import base64
                 try:
                     raw_bytes = base64.b64decode(b64, validate=True)
@@ -1220,28 +1252,21 @@ class Handler(BaseHTTPRequestHandler):
                     limit_label = f"{max_bytes // (1024 * 1024)}MB"
                     return self._send_json(400, {"error": "validation", "details": f"file too large — max {limit_label}"})
                 if not is_video:
+                    # Validation AND downscaling both live in
+                    # utils/image_processing.py — see its module docstring
+                    # for why nothing is cropped here. `ext` comes back from
+                    # the processor rather than from ext_map above, because
+                    # the stored file is usually a WebP now whatever was
+                    # uploaded (brand images and the ticket logo keep their
+                    # required format; an animated GIF is passed through).
                     try:
-                        from PIL import Image
-                        import io
-                        with Image.open(io.BytesIO(raw_bytes)) as img:
-                            img.verify()
-                        # verify() leaves the image unusable for anything
-                        # else (Pillow's own docs say so) — reopen fresh
-                        # just to read dimensions. This is the "اندازه"
-                        # (dimensions) half of the guardrail the file-size
-                        # check above doesn't cover: a huge canvas can pass
-                        # under 3MB (e.g. a flat-color 10000x10000 PNG) and
-                        # still be an unreasonable image to serve as a
-                        # logo/favicon/poster.
-                        with Image.open(io.BytesIO(raw_bytes)) as img2:
-                            w, h = img2.size
-                        MAX_DIM = 4000
-                        if w > MAX_DIM or h > MAX_DIM:
-                            return self._send_json(400, {
-                                "error": "validation",
-                                "details": f"ابعاد تصویر خیلی بزرگ است (حداکثر {MAX_DIM}×{MAX_DIM} پیکسل)",
-                            })
-                    except Exception:
+                        raw_bytes, ext = image_processing.process_image(raw_bytes, kind)
+                    except image_processing.ImageTooLarge:
+                        return self._send_json(400, {
+                            "error": "validation",
+                            "details": f"ابعاد تصویر خیلی بزرگ است (حداکثر {image_processing.MAX_SOURCE_DIM}×{image_processing.MAX_SOURCE_DIM} پیکسل)",
+                        })
+                    except image_processing.InvalidImage:
                         return self._send_json(400, {"error": "validation", "details": "file is not a valid image"})
                 if kind in BRAND_TARGETS:
                     import time

@@ -1258,6 +1258,203 @@ def _t():
 
 
 
+# ---- Server-side image processing (utils/image_processing.py) -----------
+# Nothing used to resize anything: a file landed on disk as uploaded and was
+# served back that way, so a 4000x3000 phone photo shipped 3MB to every
+# visitor of a page showing it in a 900px frame.
+
+def _img_bytes(size, mode="RGB", fmt="JPEG", color=None, **save_kw):
+    from PIL import Image
+    import io as _io
+    if color is None:
+        color = (200, 30, 30, 255) if mode == "RGBA" else (200, 30, 30)
+    buf = _io.BytesIO()
+    Image.new(mode, size, color).save(buf, fmt, **save_kw)
+    return buf.getvalue()
+
+
+def _dims(raw):
+    from PIL import Image
+    import io as _io
+    with Image.open(_io.BytesIO(raw)) as im:
+        return im.size, im.format
+
+
+@test("Image processing: an oversized poster is downscaled to its profile box and re-encoded as WebP")
+def _t():
+    from utils.image_processing import process_image, UPLOAD_PROFILES
+
+    raw = _img_bytes((4000, 3000), quality=92)
+    out, ext = process_image(raw, "poster")
+
+    assert ext == ".webp", f"expected WebP, got {ext}"
+    (w, h), fmt = _dims(out)
+    box = UPLOAD_PROFILES["poster"].box
+    assert w <= box[0] and h <= box[1], f"{w}x{h} exceeds the poster box {box}"
+    assert fmt == "WEBP"
+    assert len(out) < len(raw), "the whole point is that it gets smaller"
+    # Downscale-only: the aspect ratio must survive untouched (no cropping).
+    assert abs((w / h) - (4000 / 3000)) < 0.01, \
+        "processing must not crop — the frame's crop stays a CSS concern"
+
+
+@test("Image processing: an image already under the cap keeps its own size (never upscaled)")
+def _t():
+    from utils.image_processing import process_image
+
+    raw = _img_bytes((120, 90), fmt="PNG")
+    out, _ext = process_image(raw, "poster")
+    (w, h), _fmt = _dims(out)
+    assert (w, h) == (120, 90), f"a small image must be left at its size, got {w}x{h}"
+
+
+@test("Image processing: transparency survives the conversion to WebP")
+def _t():
+    from PIL import Image
+    from utils.image_processing import process_image
+    import io as _io
+
+    raw = _img_bytes((600, 600), mode="RGBA", fmt="PNG", color=(0, 0, 0, 0))
+    out, ext = process_image(raw, "team")
+    assert ext == ".webp"
+    with Image.open(_io.BytesIO(out)) as im:
+        assert im.mode == "RGBA", f"alpha channel lost — mode is {im.mode}"
+        assert im.convert("RGBA").getpixel((0, 0))[3] == 0, "corner pixel should still be transparent"
+
+
+@test("Image processing: an animated GIF is passed through untouched, not flattened")
+def _t():
+    from PIL import Image
+    from utils.image_processing import process_image
+    import io as _io
+
+    frames = [Image.new("P", (1200, 1200), i) for i in (1, 2, 3)]
+    buf = _io.BytesIO()
+    frames[0].save(buf, "GIF", save_all=True, append_images=frames[1:], duration=100, loop=0)
+    raw = buf.getvalue()
+
+    out, ext = process_image(raw, "gallery")
+    assert out == raw, "re-encoding an animated GIF to a still WebP would kill the animation silently"
+    assert ext == ".gif"
+
+
+@test("Image processing: EXIF orientation is applied, so phone photos don't come out sideways")
+def _t():
+    from PIL import Image
+    from utils.image_processing import process_image
+    import io as _io
+
+    # A landscape image tagged "rotate 90°" — a viewer that honours EXIF
+    # shows it as portrait, so the stored pixels must come out portrait too.
+    exif = Image.Exif()
+    exif[274] = 6  # Orientation: rotate 90 CW
+    buf = _io.BytesIO()
+    Image.new("RGB", (1200, 600), (10, 80, 160)).save(buf, "JPEG", exif=exif)
+
+    out, _ext = process_image(buf.getvalue(), "gallery")
+    (w, h), _fmt = _dims(out)
+    assert h > w, f"exif_transpose was not applied — got {w}x{h}, expected a portrait result"
+
+
+@test("Image processing: brand images keep the format their HTML hardcodes")
+def _t():
+    from utils.image_processing import process_image
+
+    out, ext = process_image(_img_bytes((2000, 2000), fmt="PNG"), "brand_logo")
+    assert ext == ".png", f"the site's <img> hardcodes a .png path, got {ext}"
+    (w, h), fmt = _dims(out)
+    assert fmt == "PNG" and w <= 512 and h <= 512
+
+    # ...and the ticket logo stays PNG too, since it is drawn into the PDF.
+    _out2, ext2 = process_image(_img_bytes((1000, 1000), fmt="PNG"), "ticket_logo")
+    assert ext2 == ".png"
+
+
+@test("Image processing: bytes that aren't an image raise InvalidImage rather than being stored")
+def _t():
+    from utils.image_processing import process_image, InvalidImage
+
+    try:
+        process_image(b"#!/bin/sh\nrm -rf /", "poster")
+    except InvalidImage:
+        return
+    raise AssertionError("a renamed script must not be accepted as an image")
+
+
+@test("Image processing: a receipt is shrunk but never cropped, and loses its EXIF")
+def _t():
+    from PIL import Image
+    from utils.image_processing import process_image
+    import io as _io
+
+    # A full-resolution iPhone photo — the single most common receipt.
+    exif = Image.Exif()
+    exif[274] = 1
+    exif[34853] = {1: "N"}  # GPS IFD — what we want gone
+    buf = _io.BytesIO()
+    Image.new("RGB", (4032, 3024), (240, 240, 235)).save(buf, "JPEG", quality=90, exif=exif)
+    raw = buf.getvalue()
+
+    out, _ext = process_image(raw, "receipt")
+    (w, h), _fmt = _dims(out)
+    assert w <= 2000 and h <= 2000, f"receipt not capped: {w}x{h}"
+    assert abs((w / h) - (4032 / 3024)) < 0.01, "a receipt must never be cropped — it has to stay readable"
+    with Image.open(_io.BytesIO(out)) as im:
+        assert not im.getexif().get(34853), "EXIF GPS must not be carried into stored receipts"
+
+
+@test("Image processing: 4032px phone photos are accepted (the old 4000px cap blocked them)")
+def _t():
+    from utils.image_processing import process_image, MAX_SOURCE_DIM, ImageTooLarge
+
+    assert MAX_SOURCE_DIM >= 4032, \
+        "a current iPhone photo is 4032px wide — capping below that rejects 'photograph your receipt'"
+    out, _ext = process_image(_img_bytes((4032, 3024), quality=85), "receipt")
+    assert out
+
+    try:
+        process_image(_img_bytes((9000, 10), fmt="PNG"), "gallery")
+    except ImageTooLarge:
+        return
+    raise AssertionError("the decode-bomb guard must still reject absurd dimensions")
+
+
+@test("Upload hints in the admin panel match UPLOAD_PROFILES")
+def _t():
+    # The hint under each upload field promises a size. That promise is only
+    # true while it agrees with the profile the server actually enforces —
+    # so this fails if someone changes one without the other.
+    from pathlib import Path as _Path
+    from utils.image_processing import UPLOAD_PROFILES
+
+    def _fa(n):
+        return str(n).translate(str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹"))
+
+    panel = _Path(__file__).resolve().parent.parent / "website" / "pages" / "admin"
+    html = "\n".join(
+        (panel / name).read_text(encoding="utf-8")
+        for name in ("event-edit.html", "team-edit.html", "settings.html")
+    )
+    expected = {
+        "poster": "event-edit.html", "gallery": "event-edit.html",
+        "portfolio": "team-edit.html", "team": "team-edit.html",
+        "ticket_logo": "settings.html", "brand_logo": "settings.html",
+        "brand_favicon": "settings.html", "brand_og_image": "settings.html",
+    }
+    missing = []
+    for kind, where in expected.items():
+        w, h = UPLOAD_PROFILES[kind].box
+        # Square profiles are written "۴۰۰×۴۰۰"; a box cap is written as its
+        # larger side for galleries ("۱۶۰۰") and as WxH otherwise.
+        candidates = [f"{_fa(w)}×{_fa(h)}"] if w != h else [f"{_fa(w)}×{_fa(h)}"]
+        if kind == "gallery":
+            candidates = [_fa(max(w, h))]
+        if not any(c in html for c in candidates):
+            missing.append(f"{kind} (expected {candidates[0]} in {where})")
+    assert not missing, "upload hints disagree with UPLOAD_PROFILES: " + "; ".join(missing)
+
+
+
 def main() -> None:
     print("=" * 60)
     print("  MAVARA BOT — AUTOMATED TEST SUITE")

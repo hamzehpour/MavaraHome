@@ -28,11 +28,11 @@
                 <input id="evTel" placeholder="بدون @ — مثلاً: mavarahome" dir="ltr" style="text-align:left">
                 <p style="font-size:11.5px;color:var(--text-muted);margin:2px 0 10px">این دو مورد به‌صورت دکمه‌ی «رزرو» روی صفحه‌ی این رویداد نمایش داده می‌شوند — رزرو واقعی در تلگرام انجام می‌شود.</p>
                 <label>پوستر رویداد</label>
-                <p class="upload-hint">بهترین اندازه: <b>۹۰۰×۱۰۰۰ پیکسل</b> (نسبت ۹:۱۰ — کمی عمودی). تصویر برای پر کردن این نسبت <b>از مرکز کراپ می‌شود</b>، پس سوژه‌ی اصلی را وسط کادر بگذارید. JPG یا WebP، حداکثر ۳ مگابایت.</p>
+                <p class="upload-hint">بهترین اندازه: <b>۹۰۰×۱۰۰۰ پیکسل</b> (نسبت ۹:۱۰ — کمی عمودی). تصویر برای پر کردن این نسبت <b>از مرکز کراپ می‌شود</b>، پس سوژه‌ی اصلی را وسط کادر بگذارید. JPG یا WebP، حداکثر ۸ مگابایت.</p>
                 <input type="file" id="evPosterFile" accept="image/*">
                 <div id="evPosterPreview" style="margin-top:8px"></div>
                 <label style="margin-top:14px">گالری عکس رویداد (چند عکس هم‌زمان قابل انتخاب است)</label>
-                <p class="upload-hint">بهترین اندازه: ضلع بلند دست‌کم <b>۱۶۰۰ پیکسل</b>، هر نسبتی. با کلیک، عکس <b>کامل و بدون کراپ</b> بزرگ می‌شود؛ فقط بندانگشتی‌اش مربع (۱:۱) از مرکز کراپ می‌شود. هر عکس حداکثر ۳ مگابایت.</p>
+                <p class="upload-hint">بهترین اندازه: ضلع بلند دست‌کم <b>۱۶۰۰ پیکسل</b>، هر نسبتی. با کلیک، عکس <b>کامل و بدون کراپ</b> بزرگ می‌شود؛ فقط بندانگشتی‌اش مربع (۱:۱) از مرکز کراپ می‌شود. هر عکس حداکثر ۸ مگابایت.</p>
                 <input type="file" id="evGalleryFiles" accept="image/*" multiple>
                 <div id="evGalleryPreview" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"></div>
                 <label style="margin-top:14px">ویدیوی رویداد (فایل یا لینک)</label>
@@ -107,11 +107,18 @@ function logout() { API.auth.logout(); window.location.href = 'login.html'; }
 // Poster/gallery previews, each with a remove button — removing here
 // only updates the in-memory evPoster/evGallery + preview, takes effect
 // once the admin clicks "💾 ذخیره".
+// The preview shows the poster inside the REAL frame shape (.event-cover's
+// 3/3.35, object-fit:cover), not the whole image. The old full-image
+// preview is precisely why the crop was a surprise: the panel showed one
+// thing and the site showed another.
 function renderEvPosterPreview() {
     document.getElementById('evPosterPreview').innerHTML = evPoster
-        ? `<div style="display:flex;align-items:center;gap:10px">
-             <img src="/${evPoster}" style="max-width:160px;border-radius:8px">
-             <button type="button" class="btn btn--outline btn--sm" style="font-size:11px;padding:4px 10px;color:#c44" onclick="removeEvPoster()">🗑️ حذف پوستر</button>
+        ? `<div class="crop-preview">
+             <div class="crop-frame" style="--ar:3/3.35"><img src="/${evPoster}"></div>
+             <div class="crop-side">
+               <div class="crop-caption">دقیقاً همین کادر روی سایت دیده می‌شود. اگر بخشی از پوستر بیرون افتاده، تصویری با نسبت ۹:۱۰ آپلود کنید.</div>
+               <button type="button" class="btn btn--outline btn--sm" style="font-size:11px;padding:4px 10px;color:#c44" onclick="removeEvPoster()">🗑️ حذف پوستر</button>
+             </div>
            </div>`
         : '';
 }

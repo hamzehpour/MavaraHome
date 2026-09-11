@@ -689,6 +689,20 @@ body:has(.admin-layout){padding-top:0}
    with it. The full table is in docs/05-frontend-and-design.md. */
 .upload-hint{font-size:11.5px;line-height:1.85;color:var(--text-muted);margin:6px 0 4px}
 .upload-hint b{color:var(--text);font-weight:600}
+/* Preview of an uploaded image inside the SHAPE it will actually be shown
+   in — same aspect-ratio, same object-fit:cover as the public frame. The
+   plain max-width preview it replaces showed the whole image, so the crop
+   only became visible on the live site. --ar is set per upload point. */
+.crop-preview{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.crop-preview .crop-frame{
+  position:relative;width:130px;aspect-ratio:var(--ar,1);flex-shrink:0;
+  border-radius:10px;overflow:hidden;background:var(--navy);
+  border:1px solid var(--border);box-shadow:var(--shadow-sm);
+}
+.crop-preview .crop-frame.is-circle{border-radius:50%;width:110px}
+.crop-preview .crop-frame img{width:100%;height:100%;object-fit:cover;display:block}
+.crop-preview .crop-side{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.crop-preview .crop-caption{font-size:11px;line-height:1.7;color:var(--text-muted);max-width:200px}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:12px 28px;border-radius:var(--radius-full);font-size:14px;font-weight:600;z-index:3000;animation:toastAnim 3s ease forwards;pointer-events:none;background:#2a7a2a;color:#fff}
 @keyframes toastAnim{0%{opacity:0;transform:translateX(-50%) translateY(20px)}10%{opacity:1;transform:translateX(-50%) translateY(0)}80%{opacity:1}100%{opacity:0}}
 

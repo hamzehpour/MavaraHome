@@ -150,7 +150,11 @@ const API = {
       await apiFetchAdmin(`/admin/portfolio/${id}`, { method: 'DELETE' });
       await this.refresh();
     },
-    async uploadMedia(file, kind) {
+    // `kind` used to be accepted and then ignored, with 'portfolio'
+    // hardcoded. Harmless while it only decided a subfolder; not harmless
+    // now that the server picks a resize profile from it — a gallery image
+    // would have been capped at the poster's 900x1200 instead of 1600.
+    async uploadMedia(file, kind = 'portfolio') {
       const dataUrl = await new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result);
@@ -158,7 +162,7 @@ const API = {
         reader.readAsDataURL(file);
       });
       const result = await apiFetchAdmin('/admin/upload', {
-        method: 'POST', body: JSON.stringify({ data: dataUrl, filename: file.name, kind: 'portfolio' }),
+        method: 'POST', body: JSON.stringify({ data: dataUrl, filename: file.name, kind }),
       });
       return result.path;
     },

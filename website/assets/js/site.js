@@ -73,7 +73,7 @@ const I18N = {
     bk_waitlist_done: 'درخواستت در لیست انتظار ثبت شد؛ اگر ظرفیتی آزاد شود، با شما تماس می‌گیریم.',
     bk_submit_error: 'ثبت رزرو با خطا مواجه شد — لطفاً دوباره تلاش کن یا از تلگرام با ما در تماس باش.',
     bk_file_type_error: 'فقط فایل تصویری (مثل jpg یا png) پذیرفته می‌شود.',
-    bk_file_size_error: 'حجم فایل باید کمتر از ۱.۵ مگابایت باشد.',
+    bk_file_size_error: 'حجم فایل باید کمتر از ۸ مگابایت باشد.',
     bk_file_required_error: 'ارسال رسید پرداخت برای ثبت رزرو الزامی است.',
     bk_no_receipt_note: 'برای نهایی‌شدن رزرو، رسید پرداخت را هر وقت آماده بود از طریق تلگرام برایمان بفرست.',
     bk_back: 'بازگشت', bk_continue: 'ادامه', bk_edit: 'ویرایش',
@@ -84,7 +84,7 @@ const I18N = {
     support_tg_label: 'اکانت تلگرام خانه ماورا', support_phone_label: 'شماره موبایل ', support_and: ' یا ',
     support_suffix: ' با ما در ارتباط باشید.',
     pay_title: 'پرداخت (کارت به کارت)', pay_upload_label: 'ارسال رسید پرداخت',
-    pay_upload_hint: 'برای نهایی‌شدن رزرو، رسید پرداخت را همین‌جا بارگذاری کن. عکس یا اسکرین‌شات — JPG، PNG یا WebP، حداکثر ۳ مگابایت. رسید کراپ نمی‌شود؛ فقط مطمئن شو مبلغ، تاریخ و شماره پیگیری در کادر و خوانا باشند.',
+    pay_upload_hint: 'برای نهایی‌شدن رزرو، رسید پرداخت را همین‌جا بارگذاری کن. عکس یا اسکرین‌شات — JPG، PNG یا WebP، حداکثر ۸ مگابایت — مستقیم از دوربین گوشی هم اشکالی ندارد، سرور خودش کوچکش می‌کند. رسید کراپ نمی‌شود؛ فقط مطمئن شو مبلغ، تاریخ و شماره پیگیری در کادر و خوانا باشند.',
     pay_upload_choose: 'انتخاب فایل', pay_upload_none: 'فایلی انتخاب نشده',
     pay_ok: 'رسید پرداختت هم دریافت شد؛ پس از بررسی ادمین، تاییدیه‌ی نهایی به ایمیلت ارسال می‌شود.',
     pay_fallback: 'اطلاعات کارت هنوز تنظیم نشده — برای دریافت شماره کارت از تلگرام با ما در تماس باش.',
@@ -165,7 +165,7 @@ const I18N = {
     bk_waitlist_done: "You're on the waiting list — we'll reach out if a seat opens up.",
     bk_submit_error: "We couldn't complete your reservation — please try again, or reach us on Telegram.",
     bk_file_type_error: 'Please choose an image file (jpg, png, etc.).',
-    bk_file_size_error: 'The file must be smaller than 1.5MB.',
+    bk_file_size_error: 'The file must be smaller than 8MB.',
     bk_file_required_error: 'Uploading a payment receipt is required to complete the reservation.',
     bk_no_receipt_note: "To finalize your reservation, send us the payment receipt on Telegram whenever it's ready.",
     bk_back: 'Back', bk_continue: 'Continue', bk_edit: 'Edit',
@@ -176,7 +176,7 @@ const I18N = {
     support_tg_label: 'Mavara Home on Telegram', support_phone_label: 'the number ', support_and: ' or ',
     support_suffix: '.',
     pay_title: 'Payment (bank transfer)', pay_upload_label: 'Upload payment receipt',
-    pay_upload_hint: 'Upload the payment receipt here to finalize your reservation. A photo or screenshot — JPG, PNG or WebP, up to 3MB. Receipts are never cropped; just make sure the amount, date and reference number are inside the frame and legible.',
+    pay_upload_hint: 'Upload the payment receipt here to finalize your reservation. A photo or screenshot — JPG, PNG or WebP, up to 8MB — straight from your phone camera is fine, the server shrinks it. Receipts are never cropped; just make sure the amount, date and reference number are inside the frame and legible.',
     pay_upload_choose: 'Choose file', pay_upload_none: 'No file chosen',
     pay_ok: "Receipt received too — you'll get a confirmation email once it's reviewed.",
     pay_fallback: 'Card details are not set up yet — message us on Telegram for the card number.',
@@ -1093,7 +1093,7 @@ function handleReceiptSubmit(ev) {
   };
   if (!file) { showReceiptError(T('bk_file_required_error')); return; }
   if (!file.type.startsWith('image/')) { showReceiptError(T('bk_file_type_error')); return; }
-  if (file.size > 1_500_000) { showReceiptError(T('bk_file_size_error')); return; }
+  if (file.size > 8_000_000) { showReceiptError(T('bk_file_size_error')); return; }
   submitReceiptStep(file);
 }
 async function submitReceiptStep(file) {

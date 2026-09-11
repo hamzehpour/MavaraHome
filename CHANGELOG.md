@@ -5,6 +5,123 @@ went from v6 to v7 (additive only — see `database/schema.py`, every change
 is `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`, nothing
 dropped or rewritten).
 
+## Images are resized on the server instead of being stored as uploaded
+
+*2026-09-11*
+
+**Why:** follow-up to the upload hints. The hints told the admin what size
+to use; nothing enforced it, because nothing resized anything — a file
+landed on disk exactly as uploaded and was served back the same way, so a
+4000x3000 phone photo shipped 3MB to every visitor of a page that showed it
+in a 900px frame.
+
+Measured on a realistic 4000x3000 JPEG (3.04MB):
+
+| Destination | Result | Saving |
+|---|---|---|
+| poster (900x1000) | 900x675 WebP, 62KB | **98%** |
+| gallery (1600) | 1600x1200 WebP, 263KB | **91%** |
+| member photo (400x400) | 400x300 WebP, 5KB | **99.8%** |
+
+Honest split: the dimension cap is nearly all of it, WebP adds another
+10-14% over JPEG at these sizes.
+
+### New: `bot/utils/image_processing.py`
+
+One function, `process_image(raw, kind) -> (bytes, ext)`, driven by an
+`UPLOAD_PROFILES` table whose box sizes are the same numbers the panel's
+hints promise. In order: verify the bytes are an image → reject over 40
+megapixels (a decode-bomb guard; `Image.open` is lazy so reading `.size`
+first is cheap) → pass an animated GIF through untouched → apply EXIF
+orientation → `thumbnail()` to the profile box → encode.
+
+Three deliberate choices worth knowing:
+
+- **It never crops.** Cropping stays a CSS concern, so a frame's
+  aspect-ratio can change later without every stored image becoming wrong.
+- **`thumbnail()`, not `resize()`** — preserves aspect and never scales
+  *up*, so an image already under the cap keeps its own size.
+- **`ImageOps.exif_transpose` is load-bearing.** Phone cameras record
+  orientation in EXIF rather than rotating pixels; re-encoding without
+  applying it first is how an upload comes out sideways.
+
+Anything unexpected during the transform is swallowed and the **original
+bytes are stored** — an upload must never fail because the optimisation
+did. EXIF is deliberately not carried over, which also means a customer's
+GPS location stops being stored with their receipt photo.
+
+Exceptions to WebP: the three brand images keep the format their HTML
+hardcodes, and the ticket logo stays PNG — reportlab does read WebP
+(verified), but the saving on a small logo is negligible and it isn't worth
+putting an untested format into the path that generates customers' tickets.
+
+### Receipts go through it too
+
+`POST /api/v1/reservations/<id>/receipt` **had no image validation at
+all** — unlike the admin path, nothing checked the bytes were an image.
+Same processor now covers it: real validation, a 2000px cap (generous, and
+never cropped, because an admin has to read the amount and reference number
+off it), and EXIF stripping.
+
+### Two byte caps raised, because they blocked the feature
+
+Both predated any resizing and sat below what a phone camera produces, so
+they rejected exactly the uploads that benefit most:
+
+- admin images **3MB → 8MB** (a 4000x3000 photo is right at 3MB — this is
+  what made the first end-to-end test 400)
+- customer receipts **1.5MB → 8MB** (client-side check, server guard, and
+  the error message in both languages)
+
+The per-side source limit went 4000 → 8000 for the same reason: a current
+iPhone photo is 4032px wide, so "photograph your receipt" hit the guard
+head-on. The real memory bound is now the 40MP pixel-count check. What
+lands on disk is tens of KB either way.
+
+### Admin previews now show the real crop
+
+The preview under each upload was a plain `max-width` image — the admin saw
+the whole picture and the site showed a cropped one. Each now sits in a
+frame with the same aspect-ratio and `object-fit: cover` as the public one
+(`.crop-preview`): 3/3.35 for an event poster, 3/4 for a resume work, a
+circle for a member photo.
+
+### Also fixed
+
+- `API.portfolio.uploadMedia(file, kind)` accepted `kind` and ignored it,
+  hardcoding `'portfolio'`. Harmless while it only picked a subfolder; not
+  harmless once the server picks a **resize profile** from it — a gallery
+  image would have been capped at the poster's 900x1200 instead of 1600.
+- `.gif` was missing from the served MIME map, so an uploaded GIF came back
+  as `application/octet-stream` and downloaded instead of rendering.
+
+### `bot/reprocess_media.py` for what is already on disk
+
+Walks `bot/media/` (and `private_media/receipts/` with `--receipts`) and
+re-encodes through the same profiles. Dry-run by default; `--apply` backs
+every file up first. **It never changes a file's extension** — the path is
+stored in the database (`events.poster`, `gallery` JSON, …) and renaming
+would break every pointer, so files keep their name and format and only
+lose pixels. Verified on seeded fixtures: 4.86MB → 574KB (88.5%), backups
+recoverable, and re-running it changes nothing.
+
+**Verified locally:** 81/81 tests (10 new — including one that fails if the
+panel's hint text and `UPLOAD_PROFILES` ever disagree; proven by changing a
+profile and watching it go red). End-to-end through a real Chromium
+session: a 3.04MB 4000x3000 JPEG uploaded through the panel stored as
+900x675 WebP at 62.6KB, served as `image/webp`, rendering on the public
+events page through `pp()`, preview frame computing to `3 / 3.35` +
+`cover`, zero console errors. A **real ticket PDF** was generated with a
+processed logo and rendered to confirm the logo is drawn, not silently
+skipped. A 4032x3024 receipt was POSTed through the actual endpoint and
+came back 2000x1500 with the amount, date and reference number still
+legible and no EXIF. Processing takes 340-620ms; the API is a
+`ThreadingHTTPServer`, so other requests aren't blocked.
+
+**Deploy:** restart **both** services. No migration, no new dependency
+(Pillow was already pinned and already decoding every upload). Existing
+images are untouched until `reprocess_media.py` is run.
+
 ## Every image upload now says what size to use and how it will be cropped
 
 *2026-09-10*

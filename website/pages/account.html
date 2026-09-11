@@ -139,7 +139,7 @@ function reservationCard(r) {
           <input type="file" accept="image/*" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)" onchange="resubmitReceipt(${Number(r.id)}, this)">
         </label>
         <span id="resubmitStatus_${Number(r.id)}" style="font-size:12px;color:var(--text-muted);margin-inline-start:8px"></span>
-        <p class="upload-hint">عکس یا اسکرین‌شات رسید — JPG، PNG یا WebP، حداکثر ۳ مگابایت. کراپ نمی‌شود؛ فقط مبلغ، تاریخ و شماره پیگیری خوانا باشند.</p>
+        <p class="upload-hint">عکس یا اسکرین‌شات رسید — JPG، PNG یا WebP، حداکثر ۸ مگابایت (سرور خودش کوچکش می‌کند). کراپ نمی‌شود؛ فقط مبلغ، تاریخ و شماره پیگیری خوانا باشند.</p>
       </div>` : ''}
   </div>`;
 }
